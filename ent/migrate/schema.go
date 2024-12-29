@@ -13,6 +13,7 @@ var (
 	DocumentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "content", Type: field.TypeString, Size: 2147483647},
+		{Name: "description", Type: field.TypeString, Size: 2147483647},
 		{Name: "embedding", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "vector(1536)"}},
 	}
 	// DocumentsTable holds the schema information for the "documents" table.
@@ -24,7 +25,7 @@ var (
 			{
 				Name:    "document_embedding",
 				Unique:  false,
-				Columns: []*schema.Column{DocumentsColumns[2]},
+				Columns: []*schema.Column{DocumentsColumns[3]},
 				Annotation: &entsql.IndexAnnotation{
 					OpClass: "vector_l2_ops",
 					Type:    "hnsw",

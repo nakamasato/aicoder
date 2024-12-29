@@ -17,6 +17,7 @@ func Command() *cobra.Command {
 	}
 	dbCmd.AddCommand(
 		migrateCommand(),
+		resetCommand(),
 	)
 	return dbCmd
 }

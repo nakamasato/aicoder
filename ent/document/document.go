@@ -13,6 +13,8 @@ const (
 	FieldID = "id"
 	// FieldContent holds the string denoting the content field in the database.
 	FieldContent = "content"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
 	// FieldEmbedding holds the string denoting the embedding field in the database.
 	FieldEmbedding = "embedding"
 	// Table holds the table name of the document in the database.
@@ -23,6 +25,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldContent,
+	FieldDescription,
 	FieldEmbedding,
 }
 
@@ -47,6 +50,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByContent orders the results by the content field.
 func ByContent(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldContent, opts...).ToFunc()
+}
+
+// ByDescription orders the results by the description field.
+func ByDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }
 
 // ByEmbedding orders the results by the embedding field.

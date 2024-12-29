@@ -10,6 +10,7 @@ require (
 	github.com/openai/openai-go v0.1.0-alpha.41
 	github.com/pgvector/pgvector-go v0.2.2
 	github.com/spf13/cobra v1.8.1
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (

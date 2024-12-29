@@ -34,6 +34,7 @@ type DocumentMutation struct {
 	typ           string
 	id            *int64
 	content       *string
+	description   *string
 	embedding     *pgvector.Vector
 	clearedFields map[string]struct{}
 	done          bool
@@ -181,6 +182,42 @@ func (m *DocumentMutation) ResetContent() {
 	m.content = nil
 }
 
+// SetDescription sets the "description" field.
+func (m *DocumentMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *DocumentMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Document entity.
+// If the Document object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DocumentMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *DocumentMutation) ResetDescription() {
+	m.description = nil
+}
+
 // SetEmbedding sets the "embedding" field.
 func (m *DocumentMutation) SetEmbedding(pg pgvector.Vector) {
 	m.embedding = &pg
@@ -251,9 +288,12 @@ func (m *DocumentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *DocumentMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 3)
 	if m.content != nil {
 		fields = append(fields, document.FieldContent)
+	}
+	if m.description != nil {
+		fields = append(fields, document.FieldDescription)
 	}
 	if m.embedding != nil {
 		fields = append(fields, document.FieldEmbedding)
@@ -268,6 +308,8 @@ func (m *DocumentMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case document.FieldContent:
 		return m.Content()
+	case document.FieldDescription:
+		return m.Description()
 	case document.FieldEmbedding:
 		return m.Embedding()
 	}
@@ -281,6 +323,8 @@ func (m *DocumentMutation) OldField(ctx context.Context, name string) (ent.Value
 	switch name {
 	case document.FieldContent:
 		return m.OldContent(ctx)
+	case document.FieldDescription:
+		return m.OldDescription(ctx)
 	case document.FieldEmbedding:
 		return m.OldEmbedding(ctx)
 	}
@@ -298,6 +342,13 @@ func (m *DocumentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetContent(v)
+		return nil
+	case document.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
 		return nil
 	case document.FieldEmbedding:
 		v, ok := value.(pgvector.Vector)
@@ -357,6 +408,9 @@ func (m *DocumentMutation) ResetField(name string) error {
 	switch name {
 	case document.FieldContent:
 		m.ResetContent()
+		return nil
+	case document.FieldDescription:
+		m.ResetDescription()
 		return nil
 	case document.FieldEmbedding:
 		m.ResetEmbedding()

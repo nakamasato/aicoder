@@ -26,6 +26,12 @@ func (dc *DocumentCreate) SetContent(s string) *DocumentCreate {
 	return dc
 }
 
+// SetDescription sets the "description" field.
+func (dc *DocumentCreate) SetDescription(s string) *DocumentCreate {
+	dc.mutation.SetDescription(s)
+	return dc
+}
+
 // SetEmbedding sets the "embedding" field.
 func (dc *DocumentCreate) SetEmbedding(pg pgvector.Vector) *DocumentCreate {
 	dc.mutation.SetEmbedding(pg)
@@ -75,6 +81,9 @@ func (dc *DocumentCreate) check() error {
 	if _, ok := dc.mutation.Content(); !ok {
 		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "Document.content"`)}
 	}
+	if _, ok := dc.mutation.Description(); !ok {
+		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "Document.description"`)}
+	}
 	if _, ok := dc.mutation.Embedding(); !ok {
 		return &ValidationError{Name: "embedding", err: errors.New(`ent: missing required field "Document.embedding"`)}
 	}
@@ -113,6 +122,10 @@ func (dc *DocumentCreate) createSpec() (*Document, *sqlgraph.CreateSpec) {
 	if value, ok := dc.mutation.Content(); ok {
 		_spec.SetField(document.FieldContent, field.TypeString, value)
 		_node.Content = value
+	}
+	if value, ok := dc.mutation.Description(); ok {
+		_spec.SetField(document.FieldDescription, field.TypeString, value)
+		_node.Description = value
 	}
 	if value, ok := dc.mutation.Embedding(); ok {
 		_spec.SetField(document.FieldEmbedding, field.TypeOther, value)

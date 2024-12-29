@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/pkg/vectorutils"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/pgvector/pgvector-go"
@@ -123,6 +124,7 @@ func fetchSimilarDocuments(ctx context.Context, entClient *ent.Client, queryEmbe
 		Order(func(s *sql.Selector) {
 			s.OrderExpr(sql.ExprP("embedding <-> $1", vector))
 		}).
+		Select("content", "embedding").
 		Limit(topN).
 		All(ctx)
 	if err != nil {
@@ -131,11 +133,11 @@ func fetchSimilarDocuments(ctx context.Context, entClient *ent.Client, queryEmbe
 
 	var results []SearchResult
 	for _, doc := range docs {
-
+		distance := vectorutils.EuclideanDistance(doc.Embedding.Slice(), queryEmbedding)
 		results = append(results, SearchResult{
 			Path:        doc.Content,
 			Description: "",
-			// Score:       doc.,
+			Score:       distance,
 		})
 	}
 

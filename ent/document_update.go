@@ -42,6 +42,20 @@ func (du *DocumentUpdate) SetNillableContent(s *string) *DocumentUpdate {
 	return du
 }
 
+// SetDescription sets the "description" field.
+func (du *DocumentUpdate) SetDescription(s string) *DocumentUpdate {
+	du.mutation.SetDescription(s)
+	return du
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (du *DocumentUpdate) SetNillableDescription(s *string) *DocumentUpdate {
+	if s != nil {
+		du.SetDescription(*s)
+	}
+	return du
+}
+
 // SetEmbedding sets the "embedding" field.
 func (du *DocumentUpdate) SetEmbedding(pg pgvector.Vector) *DocumentUpdate {
 	du.mutation.SetEmbedding(pg)
@@ -100,6 +114,9 @@ func (du *DocumentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := du.mutation.Content(); ok {
 		_spec.SetField(document.FieldContent, field.TypeString, value)
 	}
+	if value, ok := du.mutation.Description(); ok {
+		_spec.SetField(document.FieldDescription, field.TypeString, value)
+	}
 	if value, ok := du.mutation.Embedding(); ok {
 		_spec.SetField(document.FieldEmbedding, field.TypeOther, value)
 	}
@@ -133,6 +150,20 @@ func (duo *DocumentUpdateOne) SetContent(s string) *DocumentUpdateOne {
 func (duo *DocumentUpdateOne) SetNillableContent(s *string) *DocumentUpdateOne {
 	if s != nil {
 		duo.SetContent(*s)
+	}
+	return duo
+}
+
+// SetDescription sets the "description" field.
+func (duo *DocumentUpdateOne) SetDescription(s string) *DocumentUpdateOne {
+	duo.mutation.SetDescription(s)
+	return duo
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (duo *DocumentUpdateOne) SetNillableDescription(s *string) *DocumentUpdateOne {
+	if s != nil {
+		duo.SetDescription(*s)
 	}
 	return duo
 }
@@ -224,6 +255,9 @@ func (duo *DocumentUpdateOne) sqlSave(ctx context.Context) (_node *Document, err
 	}
 	if value, ok := duo.mutation.Content(); ok {
 		_spec.SetField(document.FieldContent, field.TypeString, value)
+	}
+	if value, ok := duo.mutation.Description(); ok {
+		_spec.SetField(document.FieldDescription, field.TypeString, value)
 	}
 	if value, ok := duo.mutation.Embedding(); ok {
 		_spec.SetField(document.FieldEmbedding, field.TypeOther, value)

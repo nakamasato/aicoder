@@ -1,0 +1,8 @@
+load:
+  exclude_dirs:
+    - ent
+  include:
+    - ent/schema
+
+search:
+  top_n: 5

@@ -19,6 +19,7 @@ func (Document) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id"),
 		field.Text("content"),
+		field.Text("description"),
 		field.Other("embedding", pgvector.Vector{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "vector(1536)",

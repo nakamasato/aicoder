@@ -19,6 +19,8 @@ type Document struct {
 	ID int64 `json:"id,omitempty"`
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
+	// Description holds the value of the "description" field.
+	Description string `json:"description,omitempty"`
 	// Embedding holds the value of the "embedding" field.
 	Embedding    pgvector.Vector `json:"embedding,omitempty"`
 	selectValues sql.SelectValues
@@ -33,7 +35,7 @@ func (*Document) scanValues(columns []string) ([]any, error) {
 			values[i] = new(pgvector.Vector)
 		case document.FieldID:
 			values[i] = new(sql.NullInt64)
-		case document.FieldContent:
+		case document.FieldContent, document.FieldDescription:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -61,6 +63,12 @@ func (d *Document) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field content", values[i])
 			} else if value.Valid {
 				d.Content = value.String
+			}
+		case document.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				d.Description = value.String
 			}
 		case document.FieldEmbedding:
 			if value, ok := values[i].(*pgvector.Vector); !ok {
@@ -106,6 +114,9 @@ func (d *Document) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", d.ID))
 	builder.WriteString("content=")
 	builder.WriteString(d.Content)
+	builder.WriteString(", ")
+	builder.WriteString("description=")
+	builder.WriteString(d.Description)
 	builder.WriteString(", ")
 	builder.WriteString("embedding=")
 	builder.WriteString(fmt.Sprintf("%v", d.Embedding))

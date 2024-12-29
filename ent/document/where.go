@@ -58,6 +58,11 @@ func Content(v string) predicate.Document {
 	return predicate.Document(sql.FieldEQ(FieldContent, v))
 }
 
+// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
+func Description(v string) predicate.Document {
+	return predicate.Document(sql.FieldEQ(FieldDescription, v))
+}
+
 // Embedding applies equality check predicate on the "embedding" field. It's identical to EmbeddingEQ.
 func Embedding(v pgvector.Vector) predicate.Document {
 	return predicate.Document(sql.FieldEQ(FieldEmbedding, v))
@@ -126,6 +131,71 @@ func ContentEqualFold(v string) predicate.Document {
 // ContentContainsFold applies the ContainsFold predicate on the "content" field.
 func ContentContainsFold(v string) predicate.Document {
 	return predicate.Document(sql.FieldContainsFold(FieldContent, v))
+}
+
+// DescriptionEQ applies the EQ predicate on the "description" field.
+func DescriptionEQ(v string) predicate.Document {
+	return predicate.Document(sql.FieldEQ(FieldDescription, v))
+}
+
+// DescriptionNEQ applies the NEQ predicate on the "description" field.
+func DescriptionNEQ(v string) predicate.Document {
+	return predicate.Document(sql.FieldNEQ(FieldDescription, v))
+}
+
+// DescriptionIn applies the In predicate on the "description" field.
+func DescriptionIn(vs ...string) predicate.Document {
+	return predicate.Document(sql.FieldIn(FieldDescription, vs...))
+}
+
+// DescriptionNotIn applies the NotIn predicate on the "description" field.
+func DescriptionNotIn(vs ...string) predicate.Document {
+	return predicate.Document(sql.FieldNotIn(FieldDescription, vs...))
+}
+
+// DescriptionGT applies the GT predicate on the "description" field.
+func DescriptionGT(v string) predicate.Document {
+	return predicate.Document(sql.FieldGT(FieldDescription, v))
+}
+
+// DescriptionGTE applies the GTE predicate on the "description" field.
+func DescriptionGTE(v string) predicate.Document {
+	return predicate.Document(sql.FieldGTE(FieldDescription, v))
+}
+
+// DescriptionLT applies the LT predicate on the "description" field.
+func DescriptionLT(v string) predicate.Document {
+	return predicate.Document(sql.FieldLT(FieldDescription, v))
+}
+
+// DescriptionLTE applies the LTE predicate on the "description" field.
+func DescriptionLTE(v string) predicate.Document {
+	return predicate.Document(sql.FieldLTE(FieldDescription, v))
+}
+
+// DescriptionContains applies the Contains predicate on the "description" field.
+func DescriptionContains(v string) predicate.Document {
+	return predicate.Document(sql.FieldContains(FieldDescription, v))
+}
+
+// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
+func DescriptionHasPrefix(v string) predicate.Document {
+	return predicate.Document(sql.FieldHasPrefix(FieldDescription, v))
+}
+
+// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
+func DescriptionHasSuffix(v string) predicate.Document {
+	return predicate.Document(sql.FieldHasSuffix(FieldDescription, v))
+}
+
+// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
+func DescriptionEqualFold(v string) predicate.Document {
+	return predicate.Document(sql.FieldEqualFold(FieldDescription, v))
+}
+
+// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
+func DescriptionContainsFold(v string) predicate.Document {
+	return predicate.Document(sql.FieldContainsFold(FieldDescription, v))
 }
 
 // EmbeddingEQ applies the EQ predicate on the "embedding" field.

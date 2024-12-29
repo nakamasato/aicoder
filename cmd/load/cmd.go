@@ -14,6 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -54,6 +55,8 @@ func Command() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := context.Background()
+			config := config.GetLoadConfig()
+
 			repoPath := args[0]
 
 			// Initialize OpenAI client
@@ -89,7 +92,7 @@ func Command() *cobra.Command {
 			}
 
 			// Load current RepoStructure
-			currentRepo, err := loadRepoStructure(ctx, repoPath, branch, commitHash, client, entClient, previousRepo)
+			currentRepo, err := loadRepoStructure(ctx, repoPath, branch, commitHash, client, entClient, previousRepo, config)
 			if err != nil {
 				fmt.Printf("Error loading repo structure: %v\n", err)
 				os.Exit(1)
@@ -126,7 +129,7 @@ func Command() *cobra.Command {
 }
 
 // loadRepoStructure loads the repository structure using go-git and generates summaries.
-func loadRepoStructure(ctx context.Context, path, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure) (RepoStructure, error) {
+func loadRepoStructure(ctx context.Context, path, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.LoadConfig) (RepoStructure, error) {
 	repo, err := git.PlainOpen(path)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to open repository: %w", err)
@@ -161,7 +164,7 @@ func loadRepoStructure(ctx context.Context, path, branch, commitHash string, cli
 		IsDir: true,
 	}
 
-	children, err := traverseTree(ctx, tree, "", client, entClient, previousRepo)
+	children, err := traverseTree(ctx, tree, "", client, entClient, previousRepo, config)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to traverse tree: %w", err)
 	}
@@ -176,7 +179,7 @@ func loadRepoStructure(ctx context.Context, path, branch, commitHash string, cli
 
 // traverseTree recursively traverses the Git tree and collects FileInfo.
 // It updates the Description using OpenAI and stores embeddings in PostgreSQL.
-func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure) ([]FileInfo, error) {
+func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.LoadConfig) ([]FileInfo, error) {
 	var files []FileInfo
 
 	for _, entry := range tree.Entries {
@@ -187,12 +190,17 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 			IsDir: entry.Mode == filemode.Dir,
 		}
 
+		if config.IsExcluded(filePath) && !config.IsIncluded(filePath) {
+			log.Printf("Skipping %s\n", filePath)
+			continue
+		}
+
 		if entry.Mode == filemode.Dir {
 			subtree, err := tree.Tree(entry.Name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subtree for %s: %w", entry.Name, err)
 			}
-			children, err := traverseTree(ctx, subtree, filePath, client, entClient, previousRepo)
+			children, err := traverseTree(ctx, subtree, filePath, client, entClient, previousRepo, config)
 			if err != nil {
 				return nil, err
 			}
@@ -224,7 +232,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 			info, err := os.Stat(filePath)
 			if err != nil {
 				log.Printf("Failed to stat file %s: %v", filePath, err)
-				// Assume summary needs to be regenerated
+				continue
 			}
 
 			modTime := time.Time{}
@@ -297,6 +305,7 @@ func upsertDocument(ctx context.Context, entClient *ent.Client, path, descriptio
 
 	_, err := entClient.Document.Create().
 		SetContent(path).
+		SetDescription(description).
 		SetEmbedding(vector).
 		Save(ctx)
 	return err

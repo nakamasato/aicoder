@@ -19,3 +19,16 @@ GRANT ALL ON SCHEMA public TO aicoder;
 ```
 
 https://github.com/pgvector/pgvector-go
+
+## Configuration
+
+```yaml
+load:
+  exclude_dirs:
+    - ent
+  include:
+    - ent/schema
+
+search:
+  top_n: 5
+```
