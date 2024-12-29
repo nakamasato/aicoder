@@ -1,4 +1,4 @@
-package loader
+package load
 
 import (
 	"context"
@@ -48,11 +48,12 @@ var (
 )
 
 func Command() *cobra.Command {
-	loaderCmd := &cobra.Command{
-		Use:   "loader [path]",
+	loadCmd := &cobra.Command{
+		Use:   "load [path]",
 		Short: "Load the repository structure from a Git repository and export it to a JSON file with summaries.",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
 			repoPath := args[0]
 
 			// Initialize OpenAI client
@@ -88,7 +89,7 @@ func Command() *cobra.Command {
 			}
 
 			// Load current RepoStructure
-			currentRepo, err := loadRepoStructure(repoPath, branch, commitHash, client, entClient, previousRepo)
+			currentRepo, err := loadRepoStructure(ctx, repoPath, branch, commitHash, client, entClient, previousRepo)
 			if err != nil {
 				fmt.Printf("Error loading repo structure: %v\n", err)
 				os.Exit(1)
@@ -113,19 +114,19 @@ func Command() *cobra.Command {
 	}
 
 	// Define flags and configuration settings for loaderCmd
-	loaderCmd.Flags().StringVarP(&outputFile, "output", "o", "repo_structure.json", "Output JSON file")
-	loaderCmd.Flags().StringVarP(&branch, "branch", "b", "main", "Branch to load the structure from")
-	loaderCmd.Flags().StringVarP(&commitHash, "commit", "c", "", "Specific commit hash to load the structure from")
-	loaderCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
-	loaderCmd.Flags().StringVar(&openaiModel, "model", "gpt-4o-mini", "OpenAI model to use for summarization")
-	loaderCmd.Flags().IntVar(&maxTokens, "max-tokens", 150, "Maximum number of tokens for the summary")
-	loaderCmd.Flags().StringVar(&dbConnString, "db-conn", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable", "PostgreSQL connection string (e.g., postgres://aicoder:aicoder@localhost:5432/aicoder)")
+	loadCmd.Flags().StringVarP(&outputFile, "output", "o", "repo_structure.json", "Output JSON file")
+	loadCmd.Flags().StringVarP(&branch, "branch", "b", "main", "Branch to load the structure from")
+	loadCmd.Flags().StringVarP(&commitHash, "commit", "c", "", "Specific commit hash to load the structure from")
+	loadCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
+	loadCmd.Flags().StringVar(&openaiModel, "model", "gpt-4o-mini", "OpenAI model to use for summarization")
+	loadCmd.Flags().IntVar(&maxTokens, "max-tokens", 150, "Maximum number of tokens for the summary")
+	loadCmd.Flags().StringVar(&dbConnString, "db-conn", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable", "PostgreSQL connection string (e.g., postgres://aicoder:aicoder@localhost:5432/aicoder)")
 
-	return loaderCmd
+	return loadCmd
 }
 
 // loadRepoStructure loads the repository structure using go-git and generates summaries.
-func loadRepoStructure(path, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure) (RepoStructure, error) {
+func loadRepoStructure(ctx context.Context, path, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure) (RepoStructure, error) {
 	repo, err := git.PlainOpen(path)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to open repository: %w", err)
@@ -160,7 +161,7 @@ func loadRepoStructure(path, branch, commitHash string, client *openai.Client, e
 		IsDir: true,
 	}
 
-	children, err := traverseTree(tree, "", client, entClient, previousRepo)
+	children, err := traverseTree(ctx, tree, "", client, entClient, previousRepo)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to traverse tree: %w", err)
 	}
@@ -175,7 +176,7 @@ func loadRepoStructure(path, branch, commitHash string, client *openai.Client, e
 
 // traverseTree recursively traverses the Git tree and collects FileInfo.
 // It updates the Description using OpenAI and stores embeddings in PostgreSQL.
-func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure) ([]FileInfo, error) {
+func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure) ([]FileInfo, error) {
 	var files []FileInfo
 
 	for _, entry := range tree.Entries {
@@ -191,7 +192,7 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, e
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subtree for %s: %w", entry.Name, err)
 			}
-			children, err := traverseTree(subtree, filePath, client, entClient, previousRepo)
+			children, err := traverseTree(ctx, subtree, filePath, client, entClient, previousRepo)
 			if err != nil {
 				return nil, err
 			}
@@ -275,7 +276,7 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, e
 					log.Printf("Failed to get embedding for %s: %v", filePath, err)
 				} else {
 					// Insert or update the document in PostgreSQL
-					err = upsertDocument(entClient, filePath, summary, embedding)
+					err = upsertDocument(ctx, entClient, filePath, summary, embedding)
 					if err != nil {
 						log.Printf("Failed to upsert document %s: %v", filePath, err)
 						return nil, err
@@ -291,8 +292,7 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, e
 }
 
 // upsertDocument inserts or updates a document in the PostgreSQL database.
-func upsertDocument(entClient *ent.Client, path, description string, embedding []float32) error {
-	ctx := context.Background()
+func upsertDocument(ctx context.Context, entClient *ent.Client, path, description string, embedding []float32) error {
 	vector := pgvector.NewVector(embedding)
 
 	_, err := entClient.Document.Create().

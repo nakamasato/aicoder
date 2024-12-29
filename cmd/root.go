@@ -7,7 +7,8 @@ import (
 	"os"
 
 	"github.com/nakamasato/aicoder/cmd/db"
-	"github.com/nakamasato/aicoder/cmd/loader"
+	"github.com/nakamasato/aicoder/cmd/load"
+	"github.com/nakamasato/aicoder/cmd/search"
 	"github.com/spf13/cobra"
 )
 
@@ -30,8 +31,9 @@ func Execute() {
 func init() {
 
 	RootCmd.AddCommand(
-		loader.Command(),
+		load.Command(),
 		db.Command(),
+		search.Command(),
 	)
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
