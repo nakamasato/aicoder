@@ -1,5 +1,4 @@
-// cmd/loader.go
-package cmd
+package loader
 
 import (
 	"context"
@@ -15,8 +14,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/nakamasato/aicoder/ent"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/pgvector/pgvector-go"
 	"github.com/spf13/cobra"
 )
 
@@ -37,82 +38,94 @@ type RepoStructure struct {
 }
 
 var (
-	outputFile    string
-	branch        string
-	commitHash    string
-	openaiAPIKey  string
-	openaiModel   string
-	maxTokens     int
+	outputFile   string
+	branch       string
+	commitHash   string
+	openaiAPIKey string
+	openaiModel  string
+	maxTokens    int
+	dbConnString string
 )
 
-// loaderCmd represents the loader command
-var loaderCmd = &cobra.Command{
-	Use:   "loader [path]",
-	Short: "Load the repository structure from a Git repository and export it to a JSON file with summaries.",
-	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		repoPath := args[0]
+func Command() *cobra.Command {
+	loaderCmd := &cobra.Command{
+		Use:   "loader [path]",
+		Short: "Load the repository structure from a Git repository and export it to a JSON file with summaries.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			repoPath := args[0]
 
-		// Initialize OpenAI client
-		if openaiAPIKey == "" {
-			openaiAPIKey = os.Getenv("OPENAI_API_KEY")
-		}
-		if openaiAPIKey == "" {
-			log.Fatal("OPENAI_API_KEY environment variable is not set")
-		}
-		client := openai.NewClient(option.WithAPIKey(openaiAPIKey))
+			// Initialize OpenAI client
+			if openaiAPIKey == "" {
+				openaiAPIKey = os.Getenv("OPENAI_API_KEY")
+			}
+			if openaiAPIKey == "" {
+				log.Fatal("OPENAI_API_KEY environment variable is not set")
+			}
+			client := openai.NewClient(option.WithAPIKey(openaiAPIKey))
 
-		// Load existing RepoStructure if exists
-		var previousRepo RepoStructure
-		if _, err := os.Stat(outputFile); err == nil {
-			data, err := os.ReadFile(outputFile)
+			// Initialize PostgreSQL connection
+			if dbConnString == "" {
+				log.Fatal("Database connection string must be provided via --db-conn")
+			}
+
+			entClient, err := ent.Open("postgres", dbConnString)
 			if err != nil {
-				log.Fatalf("Failed to read existing repo structure: %v", err)
+				log.Fatalf("failed opening connection to postgres: %v", err)
 			}
-			if err := json.Unmarshal(data, &previousRepo); err != nil {
-				log.Fatalf("Failed to parse existing repo structure: %v", err)
+			defer entClient.Close()
+
+			// Load existing RepoStructure if exists
+			var previousRepo RepoStructure
+			if _, err := os.Stat(outputFile); err == nil {
+				data, err := os.ReadFile(outputFile)
+				if err != nil {
+					log.Fatalf("Failed to read existing repo structure: %v", err)
+				}
+				if err := json.Unmarshal(data, &previousRepo); err != nil {
+					log.Fatalf("Failed to parse existing repo structure: %v", err)
+				}
 			}
-		}
 
-		// Load current RepoStructure
-		currentRepo, err := loadRepoStructure(repoPath, branch, commitHash, client, previousRepo)
-		if err != nil {
-			fmt.Printf("Error loading repo structure: %v\n", err)
-			os.Exit(1)
-		}
+			// Load current RepoStructure
+			currentRepo, err := loadRepoStructure(repoPath, branch, commitHash, client, entClient, previousRepo)
+			if err != nil {
+				fmt.Printf("Error loading repo structure: %v\n", err)
+				os.Exit(1)
+			}
 
-		// Marshal to JSON
-		output, err := json.MarshalIndent(currentRepo, "", "  ")
-		if err != nil {
-			fmt.Printf("Error marshaling JSON: %v\n", err)
-			os.Exit(1)
-		}
+			// Marshal to JSON
+			output, err := json.MarshalIndent(currentRepo, "", "  ")
+			if err != nil {
+				fmt.Printf("Error marshaling JSON: %v\n", err)
+				os.Exit(1)
+			}
 
-		// Write to file
-		err = os.WriteFile(outputFile, output, 0644)
-		if err != nil {
-			fmt.Printf("Error writing JSON to file: %v\n", err)
-			os.Exit(1)
-		}
+			// Write to file
+			err = os.WriteFile(outputFile, output, 0644)
+			if err != nil {
+				fmt.Printf("Error writing JSON to file: %v\n", err)
+				os.Exit(1)
+			}
 
-		fmt.Printf("Repository structure has been written to %s\n", outputFile)
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(loaderCmd)
+			fmt.Printf("Repository structure has been written to %s\n", outputFile)
+		},
+	}
 
 	// Define flags and configuration settings for loaderCmd
 	loaderCmd.Flags().StringVarP(&outputFile, "output", "o", "repo_structure.json", "Output JSON file")
 	loaderCmd.Flags().StringVarP(&branch, "branch", "b", "main", "Branch to load the structure from")
 	loaderCmd.Flags().StringVarP(&commitHash, "commit", "c", "", "Specific commit hash to load the structure from")
 	loaderCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
-	loaderCmd.Flags().StringVar(&openaiModel, "model", "gpt-4o-mini", "OpenAI model to use for summarization") // デフォルトを gpt-4o-mini に変更
+	loaderCmd.Flags().StringVar(&openaiModel, "model", "gpt-4o-mini", "OpenAI model to use for summarization")
 	loaderCmd.Flags().IntVar(&maxTokens, "max-tokens", 150, "Maximum number of tokens for the summary")
+	loaderCmd.Flags().StringVar(&dbConnString, "db-conn", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable", "PostgreSQL connection string (e.g., postgres://aicoder:aicoder@localhost:5432/aicoder)")
+
+	return loaderCmd
 }
 
 // loadRepoStructure loads the repository structure using go-git and generates summaries.
-func loadRepoStructure(path, branch, commitHash string, client *openai.Client, previousRepo RepoStructure) (RepoStructure, error) {
+func loadRepoStructure(path, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure) (RepoStructure, error) {
 	repo, err := git.PlainOpen(path)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to open repository: %w", err)
@@ -147,7 +160,7 @@ func loadRepoStructure(path, branch, commitHash string, client *openai.Client, p
 		IsDir: true,
 	}
 
-	children, err := traverseTree(tree, "", client, previousRepo)
+	children, err := traverseTree(tree, "", client, entClient, previousRepo)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to traverse tree: %w", err)
 	}
@@ -161,8 +174,8 @@ func loadRepoStructure(path, branch, commitHash string, client *openai.Client, p
 }
 
 // traverseTree recursively traverses the Git tree and collects FileInfo.
-// It updates the Description using OpenAI only if the BlobHash has changed.
-func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, previousRepo RepoStructure) ([]FileInfo, error) {
+// It updates the Description using OpenAI and stores embeddings in PostgreSQL.
+func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure) ([]FileInfo, error) {
 	var files []FileInfo
 
 	for _, entry := range tree.Entries {
@@ -178,7 +191,7 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, p
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subtree for %s: %w", entry.Name, err)
 			}
-			children, err := traverseTree(subtree, filePath, client, previousRepo)
+			children, err := traverseTree(subtree, filePath, client, entClient, previousRepo)
 			if err != nil {
 				return nil, err
 			}
@@ -210,7 +223,7 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, p
 			info, err := os.Stat(filePath)
 			if err != nil {
 				log.Printf("Failed to stat file %s: %v", filePath, err)
-				// 要約を再生成する必要があると仮定
+				// Assume summary needs to be regenerated
 			}
 
 			modTime := time.Time{}
@@ -218,7 +231,7 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, p
 				modTime = info.ModTime()
 			}
 
-			// Determine if the file needs to be summarized（追加）
+			// Determine if the file needs to be summarized
 			needsSummary := true
 			if !modTime.IsZero() && !previousRepo.GeneratedAt.IsZero() {
 				if modTime.Before(previousRepo.GeneratedAt) || modTime.Equal(previousRepo.GeneratedAt) {
@@ -230,13 +243,13 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, p
 					}
 				}
 			} else if previousBlobHash == fileInfo.BlobHash {
-                log.Printf("[description] %s: use previous description (blob hash is same): (last modified: %s, generated_at: %s)\n", filePath, modTime, previousRepo.GeneratedAt)
+				log.Printf("[description] %s: use previous description (blob hash is same): (last modified: %s, generated_at: %s)\n", filePath, modTime, previousRepo.GeneratedAt)
 				fileInfo.Description = previousDescription
-                needsSummary = false
-            }
+				needsSummary = false
+			}
 
 			if needsSummary {
-                log.Printf("[description] %s: generating\n", filePath)
+				log.Printf("[description] %s: generating\n", filePath)
 				reader, err := file.Reader()
 				if err != nil {
 					return nil, fmt.Errorf("failed to get file reader: %w", err)
@@ -255,14 +268,65 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, p
 				}
 				log.Printf("[description] %s: generated\n", filePath)
 				fileInfo.Description = summary
-			}
 
+				// Get embedding for the description
+				embedding, err := getEmbeddingFromDescription(client, summary)
+				if err != nil {
+					log.Printf("Failed to get embedding for %s: %v", filePath, err)
+				} else {
+					// Insert or update the document in PostgreSQL
+					err = upsertDocument(entClient, filePath, summary, embedding)
+					if err != nil {
+						log.Printf("Failed to upsert document %s: %v", filePath, err)
+						return nil, err
+					}
+				}
+			}
 		}
 
 		files = append(files, fileInfo)
 	}
 
 	return files, nil
+}
+
+// upsertDocument inserts or updates a document in the PostgreSQL database.
+func upsertDocument(entClient *ent.Client, path, description string, embedding []float32) error {
+	ctx := context.Background()
+	vector := pgvector.NewVector(embedding)
+
+	_, err := entClient.Document.Create().
+		SetContent(path).
+		SetEmbedding(vector).
+		Save(ctx)
+	return err
+}
+
+// getEmbeddingFromDescription fetches the embedding for a given description using OpenAI.
+func getEmbeddingFromDescription(client *openai.Client, description string) ([]float32, error) {
+	if len(description) == 0 {
+		return nil, fmt.Errorf("description is empty")
+	}
+	ctx := context.Background()
+
+	resp, err := client.Embeddings.New(ctx, openai.EmbeddingNewParams{
+		Model: openai.F(openai.EmbeddingModelTextEmbedding3Small),
+		Input: openai.F(openai.EmbeddingNewParamsInputUnion(openai.EmbeddingNewParamsInputArrayOfStrings{description})),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create embedding: %w", err)
+	}
+
+	if len(resp.Data) == 0 {
+		return nil, fmt.Errorf("no embedding data returned")
+	}
+
+	var embedding []float32
+	for _, v := range resp.Data[0].Embedding {
+		embedding = append(embedding, float32(v))
+	}
+
+	return embedding, nil
 }
 
 // findFileInRepo searches for a file in the previous RepoStructure by its path.
