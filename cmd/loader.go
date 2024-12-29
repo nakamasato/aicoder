@@ -32,8 +32,8 @@ type FileInfo struct {
 
 // RepoStructure represents the entire repository structure.
 type RepoStructure struct {
-	GeneratedAt string   `json:"generated_at"`
-	Root        FileInfo `json:"root"`
+	GeneratedAt time.Time `json:"generated_at"`
+	Root        FileInfo  `json:"root"`
 }
 
 var (
@@ -43,7 +43,6 @@ var (
 	openaiAPIKey  string
 	openaiModel   string
 	maxTokens     int
-	summaryEngine string
 )
 
 // loaderCmd represents the loader command
@@ -156,7 +155,7 @@ func loadRepoStructure(path, branch, commitHash string, client *openai.Client, p
 	rootFileInfo.Children = children
 
 	return RepoStructure{
-		GeneratedAt: time.Now().Format(time.RFC3339),
+		GeneratedAt: time.Now(),
 		Root:        rootFileInfo,
 	}, nil
 }
@@ -207,11 +206,37 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, p
 					previousBlobHash = previousFileInfo.BlobHash
 				}
 			}
-			if previousBlobHash == fileInfo.BlobHash {
-				fileInfo.Description = previousDescription
-			} else {
 
-				// ファイルの内容を読み出す
+			info, err := os.Stat(filePath)
+			if err != nil {
+				log.Printf("Failed to stat file %s: %v", filePath, err)
+				// 要約を再生成する必要があると仮定
+			}
+
+			modTime := time.Time{}
+			if err == nil {
+				modTime = info.ModTime()
+			}
+
+			// Determine if the file needs to be summarized（追加）
+			needsSummary := true
+			if !modTime.IsZero() && !previousRepo.GeneratedAt.IsZero() {
+				if modTime.Before(previousRepo.GeneratedAt) || modTime.Equal(previousRepo.GeneratedAt) {
+					// File has not been modified since the last summary
+					if fileInfo.BlobHash == previousBlobHash && previousDescription != "" {
+						log.Printf("[description] %s: use previous description (last modified: %s, generated_at: %s)\n", filePath, modTime, previousRepo.GeneratedAt)
+						fileInfo.Description = previousDescription
+						needsSummary = false
+					}
+				}
+			} else if previousBlobHash == fileInfo.BlobHash {
+                log.Printf("[description] %s: use previous description (blob hash is same): (last modified: %s, generated_at: %s)\n", filePath, modTime, previousRepo.GeneratedAt)
+				fileInfo.Description = previousDescription
+                needsSummary = false
+            }
+
+			if needsSummary {
+                log.Printf("[description] %s: generating\n", filePath)
 				reader, err := file.Reader()
 				if err != nil {
 					return nil, fmt.Errorf("failed to get file reader: %w", err)
@@ -228,7 +253,7 @@ func traverseTree(tree *object.Tree, parentPath string, client *openai.Client, p
 				if err != nil {
 					return nil, fmt.Errorf("failed to summarize content: %w", err)
 				}
-				log.Printf("%s:%s\n", filePath, summary)
+				log.Printf("[description] %s: generated\n", filePath)
 				fileInfo.Description = summary
 			}
 
@@ -257,22 +282,6 @@ func findFileInRepo(current FileInfo, targetPath string) *FileInfo {
 		}
 	}
 	return nil
-}
-
-// readBlobContent reads the content of a blob as a string.
-func readBlobContent(blob *object.Blob) (string, error) {
-	reader, err := blob.Reader()
-	if err != nil {
-		return "", err
-	}
-	defer reader.Close()
-
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
 }
 
 // summarizeContent uses OpenAI to summarize the given text content.

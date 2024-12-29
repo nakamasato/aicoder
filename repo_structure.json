@@ -1,5 +1,5 @@
 {
-  "generated_at": "2024-12-29T13:03:22+09:00",
+  "generated_at": "2024-12-29T13:43:13.194184+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -40,9 +40,9 @@
           {
             "name": "loader.go",
             "path": "cmd/loader.go",
-            "description": "The provided code is a Go package that defines a command-line tool for loading and exporting the structure of a Git repository as a JSON file, including summaries of the individual files. Key components include:\n\n1. **Data Structures**: `FileInfo` represents information about files and directories, while `RepoStructure` captures the entire structure of the repository with metadata such as generation time.\n\n2. **Cobra Command**: The `loaderCmd` command is defined using the Cobra library, allowing users to specify the path to the repository, output file, branch, commit hash, and OpenAI API settings.\n\n3. **OpenAI Integration**: The tool utilizes the OpenAI API for summarizing file contents. It initializes the OpenAI client and checks for an API key from environment variables if not provided.\n\n4. **Repository Loading**: The `loadRepoStructure` function uses the `go-git` library to open the repository and traverse its tree, building the `RepoStructure`. It checks if previous file descriptions exist to avoid redundant summarization.\n\n5. **Recursive Traversal**: The `traverseTree` function recursively explores the repository's tree structure, generates summaries, and populates the `FileInfo` objects.\n\n6. **File Summary Generation**: If a file's content has changed since the last summary, the content is read and sent to OpenAI for summarization. The summaries are included in the output JSON file.\n\nThe final result is a JSON file containing a structured representation of the repository's contents along with generated summaries for each file.",
+            "description": "The provided code defines a command-line tool in Go that loads the structure of a Git repository and exports it as a JSON file, including summaries for files using OpenAI's API. It utilizes the `cobra` library for command-line interface management and `go-git` for Git operations.\n\n### Key Components:\n\n- **FileInfo and RepoStructure**: Structures representing file and directory information, allowing for recursion and description handling.\n- **loaderCmd**: A command configured with flags for output file, Git branch, commit hash, and OpenAI API settings.\n- **loadRepoStructure**: Fetches the repository details, identifying the appropriate commit to analyze, then recursively gathers file information.\n- **traverseTree**: A function that navigates the Git tree, retrieving file details and checking for previous summaries to avoid redundant processing.\n- **summarizeContent**: Interfaces with OpenAI to generate concise summaries of file content.\n\n### Functionality:\n- The tool checks for existing repository structure data and uses it to optimize the summarization of files.\n- It outputs the JSON representation of the repository structure, complete with file descriptions, while handling files and directories dynamically. This is useful for documentation and analysis of repository contents.",
             "is_dir": false,
-            "blob_hash": "36629ec969346df55c902e169b7cc83b75c68c7a"
+            "blob_hash": "128ec60a4b4d2bab3c945e1f38b1587e53d59a99"
           },
           {
             "name": "root.go",
@@ -77,9 +77,9 @@
       {
         "name": "repo_structure.json",
         "path": "repo_structure.json",
-        "description": "The content outlines the structure and files of a Go project named \"aicoder\" that utilizes the Cobra library for command-line interface development. Key components include:\n\n- **DEVELOPMENT.md**: Instructions for using the `cobra-cli` tool to install, initialize, and add commands to a project.\n- **LICENSE**: Licensing information (empty).\n- **cmd/**: Directory containing Go source files:\n  - **loader.go**: Implements a CLI tool for loading a Git repository structure and exporting it as JSON.\n  - **root.go**: Sets up the application's base command and execution logic.\n- **go.mod**: Module declaration specifying dependencies like `go-git` and `cobra`.\n- **go.sum**: List of modules and hashes for verification of dependencies.\n- **main.go**: Entry point for the application that calls the `Execute` function from the command package.\n- **repo_structure.json**: Describes the project's directory structure and file sizes.\n\nOverall, the project includes various files aimed at building a command-line tool for managing Git repository data.",
+        "description": "The project described is a Go-based command-line tool named \"AICoder,\" designed for managing Git repository structures. It includes various files such as:\n\n- **README.md**: Highlights the use of an OpenAI API key.\n- **DEVELOPMENT.md**: Provides installation and initialization instructions for the `cobra-cli` tool.\n- **LICENSE**: Licensing information (empty).\n- **cmd/**: Contains Go source files:\n  - **loader.go**: Implements functionality to load a Git repository's structure and export it as JSON, incorporating summaries from OpenAI.\n  - **root.go**: Sets up the CLI application and manages command execution.\n- **go.mod**: Defines the Go module and lists required dependencies, including `go-git` and `cobra`.\n- **go.sum**: Contains module versions and hashes for dependency verification.\n- **main.go**: Entry point of the application that executes the command logic.\n- **repo_structure.json**: Outlines the project structure and files.\n\nThe project effectively segregates configurations using a `.env` file to enhance security, while also providing a structured command-line interface for interacting with Git repositories.",
         "is_dir": false,
-        "blob_hash": "227947a283d1510a29bc62d6e2f5d07ae1c006d7"
+        "blob_hash": "00247081762019f134cb29b6a515bf9dc20feb8e"
       }
     ]
   }
