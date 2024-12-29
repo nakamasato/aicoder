@@ -1,193 +1,68 @@
 {
   "root": {
     "name": ".",
+    "path": "",
     "is_dir": true,
     "children": [
       {
-        "name": ".git",
-        "is_dir": true,
-        "children": [
-          {
-            "name": "FETCH_HEAD",
-            "description": "File size: 0 bytes",
-            "is_dir": false
-          },
-          {
-            "name": "HEAD",
-            "description": "File size: 21 bytes",
-            "is_dir": false
-          },
-          {
-            "name": "config",
-            "description": "File size: 137 bytes",
-            "is_dir": false
-          },
-          {
-            "name": "description",
-            "description": "File size: 73 bytes",
-            "is_dir": false
-          },
-          {
-            "name": "hooks",
-            "is_dir": true,
-            "children": [
-              {
-                "name": "applypatch-msg.sample",
-                "description": "File size: 478 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "commit-msg.sample",
-                "description": "File size: 896 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "fsmonitor-watchman.sample",
-                "description": "File size: 4726 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "post-update.sample",
-                "description": "File size: 189 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "pre-applypatch.sample",
-                "description": "File size: 424 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "pre-commit.sample",
-                "description": "File size: 1643 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "pre-merge-commit.sample",
-                "description": "File size: 416 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "pre-push.sample",
-                "description": "File size: 1374 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "pre-rebase.sample",
-                "description": "File size: 4898 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "pre-receive.sample",
-                "description": "File size: 544 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "prepare-commit-msg.sample",
-                "description": "File size: 1492 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "push-to-checkout.sample",
-                "description": "File size: 2783 bytes",
-                "is_dir": false
-              },
-              {
-                "name": "update.sample",
-                "description": "File size: 3650 bytes",
-                "is_dir": false
-              }
-            ]
-          },
-          {
-            "name": "info",
-            "is_dir": true,
-            "children": [
-              {
-                "name": "exclude",
-                "description": "File size: 240 bytes",
-                "is_dir": false
-              }
-            ]
-          },
-          {
-            "name": "objects",
-            "is_dir": true,
-            "children": [
-              {
-                "name": "info",
-                "is_dir": true
-              },
-              {
-                "name": "pack",
-                "is_dir": true
-              }
-            ]
-          },
-          {
-            "name": "refs",
-            "is_dir": true,
-            "children": [
-              {
-                "name": "heads",
-                "is_dir": true
-              },
-              {
-                "name": "tags",
-                "is_dir": true
-              }
-            ]
-          }
-        ]
-      },
-      {
         "name": "DEVELOPMENT.md",
-        "description": "File size: 120 bytes",
+        "path": "DEVELOPMENT.md",
+        "description": "Blob size: 120 bytes",
         "is_dir": false
       },
       {
         "name": "LICENSE",
-        "description": "File size: 0 bytes",
+        "path": "LICENSE",
+        "description": "Blob size: 0 bytes",
         "is_dir": false
       },
       {
         "name": "aicoder",
-        "description": "File size: 5620674 bytes",
+        "path": "aicoder",
+        "description": "Blob size: 5620674 bytes",
         "is_dir": false
       },
       {
         "name": "cmd",
+        "path": "cmd",
         "is_dir": true,
         "children": [
           {
             "name": "loader.go",
-            "description": "File size: 3159 bytes",
+            "path": "cmd/loader.go",
+            "description": "Blob size: 3159 bytes",
             "is_dir": false
           },
           {
             "name": "root.go",
-            "description": "File size: 1440 bytes",
+            "path": "cmd/root.go",
+            "description": "Blob size: 1440 bytes",
             "is_dir": false
           }
         ]
       },
       {
         "name": "go.mod",
-        "description": "File size: 1394 bytes",
+        "path": "go.mod",
+        "description": "Blob size: 200 bytes",
         "is_dir": false
       },
       {
         "name": "go.sum",
-        "description": "File size: 7515 bytes",
+        "path": "go.sum",
+        "description": "Blob size: 896 bytes",
         "is_dir": false
       },
       {
         "name": "main.go",
-        "description": "File size: 140 bytes",
+        "path": "main.go",
+        "description": "Blob size: 140 bytes",
         "is_dir": false
       },
       {
         "name": "repo_structure.json",
-        "description": "File size: 4988 bytes",
+        "path": "repo_structure.json",
+        "description": "Blob size: 5118 bytes",
         "is_dir": false
       }
     ]
