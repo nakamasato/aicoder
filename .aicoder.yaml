@@ -1,6 +1,5 @@
 repository: aicoder
 load:
-  target_path: .
   exclude:
     - ent
     - go.sum

@@ -1,28 +1,28 @@
 {
-  "generated_at": "2024-12-31T08:45:35.013684+09:00",
+  "generated_at": "2024-12-31T08:19:33.24836+09:00",
   "root": {
     "name": ".",
-    "path": ".",
+    "path": "",
     "is_dir": true,
     "children": [
       {
         "name": ".aicoder.yaml",
         "path": ".aicoder.yaml",
-        "description": "- What is the code for? This directory contains schema definitions for entity types used in the aicoder project.\n- Type of content: Documentation\n- Function names: N/A (no specific functions mentioned)\n- References: This code is referenced in the context of utilizing entity schemas within the aicoder repository.\n- Any other relevant information: The code specifically includes the schema definitions relevant for entity management but excludes certain files like dependencies and project structure information.",
+        "description": "- What is the code for? This code pertains to schema definitions used in an entity framework for a project involving AI coding tools.\n- Type of content: Documentation\n- Function names: None specified\n- References: The code is likely referenced within the context of the aicoder repository, specifically in relation to entity management.\n- Any other relevant information: The repository is set to exclude certain files while including schema definitions related to the entity framework, indicating a focus on data models and their structure.",
         "is_dir": false,
         "blob_hash": "8e789dd410650b81a9a9b4774480e7778ba3a9d0"
       },
       {
         "name": ".gitignore",
         "path": ".gitignore",
-        "description": "- What is the code for? This file is typically used to store environment variables for configuration in development or deployment settings.\n- Type of content: Configuration file\n- Function names: N/A (no function names are present in .env files)\n- References: Commonly referenced in application configuration, often utilized in Node.js, Python, Ruby, and other web development frameworks.\n- Any other relevant information: This file usually contains key-value pairs for sensitive information like API keys, database URLs, and other configuration details that should not be hard-coded in the source code.",
+        "description": "- What is the code for? This is a configuration file used to store environment variables for a project.\n- Type of content: Configuration File\n- Function names: N/A (No functions defined in .env files)\n- References: Often used in conjunction with web frameworks or applications to manage settings like database connections, API keys, etc.\n- Any other relevant information: The .env file should not be committed to version control for security reasons, as it can contain sensitive information.",
         "is_dir": false,
         "blob_hash": "4c49bd78f1d08f2bc09fa0bd8191ed38b7dce5e3"
       },
       {
         "name": "DEVELOPMENT.md",
         "path": "DEVELOPMENT.md",
-        "description": "- What is the code for? This content provides instructions for setting up a command-line interface using Cobra, handling subcommands with a specific package structure, and generating a new Document schema using Ent.\n- Type of content: Code\n- Function names: N/A (specific commands are invoked via CLI)\n- References: The code references command-line structure and package management for Cobra and Ent, with a specific link to the pgvector-go schema.\n- Any other relevant information: The content emphasizes the importance of separate packages for managing subcommands effectively, and provides command examples for initializing Cobra CLI and executing Ent commands.",
+        "description": "- What is the code for? This content provides instructions for initializing and managing a CLI application using the cobra library, as well as generating an Ent schema for database management.\n- Type of content: Documentation\n- Function names: cobra-cli init, cobra-cli add, ent new Document, make generate\n- References: The code references GitHub repositories for cobra-cli, pgvector-go, and entgo, with specific instructions for subcommand structure and Ent schema generation.\n- Any other relevant information: It emphasizes using separate packages for each subcommand in the cobra-cli structure for better manageability.",
         "is_dir": false,
         "blob_hash": "8a3ba5835e657ed18580115f88b107a5f16b3412"
       },
@@ -35,28 +35,28 @@
       {
         "name": "Makefile",
         "path": "Makefile",
-        "description": "- What is the code for? This code is a Makefile that defines various commands for managing a Go project, including generating code, linting, testing, formatting, running, database access, migration, and loading.\n- Type of content: Code\n- Function names: None specified (targets defined by the Makefile)\n- References: This Makefile is referenced in the context of managing a Go application, possibly with a focus on using the Ent framework for database interactions.\n- Any other relevant information: The Makefile uses common Go commands and is structured with phony targets to ensure that the commands are always run, regardless of any existing files.",
+        "description": "- What is the code for? This Makefile defines various tasks for a Go project, including generating code, running linter, testing, formatting, executing the main application, managing the database, migrating database schemas, and loading data.\n- Type of content: Makefile\n- Function names: generate, lint, test, fmt, run, db, migrate, load\n- References: This code is used in the context of managing a Go application, specifically for tasks related to building and maintaining the application's codebase.\n- Any other relevant information: The Makefile employs standard Go tools and commands, indicating a typical workflow for Go developers.",
         "is_dir": false,
         "blob_hash": "7038f8ac43fe67d325543b4569c67bc078cae7ed"
       },
       {
         "name": "README.md",
         "path": "README.md",
-        "description": "- What is the code for? This document provides information on AICoder, an AI-powered CLI designed to enhance coding productivity while ensuring local operation and compliance.\n- Type of content: Documentation\n- Function names: load, search, plan, generate, write, check\n- References: The AICoder operates in conjunction with OpenAI for external interactions and references pgvector for database functionality.\n- Any other relevant information: AICoder supports CI workflows and utilizes environment variables like `OPENAI_API_KEY`. It includes setup instructions for PostgreSQL and configuration options.",
+        "description": "- What is the code for? \"This content describes AICoder, an AI-powered CLI tool designed to enhance coding efficiency.\"\n- Type of content: \"Documentation\"\n- Function names: \"load\", \"search\", \"plan\", \"generate\", \"write\", \"check\"\n- References: \"AICoder uses OpenAI as an external endpoint, and relies on PostgreSQL with the PGVector extension.\"\n- Any other relevant information: \"AICoder emphasizes speed, security, compliance, and personal productivity. It requires an `OPENAI_API_KEY` for operation and includes a sample configuration in YAML format for repository management.\"",
         "is_dir": false,
         "blob_hash": "84e43032568d3ad5ae63bdaa56ddb4f2cbf6ded2"
       },
       {
         "name": "go.mod",
         "path": "go.mod",
-        "description": "- What is the code for? \"This module specifies dependencies for the Go project github.com/nakamasato/aicoder, including various libraries for database access, YAML parsing, and utilities.\"\n- Type of content: \"Module file\"\n- Function names: None specified\n- References: \"Used in the Go project github.com/nakamasato/aicoder.\"\n- Any other relevant information: \"Requires Go version 1.23.2 and lists both direct and indirect dependencies with their respective versions.\"",
+        "description": "- What is the code for? This is a Go module file that specifies the module name, Go version, and dependencies for a project named \"github.com/nakamasato/aicoder\".\n- Type of content: Module file\n- Function names: N/A (Module file does not contain functions)\n- References: The module is named \"aicoder\" hosted at github.com/nakamasato/aicoder.\n- Any other relevant information: The file lists both direct and indirect dependencies, including various libraries for database handling, Git operations, configuration management, and API interactions, such as OpenAI's Go client. The Go version used is 1.23.2, and significant dependencies include \"entgo.io/ent\" for ORM and \"github.com/openai/openai-go\" for OpenAI's API integration.",
         "is_dir": false,
         "blob_hash": "f0d44b8ca5fa1c1a26503f5ffd243d3263731348"
       },
       {
         "name": "main.go",
         "path": "main.go",
-        "description": "- What is the code for? This code serves as the entry point for a Go application that executes a command defined in the \"cmd\" package.\n- Type of content: Code\n- Function names: main, Execute\n- References: This code refers to the \"cmd\" package from the \"github.com/nakamasato/aicoder\" module.\n- Any other relevant information: The code likely runs command-line interfaces or software functionalities through the cmd.Execute() call.",
+        "description": "- What is the code for? This program serves as the entry point for a command-line application that executes a function from an external package.\n- Type of content: Code\n- Function names: main, Execute\n- References: This code references the \"cmd\" package from the \"github.com/nakamasato/aicoder\" repository.\n- Any other relevant information: The main function is responsible for initiating the command execution process in the application.",
         "is_dir": false,
         "blob_hash": "55fcf5fa0dc2e4e2abd435255afeaaeb41de49c7"
       }

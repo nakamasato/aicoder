@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -174,7 +175,7 @@ func loadRepoStructure(ctx context.Context, gitRootPath, branch, commitHash stri
 		IsDir: true,
 	}
 
-	if config.Load.TargetPath != "" && config.Load.TargetPath != "." {
+	if config.Load.TargetPath != "" {
 		log.Printf("targetPath: %s", config.Load.TargetPath)
 		tree, err = tree.Tree(config.Load.TargetPath)
 		if err != nil {
@@ -199,6 +200,9 @@ func loadRepoStructure(ctx context.Context, gitRootPath, branch, commitHash stri
 // It updates the Description using OpenAI and stores embeddings in PostgreSQL.
 func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.AICoderConfig) ([]FileInfo, error) {
 	var files []FileInfo
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	var errChan = make(chan error, len(tree.Entries))
 
 	for _, entry := range tree.Entries {
 		filePath := filepath.Join(parentPath, entry.Name)
@@ -222,8 +226,9 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 			if err != nil {
 				return nil, err
 			}
-			fmt.Printf("Adding directory to children %s (%d)\n", fileInfo.Path, len(children))
+			mu.Lock()
 			fileInfo.Children = children
+			mu.Unlock()
 		} else {
 			// Retrieve the file outside the goroutine
 			file, err := tree.File(entry.Name)
@@ -235,79 +240,105 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 			if blob == nil {
 				return nil, fmt.Errorf("failed to get blob for %s: %w", entry.Name, err)
 			}
+			mu.Lock()
 			fileInfo.BlobHash = blob.Hash.String()
+			mu.Unlock()
 
-			// Check if the file was previously summarized
-			previousDescription := ""
-			previousBlobHash := ""
-			if previousRepo.Root.IsDir {
-				previousFileInfo := findFileInRepo(previousRepo.Root, fileInfo.Path)
-				if previousFileInfo != nil {
-					previousDescription = previousFileInfo.Description
-					previousBlobHash = previousFileInfo.BlobHash
-				}
-			}
+			wg.Add(1)
+			go func(fileInfo FileInfo, file *object.File) {
+				defer wg.Done()
 
-			info, err := os.Stat(fileInfo.Path)
-			if err != nil {
-				log.Printf("Failed to stat file %s: %v", fileInfo.Path, err)
-			}
-
-			modTime := info.ModTime()
-
-			// TODO: Check if the document already exists in PostgreSQL
-			// doc, err := entClient.Document.Query().Where(document.Repository(config.Repository), document.Filepath(fileInfo.Path)).First(ctx)
-
-			// Determine if the file needs to be summarized
-			needsSummary := true
-			if !modTime.IsZero() && !previousRepo.GeneratedAt.IsZero() {
-				if modTime.Before(previousRepo.GeneratedAt) || modTime.Equal(previousRepo.GeneratedAt) {
-					// File has not been modified since the last summary
-					if fileInfo.BlobHash == previousBlobHash && previousDescription != "" {
-						log.Printf("[description] %s: use previous description (last modified: %s, generated_at: %s)\n", fileInfo.Path, modTime, previousRepo.GeneratedAt)
-						fileInfo.Description = previousDescription
-						needsSummary = false
+				// Check if the file was previously summarized
+				previousDescription := ""
+				previousBlobHash := ""
+				if previousRepo.Root.IsDir {
+					previousFileInfo := findFileInRepo(previousRepo.Root, fileInfo.Path)
+					if previousFileInfo != nil {
+						previousDescription = previousFileInfo.Description
+						previousBlobHash = previousFileInfo.BlobHash
 					}
 				}
-			} else if previousBlobHash == fileInfo.BlobHash {
-				log.Printf("[description] %s: use previous description (blob hash is same): (last modified: %s, generated_at: %s)\n", fileInfo.Path, modTime, previousRepo.GeneratedAt)
-				fileInfo.Description = previousDescription
-				needsSummary = false
-			}
 
-			if needsSummary {
-				log.Printf("[description] %s: generating\n", fileInfo.Path)
-				reader, err := file.Reader()
+				info, err := os.Stat(fileInfo.Path)
 				if err != nil {
-				}
-				defer reader.Close()
-
-				content, err := io.ReadAll(reader)
-				if err != nil {
+					log.Printf("Failed to stat file %s: %v", fileInfo.Path, err)
+					return
 				}
 
-				log.Printf("summarizing %s\n", fileInfo.Path)
-				summary, err := summarizeContent(client, string(content))
-				if err != nil {
-				}
-				log.Printf("[description] %s: generated\n", fileInfo.Path)
-				fileInfo.Description = summary
+				modTime := info.ModTime()
 
-				// Get embedding for the description
-				embedding, err := getEmbeddingFromDescription(client, summary)
-				if err != nil {
-					log.Printf("Failed to get embedding for %s: %v", fileInfo.Path, err)
-				} else {
-					// Insert or update the document in PostgreSQL
-					err = upsertDocument(ctx, entClient, fileInfo.Path, summary, embedding, config.Repository)
+				// TODO: Check if the document already exists in PostgreSQL
+				// doc, err := entClient.Document.Query().Where(document.Repository(config.Repository), document.Filepath(fileInfo.Path)).First(ctx)
+
+				// Determine if the file needs to be summarized
+				needsSummary := true
+				if !modTime.IsZero() && !previousRepo.GeneratedAt.IsZero() {
+					if modTime.Before(previousRepo.GeneratedAt) || modTime.Equal(previousRepo.GeneratedAt) {
+						// File has not been modified since the last summary
+						if fileInfo.BlobHash == previousBlobHash && previousDescription != "" {
+							log.Printf("[description] %s: use previous description (last modified: %s, generated_at: %s)\n", fileInfo.Path, modTime, previousRepo.GeneratedAt)
+							fileInfo.Description = previousDescription
+							needsSummary = false
+						}
+					}
+				} else if previousBlobHash == fileInfo.BlobHash {
+					log.Printf("[description] %s: use previous description (blob hash is same): (last modified: %s, generated_at: %s)\n", fileInfo.Path, modTime, previousRepo.GeneratedAt)
+					fileInfo.Description = previousDescription
+					needsSummary = false
+				}
+
+				if needsSummary {
+					log.Printf("[description] %s: generating\n", fileInfo.Path)
+					reader, err := file.Reader()
 					if err != nil {
-						log.Printf("Failed to upsert document %s: %v", fileInfo.Path, err)
+						errChan <- fmt.Errorf("failed to get file reader: %w", err)
+						return
+					}
+					defer reader.Close()
+
+					content, err := io.ReadAll(reader)
+					if err != nil {
+						errChan <- fmt.Errorf("failed to read file content: %w", err)
+						return
+					}
+
+					log.Printf("summarizing %s\n", fileInfo.Path)
+					summary, err := summarizeContent(client, string(content))
+					if err != nil {
+						errChan <- fmt.Errorf("failed to summarize content: %w", err)
+						return
+					}
+					log.Printf("[description] %s: generated\n", fileInfo.Path)
+					fileInfo.Description = summary
+
+					// Get embedding for the description
+					embedding, err := getEmbeddingFromDescription(client, summary)
+					if err != nil {
+						log.Printf("Failed to get embedding for %s: %v", fileInfo.Path, err)
+					} else {
+						// Insert or update the document in PostgreSQL
+						err = upsertDocument(ctx, entClient, fileInfo.Path, summary, embedding, config.Repository)
+						if err != nil {
+							log.Printf("Failed to upsert document %s: %v", fileInfo.Path, err)
+							errChan <- err
+							return
+						}
 					}
 				}
-			}
 
-			files = append(files, fileInfo)
+				mu.Lock()
+				files = append(files, fileInfo)
+				mu.Unlock()
+			}(fileInfo, file)
+		}
+	}
 
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
+			return nil, err
 		}
 	}
 
