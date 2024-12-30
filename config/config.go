@@ -17,8 +17,9 @@ type AICoderConfig struct {
 }
 
 type LoadConfig struct {
-	Exclude []string `yaml:"exclude"`
-	Include []string `yaml:"include"`
+	TargetPath string   `yaml:"target_path"` // Target path to load files from
+	Exclude    []string `yaml:"exclude"`     // List of paths to exclude
+	Include    []string `yaml:"include"`     // List of paths to include in excluded paths
 }
 
 func (c *LoadConfig) IsExcluded(path string) bool {

@@ -50,14 +50,13 @@ var (
 
 func Command() *cobra.Command {
 	loadCmd := &cobra.Command{
-		Use:   "load [path]",
+		Use:   "load",
 		Short: "Load the repository structure from a Git repository and export it to a JSON file with summaries.",
-		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := context.Background()
 			config := config.GetConfig()
 
-			repoPath := args[0]
+			gitRootPath := "."
 
 			// Initialize OpenAI client
 			if openaiAPIKey == "" {
@@ -92,7 +91,7 @@ func Command() *cobra.Command {
 			}
 
 			// Load current RepoStructure
-			currentRepo, err := loadRepoStructure(ctx, repoPath, branch, commitHash, client, entClient, previousRepo, config)
+			currentRepo, err := loadRepoStructure(ctx, gitRootPath, branch, commitHash, client, entClient, previousRepo, config)
 			if err != nil {
 				fmt.Printf("Error loading repo structure: %v\n", err)
 				os.Exit(1)
@@ -129,8 +128,8 @@ func Command() *cobra.Command {
 }
 
 // loadRepoStructure loads the repository structure using go-git and generates summaries.
-func loadRepoStructure(ctx context.Context, path, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.AICoderConfig) (RepoStructure, error) {
-	repo, err := git.PlainOpen(path)
+func loadRepoStructure(ctx context.Context, gitRootPath, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.AICoderConfig) (RepoStructure, error) {
+	repo, err := git.PlainOpen(gitRootPath)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to open repository: %w", err)
 	}
@@ -169,12 +168,20 @@ func loadRepoStructure(ctx context.Context, path, branch, commitHash string, cli
 	// fmt.Printf("Repository name: %s\n", repoName)
 
 	rootFileInfo := FileInfo{
-		Name:  filepath.Base(path),
-		Path:  "",
+		Name:  gitRootPath,
+		Path:  config.Load.TargetPath,
 		IsDir: true,
 	}
 
-	children, err := traverseTree(ctx, tree, "", client, entClient, previousRepo, config)
+	if config.Load.TargetPath != "" {
+		log.Printf("targetPath: %s", config.Load.TargetPath)
+		tree, err = tree.Tree(config.Load.TargetPath)
+		if err != nil {
+			return RepoStructure{}, fmt.Errorf("failed to get tree for target path: %w", err)
+		}
+	}
+
+	children, err := traverseTree(ctx, tree, config.Load.TargetPath, client, entClient, previousRepo, config)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to traverse tree: %w", err)
 	}
