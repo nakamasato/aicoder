@@ -42,16 +42,16 @@ func (du *DocumentUpdate) SetNillableRepository(s *string) *DocumentUpdate {
 	return du
 }
 
-// SetContent sets the "content" field.
-func (du *DocumentUpdate) SetContent(s string) *DocumentUpdate {
-	du.mutation.SetContent(s)
+// SetFilepath sets the "filepath" field.
+func (du *DocumentUpdate) SetFilepath(s string) *DocumentUpdate {
+	du.mutation.SetFilepath(s)
 	return du
 }
 
-// SetNillableContent sets the "content" field if the given value is not nil.
-func (du *DocumentUpdate) SetNillableContent(s *string) *DocumentUpdate {
+// SetNillableFilepath sets the "filepath" field if the given value is not nil.
+func (du *DocumentUpdate) SetNillableFilepath(s *string) *DocumentUpdate {
 	if s != nil {
-		du.SetContent(*s)
+		du.SetFilepath(*s)
 	}
 	return du
 }
@@ -128,8 +128,8 @@ func (du *DocumentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := du.mutation.Repository(); ok {
 		_spec.SetField(document.FieldRepository, field.TypeString, value)
 	}
-	if value, ok := du.mutation.Content(); ok {
-		_spec.SetField(document.FieldContent, field.TypeString, value)
+	if value, ok := du.mutation.Filepath(); ok {
+		_spec.SetField(document.FieldFilepath, field.TypeString, value)
 	}
 	if value, ok := du.mutation.Description(); ok {
 		_spec.SetField(document.FieldDescription, field.TypeString, value)
@@ -171,16 +171,16 @@ func (duo *DocumentUpdateOne) SetNillableRepository(s *string) *DocumentUpdateOn
 	return duo
 }
 
-// SetContent sets the "content" field.
-func (duo *DocumentUpdateOne) SetContent(s string) *DocumentUpdateOne {
-	duo.mutation.SetContent(s)
+// SetFilepath sets the "filepath" field.
+func (duo *DocumentUpdateOne) SetFilepath(s string) *DocumentUpdateOne {
+	duo.mutation.SetFilepath(s)
 	return duo
 }
 
-// SetNillableContent sets the "content" field if the given value is not nil.
-func (duo *DocumentUpdateOne) SetNillableContent(s *string) *DocumentUpdateOne {
+// SetNillableFilepath sets the "filepath" field if the given value is not nil.
+func (duo *DocumentUpdateOne) SetNillableFilepath(s *string) *DocumentUpdateOne {
 	if s != nil {
-		duo.SetContent(*s)
+		duo.SetFilepath(*s)
 	}
 	return duo
 }
@@ -287,8 +287,8 @@ func (duo *DocumentUpdateOne) sqlSave(ctx context.Context) (_node *Document, err
 	if value, ok := duo.mutation.Repository(); ok {
 		_spec.SetField(document.FieldRepository, field.TypeString, value)
 	}
-	if value, ok := duo.mutation.Content(); ok {
-		_spec.SetField(document.FieldContent, field.TypeString, value)
+	if value, ok := duo.mutation.Filepath(); ok {
+		_spec.SetField(document.FieldFilepath, field.TypeString, value)
 	}
 	if value, ok := duo.mutation.Description(); ok {
 		_spec.SetField(document.FieldDescription, field.TypeString, value)

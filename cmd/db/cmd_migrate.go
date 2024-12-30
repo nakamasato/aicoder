@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/ent/migrate"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +30,10 @@ func dbMigrate(cmd *cobra.Command, args []string) {
 		log.Fatalf("failed opening connection to postgres: %v", err)
 	}
 	defer entClient.Close()
-	if err := entClient.Schema.Create(ctx); err != nil {
+	if err := entClient.Schema.Create(ctx,
+		migrate.WithDropIndex(true),
+		migrate.WithDropColumn(true),
+	); err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 	fmt.Println("db migrate done")

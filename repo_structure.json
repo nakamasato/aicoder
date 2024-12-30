@@ -1,5 +1,5 @@
 {
-  "generated_at": "2024-12-30T16:53:06.960009+09:00",
+  "generated_at": "2024-12-30T20:08:47.556064+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -8,21 +8,21 @@
       {
         "name": ".aicoder.yaml",
         "path": ".aicoder.yaml",
-        "description": "- What is the code for? This configuration file specifies directory exclusions and inclusions for loading schema definitions related to the 'ent' package in a project.\n- Type of content: Configuration \n- Function names: None (this is a configuration snippet)\n- References: This code is used in the context of managing schema loading in the 'ent' framework for Go.\n- Any other relevant information: The configuration indicates that the 'ent/schema' directory should be included while 'ent' directory is excluded from loading.",
+        "description": "- What is the code for? This configuration load process excludes specific directories and includes a designated schema directory for loading data.\n- Type of content: Configuration\n- Function names: Not applicable\n- References: Typically used in data loading and schema configuration contexts.\n- Any other relevant information: The `exclude_dirs` key is utilized to specify directories to ignore during loading, while `include` determines which directories or files to concentrate on, specifically in relation to entity schemas.",
         "is_dir": false,
         "blob_hash": "5af8de8af22f0b9b00c11c8f878f0accd184b9a6"
       },
       {
         "name": ".gitignore",
         "path": ".gitignore",
-        "description": "A `.env` file is a configuration file used in programming that contains environment variables for applications. It typically holds sensitive information such as API keys, database credentials, and configuration settings, allowing developers to manage settings in a secure manner without hardcoding them into the source code. The file is commonly used in conjunction with frameworks and libraries like Node.js, Python, and others that support environment variable loading.",
+        "description": "- What is the code for? This file contains environment variable configurations for a project, often used for storing sensitive information such as API keys and database credentials.\n- Type of content: Configuration file\n- Function names: N/A (not applicable for .env files)\n- References: Commonly referenced in project documentation for setup instructions and used by various programming frameworks and libraries to manage environment variables.\n- Any other relevant information: The .env file is typically not included in version control (e.g., Git) to avoid exposing sensitive information.",
         "is_dir": false,
         "blob_hash": "4c49bd78f1d08f2bc09fa0bd8191ed38b7dce5e3"
       },
       {
         "name": "DEVELOPMENT.md",
         "path": "DEVELOPMENT.md",
-        "description": "The content provides instructions for setting up two Go-based projects: **cobra-cli** and **entgo**.\n\n### For cobra-cli:\n1. Install using: `go install github.com/spf13/cobra-cli@latest`.\n2. Initialize a new Cobra project with: `cobra-cli init`.\n3. Add a new subcommand called \"loader\" with: `cobra-cli add loader`.\n4. Note: Each subcommand is placed in a separate package to simplify management.\n\n### For entgo:\n1. Create a new entity named \"Document\" with: `go run -mod=mod entgo.io/ent/cmd/ent new Document`.\n2. Generate code with: `make generate` or by running `go run main.go setup`.\n3. Reference is provided for schema definition: https://github.com/pgvector/pgvector-go/blob/master/ent/schema/item.go.",
+        "description": "- What is the code for? This content discusses command-line interface (CLI) development using the cobra CLI library and initializing an Ent schema for a document in Go.\n- Type of content: Documentation\n- Function names: `cobra-cli init`, `cobra-cli add`, `go run -mod=mod entgo.io/ent/cmd/ent new Document`, `make generate`, `go run main.go setup`\n- References: Used in development of Go applications; references to specific packages include cobra-cli for CLI creation and entgo for entity framework schema management, with further information referenced from the pgvector-go repository.\n- Any other relevant information: Notes a unique package structure for managing subcommands in the cobra CLI framework.",
         "is_dir": false,
         "blob_hash": "8a3ba5835e657ed18580115f88b107a5f16b3412"
       },
@@ -35,14 +35,14 @@
       {
         "name": "Makefile",
         "path": "Makefile",
-        "description": "- What is the code for? This code is for managing tasks in a Go project, including generating code, linting, testing, formatting, running the main application, accessing a database, and performing migrations.\n- Type of content: Makefile\n- Function names: generate, lint, test, fmt, run, db, migrate\n- References: This code is used in a Go project to automate various development tasks.\n- Any other relevant information: The Makefile defines multiple phony targets to streamline the development process, allowing developers to execute standard tasks with simple commands.",
+        "description": "- What is the code for? This Makefile contains tasks for generating code, linting, testing, formatting, running the application, accessing the database, and migrating the database schema using Go tools.\n- Type of content: Makefile\n- Function names: generate, lint, test, fmt, run, db, migrate\n- References: Used for managing Go project operations such as code generation and database migrations.\n- Any other relevant information: The Makefile automates common development tasks associated with a Go project, streamlining the development process.",
         "is_dir": false,
         "blob_hash": "ede7c2867f2ab308abe6fee07704cecfd0fb3f31"
       },
       {
         "name": "README.md",
         "path": "README.md",
-        "description": "- What is the code for? This content provides setup instructions for an AI coding assistant, including environment variable configurations, PostgreSQL database creation, and the use of the PGVector extension.\n- Type of content: Documentation\n- Function names: None explicitly mentioned\n- References: The PGVector GitHub repository (https://github.com/pgvector/pgvector-go)\n- Any other relevant information: Instructions include creating a database and user, granting privileges, and specifying configuration for directory inclusion and search parameters. Also mentions the OpenAI API key as an environment variable.",
+        "description": "- What is the code for? This code provides setup instructions for using the AICoder project, including environment variables, PostgreSQL setup, and configuration settings for database usage and search functionality.\n- Type of content: Documentation\n- Function names: N/A\n- References: The PostgreSQL installation commands refer to the pgvector GitHub repository for further information (https://github.com/pgvector/pgvector-go).\n- Any other relevant information: The document includes instructions for creating a PostgreSQL database, user privileges, and specific YAML configuration settings for data loading and search parameters.",
         "is_dir": false,
         "blob_hash": "33c24335c7cb062f40216b39262e0b69be3c8228"
       },
@@ -59,21 +59,21 @@
               {
                 "name": "cmd.go",
                 "path": "cmd/db/cmd.go",
-                "description": "- What is the code for? This code defines a command-line interface (CLI) command for database management using the Cobra library.\n- Type of content: Code\n- Function names: Command\n- References: This code is likely used in a CLI application for managing database operations.\n- Any other relevant information: The command includes sub-commands for \"migrate\" and \"reset,\" although their implementations are not provided in the snippet.",
+                "description": "- What is the code for? This code defines a command-line interface (CLI) command for database operations using the Cobra library in Go.\n- Type of content: Code\n- Function names: Command\n- References: This code is referenced in the context of a CLI tool for managing database commands, specifically for migration and resetting.\n- Any other relevant information: The command can be extended with additional subcommands for database management tasks. It uses the Cobra package for structuring CLI commands.",
                 "is_dir": false,
                 "blob_hash": "b9841b8794eeba6700fb264d43c7fe2f8a16e9ff"
               },
               {
                 "name": "cmd_migrate.go",
                 "path": "cmd/db/cmd_migrate.go",
-                "description": "The provided code defines a migration command for a PostgreSQL database using the `cobra` library and the `ent` framework. The `migrateCommand` function creates a command with a default PostgreSQL connection string, allowing users to initiate a database migration. When executed, the `dbMigrate` function connects to the database, creates the necessary schema, and logs any errors encountered during the process. Finally, it prints a success message upon completion.",
+                "description": "- What is the code for? This code provides a command-line interface (CLI) command for migrating a PostgreSQL database using the Ent framework.\n- Type of content: Code\n- Function names: migrateCommand, dbMigrate\n- References: This code can be referenced in the context of database management and migrations in applications utilizing the Ent framework and PostgreSQL as the database.\n- Any other relevant information: The command includes a flag for specifying the PostgreSQL connection string, and it handles the creation of the database schema.",
                 "is_dir": false,
                 "blob_hash": "eadf1f117676cdf90f91d51506b1b8bdcb734a40"
               },
               {
                 "name": "cmd_reset.go",
                 "path": "cmd/db/cmd_reset.go",
-                "description": "- What is the code for? This code defines a command for resetting a database using the Ent framework and PostgreSQL.\n- Type of content: Code\n- Function names: resetCommand, reset\n- References: This code is referenced or used in database management operations within a Go application, particularly for handling migrations with Ent.\n- Any other relevant information: The command can be executed with a customizable PostgreSQL connection string, defaulting to \"postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable\". It also includes error handling for database connection and schema creation.",
+                "description": "- What is the code for? This code implements a command-line utility for resetting a PostgreSQL database, specifically utilizing the ent framework for schema migrations and resource deletion. \n- Type of content: Code\n- Function names: `resetCommand`, `reset`\n- References: This code is part of a package that involves database operations within a Go application (likely a CLI tool).\n- Any other relevant information: The command uses the \"cobra\" package for argument parsing and command creation, and it requires a PostgreSQL connection string to function. It includes error handling for database operations and prints messages indicating the progress of the reset operation.",
                 "is_dir": false,
                 "blob_hash": "d00cff6fbbf90bf9c6f4083e9a7499de7e3220e3"
               }
@@ -87,7 +87,7 @@
               {
                 "name": "cmd.go",
                 "path": "cmd/load/cmd.go",
-                "description": "- What is the code for? This code provides a command-line tool for loading and exporting the structure of a Git repository to a JSON file, including file summaries generated using OpenAI's API.\n- Type of content: Code\n- Function names: Command, loadRepoStructure, traverseTree, upsertDocument, getEmbeddingFromDescription, findFileInRepo, summarizeContent\n- References: This code is part of a larger application that interacts with OpenAI's API for summarization and a PostgreSQL database for document storage.\n- Any other relevant information: The tool handles repository paths, branch and commit selections, and manages API keys and database connections through command-line flags. It also handles existing summaries to avoid redundant processing.",
+                "description": "- What is the code for? This code provides a command-line tool to load the structure of a Git repository, summarize files using OpenAI, and export the structure and summaries to a JSON file.\n- Type of content: Code\n- Function names: Command, loadRepoStructure, traverseTree, upsertDocument, getEmbeddingFromDescription, findFileInRepo, summarizeContent\n- References: This code is part of a package named \"load\" and is used in the context of analyzing and summarizing files from Git repositories while integrating with OpenAI and PostgreSQL for data persistence and summarization.\n- Any other relevant information: The tool supports various command-line flags for configuration, including output file path, branch and commit selection, OpenAI API key usage, and database connection settings. It handles the retrieval and summarization of file descriptions and manages embeddings by storing them in a PostgreSQL database.",
                 "is_dir": false,
                 "blob_hash": "356351b6df947d2b62cf7306c8c35bbce3548c38"
               }
@@ -96,7 +96,7 @@
           {
             "name": "root.go",
             "path": "cmd/root.go",
-            "description": "- What is the code for? This code defines a command-line interface (CLI) tool named \"aicoder\" aimed at aiding AI-powered code management and facilitates quick coding through various commands.\n- Type of content: Code\n- Function names: Execute, initConfig\n- References: This code is referenced in the `main.main()` function, where the `Execute` function is called to run the CLI.\n- Any other relevant information: The code uses the Cobra library to manage CLI commands and supports configuration file reading through a specified YAML file. It includes commands for loading, database operations, and searching functionalities.",
+            "description": "- What is the code for? This code sets up a command-line interface (CLI) tool called \"aicoder\" designed for AI-powered code management.\n- Type of content: Code\n- Function names: Execute, init, initConfig\n- References: The code is part of a CLI tool and is referenced in the main function (main.main()).\n- Any other relevant information: The code utilizes the Cobra library to handle command structure and flags and includes commands for loading, database management, and searching. It also sets a configuration file for the tool.",
             "is_dir": false,
             "blob_hash": "c9b56be73f22f23a35fd6129d11d206fd838e76d"
           },
@@ -108,7 +108,7 @@
               {
                 "name": "cmd.go",
                 "path": "cmd/search/cmd.go",
-                "description": "- What is the code for? This code implements a command-line search tool to find files related to a user-specified query by calculating similarity using embeddings from OpenAI and storing data in a PostgreSQL database.\n- Type of content: Code\n- Function names: Command, getEmbeddingFromDescription, fetchSimilarDocuments\n- References: The code utilizes OpenAI's API for embedding generation and interacts with a PostgreSQL database using Entgo for document retrieval.\n- Any other relevant information: The command accepts flags for database connection and OpenAI API key, and it fetches the top five similar documents based on cosine similarity.",
+                "description": "- What is the code for?: This code implements a command-line tool that searches for files related to a given query by utilizing OpenAI's embedding capabilities and a PostgreSQL database to fetch similar documents based on cosine similarity.\n- Type of content: Code\n- Function names: `Command`, `getEmbeddingFromDescription`, `fetchSimilarDocuments`\n- References: This code is used in a command-line interface as part of a search feature in the `search` package.\n- Any other relevant information: The code requires an API key for OpenAI and a connection string for PostgreSQL to function. It generates embeddings for user-provided queries and retrieves the top similar documents from a database, sorting them by their similarity score.",
                 "is_dir": false,
                 "blob_hash": "7d9599545d86ad2a34286ee461332e55331fbf3a"
               }
@@ -124,25 +124,69 @@
           {
             "name": "config.go",
             "path": "config/config.go",
-            "description": "- What is the code for? \"This code defines a configuration management system for an application using YAML, which includes loading settings for file inclusion/exclusion and search parameters.\"\n- Type of content: \"Code\"\n- Function names: \"ReadConfig\", \"GetConfig\", \"GetLoadConfig\", \"GetSearchConfig\", \"IsExcluded\", \"IsIncluded\", \"matchesPath\"\n- References: \"This code is typically used in applications requiring dynamic configuration management based on user-defined parameters.\"\n- Any other relevant information: \"It helps to handle directories for data loading and sets configurations for search functionality, with error handling for file operations.\"",
+            "description": "- **What is the code for?**: This code manages configuration settings for an application, including loaded directories and search parameters from a YAML file.\n- **Type of content**: Code\n- **Function names**: `ReadConfig`, `GetConfig`, `GetLoadConfig`, `GetSearchConfig`, `IsExcluded`, `IsIncluded`, `matchesPath`\n- **References**: This code can be referenced where application configuration management is required, particularly in loading and validating directory settings for file operations.\n- **Any other relevant information**: The configuration is structured to specify included and excluded directories, as well as search parameters. It utilizes the `gopkg.in/yaml.v2` library for YAML parsing.",
             "is_dir": false,
             "blob_hash": "a576ae5188aa16ae990ede7e2ef05653ce5825a6"
           }
         ]
       },
       {
-        "name": "go.mod",
-        "path": "go.mod",
-        "description": "- What is the code for? This code is a Go module that specifies dependencies for a project named \"aicoder,\" which likely involves AI-related functionalities considering the inclusion of the OpenAI library.\n- Type of content: Code (Go Module)\n- Function names: N/A (The provided content does not include specific function names)\n- References: This code is used within the \"aicoder\" project and references other Go libraries for functionalities such as database interactions (`pgx`, `pq`), text manipulation (`gjson`, `sjson`), and more.\n- Any other relevant information: The module is compatible with Go version 1.23.2 and contains both direct and indirect dependencies necessary for its operation, including libraries for cryptography, YAML processing, and command-line interface development (`cobra`).",
-        "is_dir": false,
-        "blob_hash": "f0d44b8ca5fa1c1a26503f5ffd243d3263731348"
+        "name": "ent",
+        "path": "ent",
+        "is_dir": true,
+        "children": [
+          {
+            "name": "document",
+            "path": "ent/document",
+            "is_dir": true
+          },
+          {
+            "name": "enttest",
+            "path": "ent/enttest",
+            "is_dir": true
+          },
+          {
+            "name": "hook",
+            "path": "ent/hook",
+            "is_dir": true
+          },
+          {
+            "name": "migrate",
+            "path": "ent/migrate",
+            "is_dir": true
+          },
+          {
+            "name": "predicate",
+            "path": "ent/predicate",
+            "is_dir": true
+          },
+          {
+            "name": "runtime",
+            "path": "ent/runtime",
+            "is_dir": true
+          },
+          {
+            "name": "schema",
+            "path": "ent/schema",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "document.go",
+                "path": "ent/schema/document.go",
+                "description": "- What is the code for? This code defines the schema for the Document entity in a GraphQL application using the Ent framework, including fields for ID, content, description, and an embedding vector.\n- Type of content: Code\n- Function names: (Document) Fields, (Document) Edges, (Document) Indexes\n- References: Used within applications that utilize the Ent framework for database interaction, particularly with PostgreSQL.\n- Any other relevant information: The embedding field utilizes the pgvector library for handling vector data, with specific database configurations for indexing.",
+                "is_dir": false,
+                "blob_hash": "80cfc7cf478bb2993a39111ee93fcc5cb1f1cb0c"
+              }
+            ]
+          }
+        ]
       },
       {
-        "name": "go.sum",
-        "path": "go.sum",
-        "description": "- What is the code for? (e.g., \"This includes various Go modules and their versions for dependency management.\")\n- Type of content: \"Dependency management\"\n- Function names: None specified\n- References: Various Go packages and modules referenced (e.g., ariga.io/atlas, github.com/DATA-DOG/go-sqlmock, github.com/ProtonMail/go-crypto, etc.)\n- Any other relevant information: Contains module paths and their respective version hashes, potentially useful for tracking dependencies or verifying integrity within a Go project.",
+        "name": "go.mod",
+        "path": "go.mod",
+        "description": "- What is the code for? This code specifies the module dependencies and version requirements for a Go project named \"aicoder\".\n- Type of content: Code\n- Function names: None specified (module-level context)\n- References: The code is associated with the Go programming language project management via Go modules.\n- Any other relevant information: The document includes direct and indirect dependencies which are necessary for the project to compile and run correctly, managing various packages including database drivers, YAML support, and Git operations.",
         "is_dir": false,
-        "blob_hash": "65ecc402f0d7c51238b46aa34dc5d5c6f2e4ac49"
+        "blob_hash": "f0d44b8ca5fa1c1a26503f5ffd243d3263731348"
       },
       {
         "name": "internal",
@@ -157,7 +201,7 @@
               {
                 "name": "debug.go",
                 "path": "internal/pgvector/debug.go",
-                "description": "- What is the code for? This code connects to a PostgreSQL database, retrieves embeddings for a list of text inputs from the OpenAI API, stores the embeddings in a database, and queries the closest embeddings to a given document.\n- Type of content: Code\n- Function names: main, FetchEmbeddings\n- References: Uses the OpenAI API for embedding retrieval and the pgvector library for vector data storage in PostgreSQL.\n- Any other relevant information: The code establishes a PostgreSQL connection, creates a table for storing text and embeddings, drops previous tables if they exist, and performs error handling throughout the operations. The embeddings are fetched using an API request to OpenAI’s embeddings endpoint.",
+                "description": "- What is the code for? This code connects to a PostgreSQL database, fetches embeddings for text inputs using the OpenAI API, and stores the embeddings in a database table. It also retrieves similar documents based on the embeddings.\n- Type of content: Code\n- Function names: main, FetchEmbeddings\n- References: Uses OpenAI API for embeddings, requires PostgreSQL with pgvector extension.\n- Any other relevant information: The code checks for an environment variable for the OpenAI API key, creates a table for documents, and implements error handling for database interactions and API requests.",
                 "is_dir": false,
                 "blob_hash": "d1656036a8db8355a461f15fa044cec4d7ffca55"
               }
@@ -168,7 +212,7 @@
       {
         "name": "main.go",
         "path": "main.go",
-        "description": "The provided Go code is a simple program that imports a command package from the `github.com/nakamasato/aicoder` library and executes its `Execute` function in the `main` function, serving as the entry point of the application.",
+        "description": "- What is the code for? This code is the entry point for a Go application that executes a command from the \"cmd\" package.\n- Type of content: Code\n- Function names: main, Execute\n- References: The \"cmd\" package from the \"github.com/nakamasato/aicoder\" module.\n- Any other relevant information: This code structure is typical for Go applications, where the main function is used to kick off execution.",
         "is_dir": false,
         "blob_hash": "55fcf5fa0dc2e4e2abd435255afeaaeb41de49c7"
       },
@@ -185,27 +229,20 @@
               {
                 "name": "distance.go",
                 "path": "pkg/vectorutils/distance.go",
-                "description": "- What is the code for?: \"This function calculates the Euclidean distance between two vectors.\"\n- Type of content: \"Code\"\n- Function names: \"EuclideanDistance\"\n- References: \"Used in vector calculations and distance measurements in various applications.\"\n- Any other relevant information: \"The function checks that the input vectors are of the same length and logs an error if they are not.\"",
+                "description": "- What is the code for? This function calculates the Euclidean distance between two vectors.\n- Type of content: Code\n- Function names: EuclideanDistance\n- References: This code may be referenced in applications involving vector mathematics or computational geometry.\n- Any other relevant information: The function includes error handling to ensure both vectors are of the same length before computation.",
                 "is_dir": false,
                 "blob_hash": "9fddbf6deb7f8459b2205bfda0f83a83640e0335"
               },
               {
                 "name": "distance_test.go",
                 "path": "pkg/vectorutils/distance_test.go",
-                "description": "- What is the code for? This is a test function that evaluates the calculation of the Euclidean distance between pairs of vectors using the `vectorutils` package.\n- Type of content: Code\n- Function names: `TestEuclideanDistance`\n- References: This function references `vectorutils.EuclideanDistance`.\n- Any other relevant information: The test includes multiple cases with expected outcomes, utilizing the `testing` package in Go and `math` for square root calculations. It retrieves distances from a PostgreSQL database using the notation for embedded queries.",
+                "description": "- What is the code for? This code is for testing the Euclidean distance calculation between two vectors.\n- Type of content: Code\n- Function names: TestEuclideanDistance\n- References: Utilizes the \"EuclideanDistance\" function from the \"vectorutils\" package.\n- Any other relevant information: Includes test cases with expected results and uses the Go testing framework. It features SQL-like comments that reference database operations related to embeddings.",
                 "is_dir": false,
                 "blob_hash": "e1e16c78920534febf2935d2a89a097e2fb9073f"
               }
             ]
           }
         ]
-      },
-      {
-        "name": "repo_structure.json",
-        "path": "repo_structure.json",
-        "description": "- What is the code for? **The code implements a command-line tool named \"AICoder\" for managing Git repository structures, summarizing files, and facilitating database interactions.**\n- Type of content: **Code**\n- Function names: **main, rootCmd, dbMigrate, fetchSimilarDocuments, getEmbeddingFromDescription**\n- References: **The project integrates libraries like Cobra for CLI commands, and Ent for database management. It references external tools and resources, such as OpenAI's API for content summarization and PostgreSQL for database operations.**\n- Any other relevant information: **The project includes various components such as `.env` for environment variables, Makefile for project tasks, and multiple Go source files organized to manage commands like \"load\", \"db\", and \"search\". Dependencies are defined in `go.mod` and `go.sum` files. The README provides setup instructions and emphasizes the creation and use of a PostgreSQL database with vector capabilities.**",
-        "is_dir": false,
-        "blob_hash": "bfe6a840ae7a97df8141a6ceec79baa45303f008"
       }
     ]
   }

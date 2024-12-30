@@ -26,7 +26,7 @@ AICoder is a AI-powered CLI that helps you code quickly.
 brew install postgresql@15
 ```
 
-```
+```sql
 CREATE DATABASE aicoder;
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE USER aicoder WITH PASSWORD 'aicoder';
@@ -39,8 +39,9 @@ https://github.com/pgvector/pgvector-go
 ## Configuration
 
 ```yaml
+repository: aicoder
 load:
-  exclude_dirs:
+  exclude:
     - ent
   include:
     - ent/schema

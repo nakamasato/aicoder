@@ -200,7 +200,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 			IsDir: entry.Mode == filemode.Dir,
 		}
 
-		if config.Load.IsExcluded(filePath) && !config.Load.IsIncluded(filePath) {
+		if !fileInfo.IsDir && config.Load.IsExcluded(filePath) && !config.Load.IsIncluded(filePath) {
 			log.Printf("Skipping %s\n", filePath)
 			continue
 		}
@@ -314,7 +314,7 @@ func upsertDocument(ctx context.Context, entClient *ent.Client, path, descriptio
 	vector := pgvector.NewVector(embedding)
 
 	_, err := entClient.Document.Create().
-		SetContent(path).
+		SetFilepath(path).
 		SetRepository(repository).
 		SetDescription(description).
 		SetEmbedding(vector).

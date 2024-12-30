@@ -17,12 +17,12 @@ type AICoderConfig struct {
 }
 
 type LoadConfig struct {
-	ExcludeDirs []string `yaml:"exclude_dirs"`
-	Include     []string `yaml:"include"`
+	Exclude []string `yaml:"exclude"`
+	Include []string `yaml:"include"`
 }
 
 func (c *LoadConfig) IsExcluded(path string) bool {
-	for _, excl := range c.ExcludeDirs {
+	for _, excl := range c.Exclude {
 		if matchesPath(path, excl) {
 			return true
 		}

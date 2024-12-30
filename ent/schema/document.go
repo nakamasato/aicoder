@@ -19,7 +19,7 @@ func (Document) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id"),
 		field.Text("repository"),
-		field.Text("content"),
+		field.Text("filepath"),
 		field.Text("description"),
 		field.Other("embedding", pgvector.Vector{}).
 			SchemaType(map[string]string{

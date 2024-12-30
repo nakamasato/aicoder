@@ -34,7 +34,7 @@ type DocumentMutation struct {
 	typ           string
 	id            *int64
 	repository    *string
-	content       *string
+	filepath      *string
 	description   *string
 	embedding     *pgvector.Vector
 	clearedFields map[string]struct{}
@@ -183,40 +183,40 @@ func (m *DocumentMutation) ResetRepository() {
 	m.repository = nil
 }
 
-// SetContent sets the "content" field.
-func (m *DocumentMutation) SetContent(s string) {
-	m.content = &s
+// SetFilepath sets the "filepath" field.
+func (m *DocumentMutation) SetFilepath(s string) {
+	m.filepath = &s
 }
 
-// Content returns the value of the "content" field in the mutation.
-func (m *DocumentMutation) Content() (r string, exists bool) {
-	v := m.content
+// Filepath returns the value of the "filepath" field in the mutation.
+func (m *DocumentMutation) Filepath() (r string, exists bool) {
+	v := m.filepath
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldContent returns the old "content" field's value of the Document entity.
+// OldFilepath returns the old "filepath" field's value of the Document entity.
 // If the Document object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *DocumentMutation) OldContent(ctx context.Context) (v string, err error) {
+func (m *DocumentMutation) OldFilepath(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldContent is only allowed on UpdateOne operations")
+		return v, errors.New("OldFilepath is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldContent requires an ID field in the mutation")
+		return v, errors.New("OldFilepath requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldContent: %w", err)
+		return v, fmt.Errorf("querying old value for OldFilepath: %w", err)
 	}
-	return oldValue.Content, nil
+	return oldValue.Filepath, nil
 }
 
-// ResetContent resets all changes to the "content" field.
-func (m *DocumentMutation) ResetContent() {
-	m.content = nil
+// ResetFilepath resets all changes to the "filepath" field.
+func (m *DocumentMutation) ResetFilepath() {
+	m.filepath = nil
 }
 
 // SetDescription sets the "description" field.
@@ -329,8 +329,8 @@ func (m *DocumentMutation) Fields() []string {
 	if m.repository != nil {
 		fields = append(fields, document.FieldRepository)
 	}
-	if m.content != nil {
-		fields = append(fields, document.FieldContent)
+	if m.filepath != nil {
+		fields = append(fields, document.FieldFilepath)
 	}
 	if m.description != nil {
 		fields = append(fields, document.FieldDescription)
@@ -348,8 +348,8 @@ func (m *DocumentMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case document.FieldRepository:
 		return m.Repository()
-	case document.FieldContent:
-		return m.Content()
+	case document.FieldFilepath:
+		return m.Filepath()
 	case document.FieldDescription:
 		return m.Description()
 	case document.FieldEmbedding:
@@ -365,8 +365,8 @@ func (m *DocumentMutation) OldField(ctx context.Context, name string) (ent.Value
 	switch name {
 	case document.FieldRepository:
 		return m.OldRepository(ctx)
-	case document.FieldContent:
-		return m.OldContent(ctx)
+	case document.FieldFilepath:
+		return m.OldFilepath(ctx)
 	case document.FieldDescription:
 		return m.OldDescription(ctx)
 	case document.FieldEmbedding:
@@ -387,12 +387,12 @@ func (m *DocumentMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetRepository(v)
 		return nil
-	case document.FieldContent:
+	case document.FieldFilepath:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetContent(v)
+		m.SetFilepath(v)
 		return nil
 	case document.FieldDescription:
 		v, ok := value.(string)
@@ -460,8 +460,8 @@ func (m *DocumentMutation) ResetField(name string) error {
 	case document.FieldRepository:
 		m.ResetRepository()
 		return nil
-	case document.FieldContent:
-		m.ResetContent()
+	case document.FieldFilepath:
+		m.ResetFilepath()
 		return nil
 	case document.FieldDescription:
 		m.ResetDescription()

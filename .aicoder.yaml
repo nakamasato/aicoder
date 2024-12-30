@@ -1,7 +1,9 @@
 repository: aicoder
 load:
-  exclude_dirs:
+  exclude:
     - ent
+    - go.sum
+    - repo_structure.json
   include:
     - ent/schema
 

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/pkg/vectorutils"
 	"github.com/openai/openai-go"
@@ -37,6 +38,7 @@ func Command() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := context.Background()
+			config := config.GetConfig()
 			query := strings.Join(args, " ")
 
 			// Initialize OpenAI client
@@ -61,8 +63,8 @@ func Command() *cobra.Command {
 				log.Fatalf("failed to get embedding for query: %v", err)
 			}
 
-			// Fetch top 5 similar documents
-			results, err := fetchSimilarDocuments(ctx, entClient, queryEmbedding, 5)
+			// Fetch top N similar documents
+			results, err := fetchSimilarDocuments(ctx, entClient, queryEmbedding, config.Search.TopN)
 			if err != nil {
 				log.Fatalf("failed to fetch similar documents: %v", err)
 			}
@@ -124,7 +126,6 @@ func fetchSimilarDocuments(ctx context.Context, entClient *ent.Client, queryEmbe
 		Order(func(s *sql.Selector) {
 			s.OrderExpr(sql.ExprP("embedding <-> $1", vector))
 		}).
-		Select("content", "embedding").
 		Limit(topN).
 		All(ctx)
 	if err != nil {
@@ -135,8 +136,8 @@ func fetchSimilarDocuments(ctx context.Context, entClient *ent.Client, queryEmbe
 	for _, doc := range docs {
 		distance := vectorutils.EuclideanDistance(doc.Embedding.Slice(), queryEmbedding)
 		results = append(results, SearchResult{
-			Path:        doc.Content,
-			Description: "",
+			Path:        doc.Filepath,
+			Description: doc.Description,
 			Score:       distance,
 		})
 	}
