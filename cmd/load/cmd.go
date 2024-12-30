@@ -55,7 +55,7 @@ func Command() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := context.Background()
-			config := config.GetLoadConfig()
+			config := config.GetConfig()
 
 			repoPath := args[0]
 
@@ -129,7 +129,7 @@ func Command() *cobra.Command {
 }
 
 // loadRepoStructure loads the repository structure using go-git and generates summaries.
-func loadRepoStructure(ctx context.Context, path, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.LoadConfig) (RepoStructure, error) {
+func loadRepoStructure(ctx context.Context, path, branch, commitHash string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.AICoderConfig) (RepoStructure, error) {
 	repo, err := git.PlainOpen(path)
 	if err != nil {
 		return RepoStructure{}, fmt.Errorf("failed to open repository: %w", err)
@@ -158,6 +158,16 @@ func loadRepoStructure(ctx context.Context, path, branch, commitHash string, cli
 		return RepoStructure{}, fmt.Errorf("failed to get tree from commit: %w", err)
 	}
 
+	// // Convert the relative path to an absolute path
+	// absPath, err := filepath.Abs(path)
+	// if err != nil {
+	// 	log.Fatalf("failed to get absolute path: %v", err)
+	// }
+
+	// // Get the base name of the absolute path
+	// repoName := filepath.Base(absPath)
+	// fmt.Printf("Repository name: %s\n", repoName)
+
 	rootFileInfo := FileInfo{
 		Name:  filepath.Base(path),
 		Path:  "",
@@ -179,7 +189,7 @@ func loadRepoStructure(ctx context.Context, path, branch, commitHash string, cli
 
 // traverseTree recursively traverses the Git tree and collects FileInfo.
 // It updates the Description using OpenAI and stores embeddings in PostgreSQL.
-func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.LoadConfig) ([]FileInfo, error) {
+func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, client *openai.Client, entClient *ent.Client, previousRepo RepoStructure, config config.AICoderConfig) ([]FileInfo, error) {
 	var files []FileInfo
 
 	for _, entry := range tree.Entries {
@@ -190,7 +200,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 			IsDir: entry.Mode == filemode.Dir,
 		}
 
-		if config.IsExcluded(filePath) && !config.IsIncluded(filePath) {
+		if config.Load.IsExcluded(filePath) && !config.Load.IsIncluded(filePath) {
 			log.Printf("Skipping %s\n", filePath)
 			continue
 		}
@@ -284,7 +294,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 					log.Printf("Failed to get embedding for %s: %v", filePath, err)
 				} else {
 					// Insert or update the document in PostgreSQL
-					err = upsertDocument(ctx, entClient, filePath, summary, embedding)
+					err = upsertDocument(ctx, entClient, filePath, summary, embedding, config.Repository)
 					if err != nil {
 						log.Printf("Failed to upsert document %s: %v", filePath, err)
 						return nil, err
@@ -300,11 +310,12 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 }
 
 // upsertDocument inserts or updates a document in the PostgreSQL database.
-func upsertDocument(ctx context.Context, entClient *ent.Client, path, description string, embedding []float32) error {
+func upsertDocument(ctx context.Context, entClient *ent.Client, path, description string, embedding []float32, repository string) error {
 	vector := pgvector.NewVector(embedding)
 
 	_, err := entClient.Document.Create().
 		SetContent(path).
+		SetRepository(repository).
 		SetDescription(description).
 		SetEmbedding(vector).
 		Save(ctx)
@@ -365,7 +376,17 @@ func summarizeContent(client *openai.Client, content string) (string, error) {
 	ctx := context.Background()
 
 	// Prepare the prompt for summarization
-	prompt := fmt.Sprintf("Please provide a concise summary of the following content:\n\n%s", content)
+	prompt := fmt.Sprintf(`Please provide a concise summary of the following content.
+The summary will be used to retrieve relevant files to answer a user's question.
+Please write the summary in the following manner:
+
+- What is the code for? (e.g., "This function calculates the sum of two numbers.", "The document about package management in Go.", etc)
+- Type of content: (e.g., "Code", "Documentation", "Article", etc)
+- Function names: (e.g., "calculateSum", "main", etc)
+- References: where this code is used or referenced.
+- Any other relevant information
+
+\n\n%s`, content)
 
 	// Create a chat completion request
 	resp, err := client.Chat.Completions.New(ctx,

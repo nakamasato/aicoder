@@ -261,12 +261,12 @@ func (dq *DocumentQuery) Clone() *DocumentQuery {
 // Example:
 //
 //	var v []struct {
-//		Content string `json:"content,omitempty"`
+//		Repository string `json:"repository,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Document.Query().
-//		GroupBy(document.FieldContent).
+//		GroupBy(document.FieldRepository).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (dq *DocumentQuery) GroupBy(field string, fields ...string) *DocumentGroupBy {
@@ -284,11 +284,11 @@ func (dq *DocumentQuery) GroupBy(field string, fields ...string) *DocumentGroupB
 // Example:
 //
 //	var v []struct {
-//		Content string `json:"content,omitempty"`
+//		Repository string `json:"repository,omitempty"`
 //	}
 //
 //	client.Document.Query().
-//		Select(document.FieldContent).
+//		Select(document.FieldRepository).
 //		Scan(ctx, &v)
 func (dq *DocumentQuery) Select(fields ...string) *DocumentSelect {
 	dq.ctx.Fields = append(dq.ctx.Fields, fields...)

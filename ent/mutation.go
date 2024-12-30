@@ -33,6 +33,7 @@ type DocumentMutation struct {
 	op            Op
 	typ           string
 	id            *int64
+	repository    *string
 	content       *string
 	description   *string
 	embedding     *pgvector.Vector
@@ -144,6 +145,42 @@ func (m *DocumentMutation) IDs(ctx context.Context) ([]int64, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetRepository sets the "repository" field.
+func (m *DocumentMutation) SetRepository(s string) {
+	m.repository = &s
+}
+
+// Repository returns the value of the "repository" field in the mutation.
+func (m *DocumentMutation) Repository() (r string, exists bool) {
+	v := m.repository
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRepository returns the old "repository" field's value of the Document entity.
+// If the Document object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DocumentMutation) OldRepository(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRepository is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRepository requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRepository: %w", err)
+	}
+	return oldValue.Repository, nil
+}
+
+// ResetRepository resets all changes to the "repository" field.
+func (m *DocumentMutation) ResetRepository() {
+	m.repository = nil
 }
 
 // SetContent sets the "content" field.
@@ -288,7 +325,10 @@ func (m *DocumentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *DocumentMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
+	if m.repository != nil {
+		fields = append(fields, document.FieldRepository)
+	}
 	if m.content != nil {
 		fields = append(fields, document.FieldContent)
 	}
@@ -306,6 +346,8 @@ func (m *DocumentMutation) Fields() []string {
 // schema.
 func (m *DocumentMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case document.FieldRepository:
+		return m.Repository()
 	case document.FieldContent:
 		return m.Content()
 	case document.FieldDescription:
@@ -321,6 +363,8 @@ func (m *DocumentMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *DocumentMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case document.FieldRepository:
+		return m.OldRepository(ctx)
 	case document.FieldContent:
 		return m.OldContent(ctx)
 	case document.FieldDescription:
@@ -336,6 +380,13 @@ func (m *DocumentMutation) OldField(ctx context.Context, name string) (ent.Value
 // type.
 func (m *DocumentMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case document.FieldRepository:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRepository(v)
+		return nil
 	case document.FieldContent:
 		v, ok := value.(string)
 		if !ok {
@@ -406,6 +457,9 @@ func (m *DocumentMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *DocumentMutation) ResetField(name string) error {
 	switch name {
+	case document.FieldRepository:
+		m.ResetRepository()
+		return nil
 	case document.FieldContent:
 		m.ResetContent()
 		return nil

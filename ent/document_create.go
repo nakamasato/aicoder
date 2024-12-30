@@ -20,6 +20,12 @@ type DocumentCreate struct {
 	hooks    []Hook
 }
 
+// SetRepository sets the "repository" field.
+func (dc *DocumentCreate) SetRepository(s string) *DocumentCreate {
+	dc.mutation.SetRepository(s)
+	return dc
+}
+
 // SetContent sets the "content" field.
 func (dc *DocumentCreate) SetContent(s string) *DocumentCreate {
 	dc.mutation.SetContent(s)
@@ -78,6 +84,9 @@ func (dc *DocumentCreate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (dc *DocumentCreate) check() error {
+	if _, ok := dc.mutation.Repository(); !ok {
+		return &ValidationError{Name: "repository", err: errors.New(`ent: missing required field "Document.repository"`)}
+	}
 	if _, ok := dc.mutation.Content(); !ok {
 		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "Document.content"`)}
 	}
@@ -118,6 +127,10 @@ func (dc *DocumentCreate) createSpec() (*Document, *sqlgraph.CreateSpec) {
 	if id, ok := dc.mutation.ID(); ok {
 		_node.ID = id
 		_spec.ID.Value = id
+	}
+	if value, ok := dc.mutation.Repository(); ok {
+		_spec.SetField(document.FieldRepository, field.TypeString, value)
+		_node.Repository = value
 	}
 	if value, ok := dc.mutation.Content(); ok {
 		_spec.SetField(document.FieldContent, field.TypeString, value)

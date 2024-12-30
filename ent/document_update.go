@@ -28,6 +28,20 @@ func (du *DocumentUpdate) Where(ps ...predicate.Document) *DocumentUpdate {
 	return du
 }
 
+// SetRepository sets the "repository" field.
+func (du *DocumentUpdate) SetRepository(s string) *DocumentUpdate {
+	du.mutation.SetRepository(s)
+	return du
+}
+
+// SetNillableRepository sets the "repository" field if the given value is not nil.
+func (du *DocumentUpdate) SetNillableRepository(s *string) *DocumentUpdate {
+	if s != nil {
+		du.SetRepository(*s)
+	}
+	return du
+}
+
 // SetContent sets the "content" field.
 func (du *DocumentUpdate) SetContent(s string) *DocumentUpdate {
 	du.mutation.SetContent(s)
@@ -111,6 +125,9 @@ func (du *DocumentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if value, ok := du.mutation.Repository(); ok {
+		_spec.SetField(document.FieldRepository, field.TypeString, value)
+	}
 	if value, ok := du.mutation.Content(); ok {
 		_spec.SetField(document.FieldContent, field.TypeString, value)
 	}
@@ -138,6 +155,20 @@ type DocumentUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *DocumentMutation
+}
+
+// SetRepository sets the "repository" field.
+func (duo *DocumentUpdateOne) SetRepository(s string) *DocumentUpdateOne {
+	duo.mutation.SetRepository(s)
+	return duo
+}
+
+// SetNillableRepository sets the "repository" field if the given value is not nil.
+func (duo *DocumentUpdateOne) SetNillableRepository(s *string) *DocumentUpdateOne {
+	if s != nil {
+		duo.SetRepository(*s)
+	}
+	return duo
 }
 
 // SetContent sets the "content" field.
@@ -252,6 +283,9 @@ func (duo *DocumentUpdateOne) sqlSave(ctx context.Context) (_node *Document, err
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := duo.mutation.Repository(); ok {
+		_spec.SetField(document.FieldRepository, field.TypeString, value)
 	}
 	if value, ok := duo.mutation.Content(); ok {
 		_spec.SetField(document.FieldContent, field.TypeString, value)

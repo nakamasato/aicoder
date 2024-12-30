@@ -11,6 +11,8 @@ const (
 	Label = "document"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldRepository holds the string denoting the repository field in the database.
+	FieldRepository = "repository"
 	// FieldContent holds the string denoting the content field in the database.
 	FieldContent = "content"
 	// FieldDescription holds the string denoting the description field in the database.
@@ -24,6 +26,7 @@ const (
 // Columns holds all SQL columns for document fields.
 var Columns = []string{
 	FieldID,
+	FieldRepository,
 	FieldContent,
 	FieldDescription,
 	FieldEmbedding,
@@ -45,6 +48,11 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByRepository orders the results by the repository field.
+func ByRepository(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRepository, opts...).ToFunc()
 }
 
 // ByContent orders the results by the content field.

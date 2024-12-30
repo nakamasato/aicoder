@@ -53,6 +53,11 @@ func IDLTE(id int64) predicate.Document {
 	return predicate.Document(sql.FieldLTE(FieldID, id))
 }
 
+// Repository applies equality check predicate on the "repository" field. It's identical to RepositoryEQ.
+func Repository(v string) predicate.Document {
+	return predicate.Document(sql.FieldEQ(FieldRepository, v))
+}
+
 // Content applies equality check predicate on the "content" field. It's identical to ContentEQ.
 func Content(v string) predicate.Document {
 	return predicate.Document(sql.FieldEQ(FieldContent, v))
@@ -66,6 +71,71 @@ func Description(v string) predicate.Document {
 // Embedding applies equality check predicate on the "embedding" field. It's identical to EmbeddingEQ.
 func Embedding(v pgvector.Vector) predicate.Document {
 	return predicate.Document(sql.FieldEQ(FieldEmbedding, v))
+}
+
+// RepositoryEQ applies the EQ predicate on the "repository" field.
+func RepositoryEQ(v string) predicate.Document {
+	return predicate.Document(sql.FieldEQ(FieldRepository, v))
+}
+
+// RepositoryNEQ applies the NEQ predicate on the "repository" field.
+func RepositoryNEQ(v string) predicate.Document {
+	return predicate.Document(sql.FieldNEQ(FieldRepository, v))
+}
+
+// RepositoryIn applies the In predicate on the "repository" field.
+func RepositoryIn(vs ...string) predicate.Document {
+	return predicate.Document(sql.FieldIn(FieldRepository, vs...))
+}
+
+// RepositoryNotIn applies the NotIn predicate on the "repository" field.
+func RepositoryNotIn(vs ...string) predicate.Document {
+	return predicate.Document(sql.FieldNotIn(FieldRepository, vs...))
+}
+
+// RepositoryGT applies the GT predicate on the "repository" field.
+func RepositoryGT(v string) predicate.Document {
+	return predicate.Document(sql.FieldGT(FieldRepository, v))
+}
+
+// RepositoryGTE applies the GTE predicate on the "repository" field.
+func RepositoryGTE(v string) predicate.Document {
+	return predicate.Document(sql.FieldGTE(FieldRepository, v))
+}
+
+// RepositoryLT applies the LT predicate on the "repository" field.
+func RepositoryLT(v string) predicate.Document {
+	return predicate.Document(sql.FieldLT(FieldRepository, v))
+}
+
+// RepositoryLTE applies the LTE predicate on the "repository" field.
+func RepositoryLTE(v string) predicate.Document {
+	return predicate.Document(sql.FieldLTE(FieldRepository, v))
+}
+
+// RepositoryContains applies the Contains predicate on the "repository" field.
+func RepositoryContains(v string) predicate.Document {
+	return predicate.Document(sql.FieldContains(FieldRepository, v))
+}
+
+// RepositoryHasPrefix applies the HasPrefix predicate on the "repository" field.
+func RepositoryHasPrefix(v string) predicate.Document {
+	return predicate.Document(sql.FieldHasPrefix(FieldRepository, v))
+}
+
+// RepositoryHasSuffix applies the HasSuffix predicate on the "repository" field.
+func RepositoryHasSuffix(v string) predicate.Document {
+	return predicate.Document(sql.FieldHasSuffix(FieldRepository, v))
+}
+
+// RepositoryEqualFold applies the EqualFold predicate on the "repository" field.
+func RepositoryEqualFold(v string) predicate.Document {
+	return predicate.Document(sql.FieldEqualFold(FieldRepository, v))
+}
+
+// RepositoryContainsFold applies the ContainsFold predicate on the "repository" field.
+func RepositoryContainsFold(v string) predicate.Document {
+	return predicate.Document(sql.FieldContainsFold(FieldRepository, v))
 }
 
 // ContentEQ applies the EQ predicate on the "content" field.

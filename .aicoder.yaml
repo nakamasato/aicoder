@@ -1,3 +1,4 @@
+repository: aicoder
 load:
   exclude_dirs:
     - ent

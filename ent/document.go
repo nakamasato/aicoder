@@ -17,6 +17,8 @@ type Document struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int64 `json:"id,omitempty"`
+	// Repository holds the value of the "repository" field.
+	Repository string `json:"repository,omitempty"`
 	// Content holds the value of the "content" field.
 	Content string `json:"content,omitempty"`
 	// Description holds the value of the "description" field.
@@ -35,7 +37,7 @@ func (*Document) scanValues(columns []string) ([]any, error) {
 			values[i] = new(pgvector.Vector)
 		case document.FieldID:
 			values[i] = new(sql.NullInt64)
-		case document.FieldContent, document.FieldDescription:
+		case document.FieldRepository, document.FieldContent, document.FieldDescription:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -58,6 +60,12 @@ func (d *Document) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			d.ID = int64(value.Int64)
+		case document.FieldRepository:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field repository", values[i])
+			} else if value.Valid {
+				d.Repository = value.String
+			}
 		case document.FieldContent:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field content", values[i])
@@ -112,6 +120,9 @@ func (d *Document) String() string {
 	var builder strings.Builder
 	builder.WriteString("Document(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", d.ID))
+	builder.WriteString("repository=")
+	builder.WriteString(d.Repository)
+	builder.WriteString(", ")
 	builder.WriteString("content=")
 	builder.WriteString(d.Content)
 	builder.WriteString(", ")

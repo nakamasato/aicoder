@@ -19,3 +19,6 @@ db:
 .PHONY: migrate
 migrate:
 	go run ent/migrate.go
+.PHONY: load
+load:
+	go run main.go load .

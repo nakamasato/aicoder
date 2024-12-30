@@ -11,8 +11,9 @@ import (
 
 // AICoderConfig holds the configuration for the application.
 type AICoderConfig struct {
-	Load   LoadConfig   `yaml:"load"`
-	Search SearchConfig `yaml:"search"`
+	Repository string       `yaml:"repository"`
+	Load       LoadConfig   `yaml:"load"`
+	Search     SearchConfig `yaml:"search"`
 }
 
 type LoadConfig struct {
