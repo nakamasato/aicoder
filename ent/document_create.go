@@ -20,9 +20,15 @@ type DocumentCreate struct {
 	hooks    []Hook
 }
 
-// SetContent sets the "content" field.
-func (dc *DocumentCreate) SetContent(s string) *DocumentCreate {
-	dc.mutation.SetContent(s)
+// SetRepository sets the "repository" field.
+func (dc *DocumentCreate) SetRepository(s string) *DocumentCreate {
+	dc.mutation.SetRepository(s)
+	return dc
+}
+
+// SetFilepath sets the "filepath" field.
+func (dc *DocumentCreate) SetFilepath(s string) *DocumentCreate {
+	dc.mutation.SetFilepath(s)
 	return dc
 }
 
@@ -78,8 +84,11 @@ func (dc *DocumentCreate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (dc *DocumentCreate) check() error {
-	if _, ok := dc.mutation.Content(); !ok {
-		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "Document.content"`)}
+	if _, ok := dc.mutation.Repository(); !ok {
+		return &ValidationError{Name: "repository", err: errors.New(`ent: missing required field "Document.repository"`)}
+	}
+	if _, ok := dc.mutation.Filepath(); !ok {
+		return &ValidationError{Name: "filepath", err: errors.New(`ent: missing required field "Document.filepath"`)}
 	}
 	if _, ok := dc.mutation.Description(); !ok {
 		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "Document.description"`)}
@@ -119,9 +128,13 @@ func (dc *DocumentCreate) createSpec() (*Document, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := dc.mutation.Content(); ok {
-		_spec.SetField(document.FieldContent, field.TypeString, value)
-		_node.Content = value
+	if value, ok := dc.mutation.Repository(); ok {
+		_spec.SetField(document.FieldRepository, field.TypeString, value)
+		_node.Repository = value
+	}
+	if value, ok := dc.mutation.Filepath(); ok {
+		_spec.SetField(document.FieldFilepath, field.TypeString, value)
+		_node.Filepath = value
 	}
 	if value, ok := dc.mutation.Description(); ok {
 		_spec.SetField(document.FieldDescription, field.TypeString, value)

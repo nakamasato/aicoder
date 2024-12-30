@@ -12,7 +12,8 @@ var (
 	// DocumentsColumns holds the columns for the "documents" table.
 	DocumentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
-		{Name: "content", Type: field.TypeString, Size: 2147483647},
+		{Name: "repository", Type: field.TypeString, Size: 2147483647},
+		{Name: "filepath", Type: field.TypeString, Size: 2147483647},
 		{Name: "description", Type: field.TypeString, Size: 2147483647},
 		{Name: "embedding", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "vector(1536)"}},
 	}
@@ -25,11 +26,16 @@ var (
 			{
 				Name:    "document_embedding",
 				Unique:  false,
-				Columns: []*schema.Column{DocumentsColumns[3]},
+				Columns: []*schema.Column{DocumentsColumns[4]},
 				Annotation: &entsql.IndexAnnotation{
 					OpClass: "vector_l2_ops",
 					Type:    "hnsw",
 				},
+			},
+			{
+				Name:    "document_repository",
+				Unique:  false,
+				Columns: []*schema.Column{DocumentsColumns[1]},
 			},
 		},
 	}

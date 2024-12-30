@@ -17,8 +17,10 @@ type Document struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int64 `json:"id,omitempty"`
-	// Content holds the value of the "content" field.
-	Content string `json:"content,omitempty"`
+	// Repository holds the value of the "repository" field.
+	Repository string `json:"repository,omitempty"`
+	// Filepath holds the value of the "filepath" field.
+	Filepath string `json:"filepath,omitempty"`
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
 	// Embedding holds the value of the "embedding" field.
@@ -35,7 +37,7 @@ func (*Document) scanValues(columns []string) ([]any, error) {
 			values[i] = new(pgvector.Vector)
 		case document.FieldID:
 			values[i] = new(sql.NullInt64)
-		case document.FieldContent, document.FieldDescription:
+		case document.FieldRepository, document.FieldFilepath, document.FieldDescription:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -58,11 +60,17 @@ func (d *Document) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			d.ID = int64(value.Int64)
-		case document.FieldContent:
+		case document.FieldRepository:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field content", values[i])
+				return fmt.Errorf("unexpected type %T for field repository", values[i])
 			} else if value.Valid {
-				d.Content = value.String
+				d.Repository = value.String
+			}
+		case document.FieldFilepath:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field filepath", values[i])
+			} else if value.Valid {
+				d.Filepath = value.String
 			}
 		case document.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -112,8 +120,11 @@ func (d *Document) String() string {
 	var builder strings.Builder
 	builder.WriteString("Document(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", d.ID))
-	builder.WriteString("content=")
-	builder.WriteString(d.Content)
+	builder.WriteString("repository=")
+	builder.WriteString(d.Repository)
+	builder.WriteString(", ")
+	builder.WriteString("filepath=")
+	builder.WriteString(d.Filepath)
 	builder.WriteString(", ")
 	builder.WriteString("description=")
 	builder.WriteString(d.Description)

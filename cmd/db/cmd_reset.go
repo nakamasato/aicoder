@@ -29,6 +29,9 @@ func reset(cmd *cobra.Command, args []string) {
 		log.Fatalf("failed opening connection to postgres: %v", err)
 	}
 	defer entClient.Close()
+
+	entClient.Document.Delete().ExecX(ctx)
+
 	if err := entClient.Schema.Create(ctx); err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}

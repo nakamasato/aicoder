@@ -18,7 +18,8 @@ type Document struct {
 func (Document) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id"),
-		field.Text("content"),
+		field.Text("repository"),
+		field.Text("filepath"),
 		field.Text("description"),
 		field.Other("embedding", pgvector.Vector{}).
 			SchemaType(map[string]string{
@@ -39,5 +40,6 @@ func (Document) Indexes() []ent.Index {
 				entsql.IndexType("hnsw"),
 				entsql.OpClass("vector_l2_ops"),
 			),
+		index.Fields("repository"),
 	}
 }

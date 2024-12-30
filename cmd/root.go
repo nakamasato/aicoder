@@ -18,8 +18,8 @@ var (
 
 	RootCmd = &cobra.Command{
 		Use:   "aicoder",
-		Short: "A tool for AI-powered code management",
-		Long:  `Aicoder is a CLI tool that helps you to code quickly.`,
+		Short: "Aicoder is a AI-powered CLI tool that helps you to code quickly.",
+		Long:  `Aicoder is a AI-powered CLI tool that helps you to code quickly.`,
 	}
 )
 
