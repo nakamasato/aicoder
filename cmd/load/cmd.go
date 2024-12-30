@@ -301,7 +301,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 					// Insert or update the document in PostgreSQL
 					err = upsertDocument(ctx, entClient, fileInfo.Path, summary, embedding, config.Repository)
 					if err != nil {
-						return nil, fmt.Errorf("Failed to upsert document %s: %v", fileInfo.Path, err)
+						log.Printf("Failed to upsert document %s: %v", fileInfo.Path, err)
 					}
 				}
 			}
