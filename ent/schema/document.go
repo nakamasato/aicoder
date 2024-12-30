@@ -21,6 +21,7 @@ func (Document) Fields() []ent.Field {
 		field.Text("repository"),
 		field.Text("filepath"),
 		field.Text("description"),
+		field.Time("updated_at"),
 		field.Other("embedding", pgvector.Vector{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "vector(1536)",
@@ -40,6 +41,6 @@ func (Document) Indexes() []ent.Index {
 				entsql.IndexType("hnsw"),
 				entsql.OpClass("vector_l2_ops"),
 			),
-		index.Fields("repository"),
+		index.Fields("repository", "filepath").Unique(),
 	}
 }

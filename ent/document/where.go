@@ -3,6 +3,8 @@
 package document
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"github.com/nakamasato/aicoder/ent/predicate"
 	pgvector "github.com/pgvector/pgvector-go"
@@ -66,6 +68,11 @@ func Filepath(v string) predicate.Document {
 // Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
 func Description(v string) predicate.Document {
 	return predicate.Document(sql.FieldEQ(FieldDescription, v))
+}
+
+// UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
+func UpdatedAt(v time.Time) predicate.Document {
+	return predicate.Document(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
 // Embedding applies equality check predicate on the "embedding" field. It's identical to EmbeddingEQ.
@@ -266,6 +273,46 @@ func DescriptionEqualFold(v string) predicate.Document {
 // DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
 func DescriptionContainsFold(v string) predicate.Document {
 	return predicate.Document(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
+func UpdatedAtEQ(v time.Time) predicate.Document {
+	return predicate.Document(sql.FieldEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtNEQ applies the NEQ predicate on the "updated_at" field.
+func UpdatedAtNEQ(v time.Time) predicate.Document {
+	return predicate.Document(sql.FieldNEQ(FieldUpdatedAt, v))
+}
+
+// UpdatedAtIn applies the In predicate on the "updated_at" field.
+func UpdatedAtIn(vs ...time.Time) predicate.Document {
+	return predicate.Document(sql.FieldIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtNotIn applies the NotIn predicate on the "updated_at" field.
+func UpdatedAtNotIn(vs ...time.Time) predicate.Document {
+	return predicate.Document(sql.FieldNotIn(FieldUpdatedAt, vs...))
+}
+
+// UpdatedAtGT applies the GT predicate on the "updated_at" field.
+func UpdatedAtGT(v time.Time) predicate.Document {
+	return predicate.Document(sql.FieldGT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtGTE applies the GTE predicate on the "updated_at" field.
+func UpdatedAtGTE(v time.Time) predicate.Document {
+	return predicate.Document(sql.FieldGTE(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLT applies the LT predicate on the "updated_at" field.
+func UpdatedAtLT(v time.Time) predicate.Document {
+	return predicate.Document(sql.FieldLT(FieldUpdatedAt, v))
+}
+
+// UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
+func UpdatedAtLTE(v time.Time) predicate.Document {
+	return predicate.Document(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
 // EmbeddingEQ applies the EQ predicate on the "embedding" field.

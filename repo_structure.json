@@ -1,5 +1,5 @@
 {
-  "generated_at": "2024-12-30T21:08:36.636433+09:00",
+  "generated_at": "2024-12-31T08:19:33.24836+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -11,12 +11,6 @@
         "description": "- What is the code for? This code pertains to schema definitions used in an entity framework for a project involving AI coding tools.\n- Type of content: Documentation\n- Function names: None specified\n- References: The code is likely referenced within the context of the aicoder repository, specifically in relation to entity management.\n- Any other relevant information: The repository is set to exclude certain files while including schema definitions related to the entity framework, indicating a focus on data models and their structure.",
         "is_dir": false,
         "blob_hash": "8e789dd410650b81a9a9b4774480e7778ba3a9d0"
-      },
-      {
-        "name": "LICENSE",
-        "path": "LICENSE",
-        "is_dir": false,
-        "blob_hash": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
       },
       {
         "name": ".gitignore",
@@ -33,11 +27,10 @@
         "blob_hash": "8a3ba5835e657ed18580115f88b107a5f16b3412"
       },
       {
-        "name": "README.md",
-        "path": "README.md",
-        "description": "- What is the code for? \"This content describes AICoder, an AI-powered CLI tool designed to enhance coding efficiency.\"\n- Type of content: \"Documentation\"\n- Function names: \"load\", \"search\", \"plan\", \"generate\", \"write\", \"check\"\n- References: \"AICoder uses OpenAI as an external endpoint, and relies on PostgreSQL with the PGVector extension.\"\n- Any other relevant information: \"AICoder emphasizes speed, security, compliance, and personal productivity. It requires an `OPENAI_API_KEY` for operation and includes a sample configuration in YAML format for repository management.\"",
+        "name": "LICENSE",
+        "path": "LICENSE",
         "is_dir": false,
-        "blob_hash": "84e43032568d3ad5ae63bdaa56ddb4f2cbf6ded2"
+        "blob_hash": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
       },
       {
         "name": "Makefile",
@@ -45,6 +38,13 @@
         "description": "- What is the code for? This Makefile defines various tasks for a Go project, including generating code, running linter, testing, formatting, executing the main application, managing the database, migrating database schemas, and loading data.\n- Type of content: Makefile\n- Function names: generate, lint, test, fmt, run, db, migrate, load\n- References: This code is used in the context of managing a Go application, specifically for tasks related to building and maintaining the application's codebase.\n- Any other relevant information: The Makefile employs standard Go tools and commands, indicating a typical workflow for Go developers.",
         "is_dir": false,
         "blob_hash": "7038f8ac43fe67d325543b4569c67bc078cae7ed"
+      },
+      {
+        "name": "README.md",
+        "path": "README.md",
+        "description": "- What is the code for? \"This content describes AICoder, an AI-powered CLI tool designed to enhance coding efficiency.\"\n- Type of content: \"Documentation\"\n- Function names: \"load\", \"search\", \"plan\", \"generate\", \"write\", \"check\"\n- References: \"AICoder uses OpenAI as an external endpoint, and relies on PostgreSQL with the PGVector extension.\"\n- Any other relevant information: \"AICoder emphasizes speed, security, compliance, and personal productivity. It requires an `OPENAI_API_KEY` for operation and includes a sample configuration in YAML format for repository management.\"",
+        "is_dir": false,
+        "blob_hash": "84e43032568d3ad5ae63bdaa56ddb4f2cbf6ded2"
       },
       {
         "name": "go.mod",

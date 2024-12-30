@@ -17,6 +17,8 @@ const (
 	FieldFilepath = "filepath"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
 	// FieldEmbedding holds the string denoting the embedding field in the database.
 	FieldEmbedding = "embedding"
 	// Table holds the table name of the document in the database.
@@ -29,6 +31,7 @@ var Columns = []string{
 	FieldRepository,
 	FieldFilepath,
 	FieldDescription,
+	FieldUpdatedAt,
 	FieldEmbedding,
 }
 
@@ -63,6 +66,11 @@ func ByFilepath(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
 // ByEmbedding orders the results by the embedding field.

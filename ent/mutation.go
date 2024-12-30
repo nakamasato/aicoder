@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -36,6 +37,7 @@ type DocumentMutation struct {
 	repository    *string
 	filepath      *string
 	description   *string
+	updated_at    *time.Time
 	embedding     *pgvector.Vector
 	clearedFields map[string]struct{}
 	done          bool
@@ -255,6 +257,42 @@ func (m *DocumentMutation) ResetDescription() {
 	m.description = nil
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (m *DocumentMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *DocumentMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Document entity.
+// If the Document object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DocumentMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *DocumentMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
 // SetEmbedding sets the "embedding" field.
 func (m *DocumentMutation) SetEmbedding(pg pgvector.Vector) {
 	m.embedding = &pg
@@ -325,7 +363,7 @@ func (m *DocumentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *DocumentMutation) Fields() []string {
-	fields := make([]string, 0, 4)
+	fields := make([]string, 0, 5)
 	if m.repository != nil {
 		fields = append(fields, document.FieldRepository)
 	}
@@ -334,6 +372,9 @@ func (m *DocumentMutation) Fields() []string {
 	}
 	if m.description != nil {
 		fields = append(fields, document.FieldDescription)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, document.FieldUpdatedAt)
 	}
 	if m.embedding != nil {
 		fields = append(fields, document.FieldEmbedding)
@@ -352,6 +393,8 @@ func (m *DocumentMutation) Field(name string) (ent.Value, bool) {
 		return m.Filepath()
 	case document.FieldDescription:
 		return m.Description()
+	case document.FieldUpdatedAt:
+		return m.UpdatedAt()
 	case document.FieldEmbedding:
 		return m.Embedding()
 	}
@@ -369,6 +412,8 @@ func (m *DocumentMutation) OldField(ctx context.Context, name string) (ent.Value
 		return m.OldFilepath(ctx)
 	case document.FieldDescription:
 		return m.OldDescription(ctx)
+	case document.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
 	case document.FieldEmbedding:
 		return m.OldEmbedding(ctx)
 	}
@@ -400,6 +445,13 @@ func (m *DocumentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDescription(v)
+		return nil
+	case document.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
 		return nil
 	case document.FieldEmbedding:
 		v, ok := value.(pgvector.Vector)
@@ -465,6 +517,9 @@ func (m *DocumentMutation) ResetField(name string) error {
 		return nil
 	case document.FieldDescription:
 		m.ResetDescription()
+		return nil
+	case document.FieldUpdatedAt:
+		m.ResetUpdatedAt()
 		return nil
 	case document.FieldEmbedding:
 		m.ResetEmbedding()

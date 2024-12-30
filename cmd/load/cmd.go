@@ -17,6 +17,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/pgvector/pgvector-go"
@@ -225,7 +226,9 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 			if err != nil {
 				return nil, err
 			}
+			mu.Lock()
 			fileInfo.Children = children
+			mu.Unlock()
 		} else {
 			// Retrieve the file outside the goroutine
 			file, err := tree.File(entry.Name)
@@ -237,8 +240,9 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 			if blob == nil {
 				return nil, fmt.Errorf("failed to get blob for %s: %w", entry.Name, err)
 			}
-
+			mu.Lock()
 			fileInfo.BlobHash = blob.Hash.String()
+			mu.Unlock()
 
 			wg.Add(1)
 			go func(fileInfo FileInfo, file *object.File) {
@@ -262,6 +266,9 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 				}
 
 				modTime := info.ModTime()
+
+				// TODO: Check if the document already exists in PostgreSQL
+				// doc, err := entClient.Document.Query().Where(document.Repository(config.Repository), document.Filepath(fileInfo.Path)).First(ctx)
 
 				// Determine if the file needs to be summarized
 				needsSummary := true
@@ -342,12 +349,15 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 func upsertDocument(ctx context.Context, entClient *ent.Client, path, description string, embedding []float32, repository string) error {
 	vector := pgvector.NewVector(embedding)
 
-	_, err := entClient.Document.Create().
+	err := entClient.Document.Create().
 		SetFilepath(path).
 		SetRepository(repository).
 		SetDescription(description).
 		SetEmbedding(vector).
-		Save(ctx)
+		SetUpdatedAt(time.Now()).
+		OnConflictColumns(document.FieldRepository, document.FieldFilepath).
+		UpdateNewValues().
+		Exec(ctx)
 	return err
 }
 
