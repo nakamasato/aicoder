@@ -305,10 +305,8 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 					}
 				}
 			}
-
-			files = append(files, fileInfo)
-
 		}
+		files = append(files, fileInfo)
 	}
 
 	return files, nil
