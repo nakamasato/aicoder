@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -21,6 +22,8 @@ type FileInfo struct {
 	IsDir       bool       `json:"is_dir"`
 	Children    []FileInfo `json:"children,omitempty"`
 	BlobHash    string     `json:"blob_hash,omitempty"`
+	ModifiedAt  time.Time  `json:"modified_at,omitempty"`
+	Size        int64      `json:"size,omitempty"`
 }
 
 // RepoStructure represents the entire repository structure.
@@ -30,17 +33,17 @@ type RepoStructure struct {
 }
 
 // FilePathGenerator generates file paths from the FileInfo structure.
-func (f *FileInfo) FilePathGenerator() <-chan string {
-	ch := make(chan string)
+func (f *FileInfo) FileInfoGenerator() <-chan FileInfo {
+	ch := make(chan FileInfo)
 	go func() {
 		defer close(ch) // Ensure the channel is closed when done
 		for _, child := range f.Children {
+			ch <- child
 			if child.IsDir {
-				for path := range child.FilePathGenerator() {
-					ch <- path
+
+				for fileinfo := range child.FileInfoGenerator() {
+					ch <- fileinfo
 				}
-			} else {
-				ch <- child.Path
 			}
 		}
 	}()
@@ -114,6 +117,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, exc
 			Name:  entry.Name,
 			Path:  filePath,
 			IsDir: entry.Mode == filemode.Dir,
+			Size: 0,
 		}
 
 		if skip(filePath, exclude, include) {
@@ -131,12 +135,18 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, exc
 				return nil, err
 			}
 			fileInfo.Children = children
+			for _, child := range children {
+				fileInfo.Size += child.Size
+			}
 		} else {
 			fileInfo.BlobHash = entry.Hash.String()
-			// file, err := tree.File(entry.Name)
-			// if err != nil {
-			// 	return nil, fmt.Errorf("failed to get file %s: %w", entry.Name, err)
-			// }
+			info, err := os.Stat(fileInfo.Path)
+			if err != nil {
+				log.Printf("Failed to stat file %s: %v", fileInfo.Path, err)
+				return nil, err
+			}
+			fileInfo.ModifiedAt = info.ModTime()
+			fileInfo.Size += 1
 		}
 		files = append(files, fileInfo)
 	}
