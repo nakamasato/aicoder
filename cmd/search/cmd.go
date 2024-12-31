@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/pkg/vectorutils"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -58,7 +59,7 @@ func Command() *cobra.Command {
 			defer entClient.Close()
 
 			// Generate embedding for the query
-			queryEmbedding, err := getEmbeddingFromDescription(ctx, client, query)
+			queryEmbedding, err := llm.GetEmbedding(ctx, client, query)
 			if err != nil {
 				log.Fatalf("failed to get embedding for query: %v", err)
 			}
@@ -89,31 +90,6 @@ func Command() *cobra.Command {
 	return searcherCmd
 }
 
-// getEmbeddingFromDescription fetches the embedding for a given description using OpenAI.
-func getEmbeddingFromDescription(ctx context.Context, client *openai.Client, description string) ([]float32, error) {
-	if len(description) == 0 {
-		return nil, fmt.Errorf("description is empty")
-	}
-
-	resp, err := client.Embeddings.New(ctx, openai.EmbeddingNewParams{
-		Model: openai.F(openai.EmbeddingModelTextEmbedding3Small),
-		Input: openai.F(openai.EmbeddingNewParamsInputUnion(openai.EmbeddingNewParamsInputArrayOfStrings{description})),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create embedding: %w", err)
-	}
-
-	if len(resp.Data) == 0 {
-		return nil, fmt.Errorf("no embedding data returned")
-	}
-
-	var embedding []float32
-	for _, v := range resp.Data[0].Embedding {
-		embedding = append(embedding, float32(v))
-	}
-
-	return embedding, nil
-}
 
 // fetchSimilarDocuments retrieves top N similar documents based on cosine similarity.
 func fetchSimilarDocuments(ctx context.Context, entClient *ent.Client, queryEmbedding []float32, topN int) ([]SearchResult, error) {
