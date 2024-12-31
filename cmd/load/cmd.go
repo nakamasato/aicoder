@@ -13,7 +13,7 @@ import (
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/nakamasato/aicoder/internal/llm"
-	"github.com/nakamasato/aicoder/internal/load"
+	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -79,7 +79,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 	store := vectorstore.New(entClient, client)
 
 	// Load existing RepoStructure if exists
-	var previousRepo load.RepoStructure
+	var previousRepo loader.RepoStructure
 	if _, err := os.Stat(outputFile); err == nil {
 		data, err := os.ReadFile(outputFile)
 		if err != nil {
@@ -91,7 +91,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 	}
 
 	// Load current RepoStructure
-	currentRepo, err := load.LoadRepoStructure(ctx, gitRootPath, branch, commitHash, config.Load.TargetPath, config.Load.Include, config.Load.Exclude)
+	currentRepo, err := loader.LoadRepoStructure(ctx, gitRootPath, branch, commitHash, config.Load.TargetPath, config.Load.Include, config.Load.Exclude)
 	if err != nil {
 		fmt.Printf("Error loading repo structure: %v\n", err)
 		os.Exit(1)
@@ -116,7 +116,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 	var errChan = make(chan error, currentRepo.Root.Size)
 	for fileinfo := range currentRepo.Root.FileInfoGenerator() {
 		wg.Add(1)
-		go func(fileInfo load.FileInfo) {
+		go func(fileInfo loader.FileInfo) {
 			defer wg.Done()
 			if fileinfo.IsDir {
 				return

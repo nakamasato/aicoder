@@ -6,6 +6,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/nakamasato/aicoder/cmd/apply"
 	"github.com/nakamasato/aicoder/cmd/db"
 	"github.com/nakamasato/aicoder/cmd/load"
 	"github.com/nakamasato/aicoder/cmd/plan"
@@ -41,6 +42,7 @@ func init() {
 		db.Command(),
 		search.Command(),
 		plan.Command(),
+		apply.Command(),
 	)
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", ".aicoder.yaml", "config file (default is .aicoder.yaml)")

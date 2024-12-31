@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/invopop/jsonschema"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/ent/document"
-	"github.com/nakamasato/aicoder/internal/load"
+	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
 )
@@ -52,7 +53,7 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 
 	var relevantDocs strings.Builder
 	for _, r := range *docsWithScore {
-		content, err := load.LoadFileContent(r.Document.Filepath)
+		content, err := loader.LoadFileContent(r.Document.Filepath)
 		if err != nil {
 			return "", fmt.Errorf("failed to load file content: %w", err)
 		}
@@ -128,4 +129,22 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goa
 	}
 
 	return changesPlan, nil
+}
+
+func SavePlan(plan ChangesPlan, outputFile string) error {
+	data, err := json.MarshalIndent(plan, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal plan: %w", err)
+	}
+
+	file, err := os.Create(outputFile)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("failed to write plan to file: %w", err)
+	}
+	return nil
 }

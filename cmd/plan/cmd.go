@@ -81,4 +81,9 @@ func runPlan(cmd *cobra.Command, args []string) {
 		fmt.Printf("  Delete: %s\n", change.Delete)
 		fmt.Printf("  Line: %d\n", change.Line)
 	}
+
+	// Save plan to file
+	if err := planner.SavePlan(plan, outputFile); err != nil {
+		log.Fatalf("failed to save plan: %v", err)
+	}
 }

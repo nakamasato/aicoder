@@ -9,7 +9,7 @@ import (
 	"github.com/nakamasato/aicoder/internal/planner"
 )
 
-func applyChanges(changesPlan planner.ChangesPlan) error {
+func ApplyChanges(changesPlan planner.ChangesPlan) error {
 	for _, change := range changesPlan.Changes {
 		if err := applyChange(change); err != nil {
 			return fmt.Errorf("failed to apply change to %s: %w", change.Path, err)
