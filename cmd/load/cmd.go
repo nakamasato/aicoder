@@ -14,6 +14,7 @@ import (
 	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/load"
+	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/pgvector/pgvector-go"
@@ -60,6 +61,8 @@ func Command() *cobra.Command {
 				log.Fatalf("failed opening connection to postgres: %v", err)
 			}
 			defer entClient.Close()
+
+			store := vectorstore.New(entClient, client)
 
 			// Load existing RepoStructure if exists
 			var previousRepo load.RepoStructure
@@ -126,14 +129,15 @@ func Command() *cobra.Command {
 						fmt.Printf("Summary is empty: %s\ncontent:%s", fileinfo.Path, string(buf))
 						return
 					}
-					embedding, err := llm.GetEmbedding(ctx, client, summary)
-					if err != nil {
-						fmt.Printf("failed to get embedding for %s: %v", fileinfo.Path, err)
-						return
+					vsDoc := &vectorstore.Document{
+						Repository: config.Repository,
+						Filepath:  fileinfo.Path,
+						Description: summary,
 					}
-					err = upsertDocument(ctx, entClient, fileinfo.Path, summary, embedding, config.Repository)
+
+					err = store.AddDocument(ctx, vsDoc)
 					if err != nil {
-						errChan <- fmt.Errorf("Failed to upsert document %s: %v", fileinfo.Path, err)
+						errChan <- fmt.Errorf("Failed to add vectorstore document %s: %v", fileinfo.Path, err)
 						return
 					}
 					fmt.Printf("upserted document %s\n", fileinfo.Path)
