@@ -327,8 +327,6 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 					}
 				}
 
-				mu.Lock()
-				mu.Unlock()
 			}(fileInfo, file)
 		}
 
