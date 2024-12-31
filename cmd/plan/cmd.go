@@ -13,6 +13,8 @@ import (
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/ent/document"
+	"github.com/nakamasato/aicoder/internal/load"
+	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/spf13/cobra"
@@ -85,8 +87,15 @@ func Command() *cobra.Command {
 			}
 			defer entClient.Close()
 
+			store := vectorstore.New(entClient, client)
+
+			res, err := store.Search(ctx, config.Repository, goal, 10)
+			if err != nil {
+				log.Fatalf("failed to search: %v", err)
+			}
+
 			// Generate a detailed prompt based on the goal and repository structure
-			prompt, err := generatePrompt(ctx, entClient, goal, config.Repository)
+			prompt, err := generatePrompt(ctx, entClient, goal, config.Repository, res.Documents)
 			if err != nil {
 				log.Fatalf("failed to generate prompt: %v", err)
 			}
@@ -116,7 +125,7 @@ func Command() *cobra.Command {
 }
 
 // generatePrompt creates a prompt for OpenAI based on the goal and repository data.
-func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo string) (string, error) {
+func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore) (string, error) {
 	// Fetch relevant documents or summaries from the database
 	docs, err := entClient.Document.
 		Query().
@@ -124,6 +133,15 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 		All(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch documents: %w", err)
+	}
+
+	var relevantDocs strings.Builder
+	for _, r := range *docsWithScore {
+		content, err := load.LoadFileContent(r.Document.Filepath)
+		if err != nil {
+			return "", fmt.Errorf("failed to load file content: %w", err)
+		}
+		relevantDocs.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---", r.Document.Filepath, content))
 	}
 
 	// Aggregate the descriptions to provide context
@@ -135,16 +153,20 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 	// Create a comprehensive prompt
 	prompt := fmt.Sprintf(`
 I have a project with the following components:
-----
+-----------------------
+Files in the repository:
 %s
-----
+-----------------------
+Possibly relevant documents:
+%s
 
+------------------------
 My goal is: %s
 
 Based on the above information, please provide a detailed plan with actionable steps to achieve this goal. Please specify the existing file to change or create to achieve the goal.
 
 Ensure that each step is clear and actionable for human review and execution.
-`, contextInfo.String(), goal)
+`, contextInfo.String(), relevantDocs.String(), goal)
 
 	return prompt, nil
 }

@@ -59,7 +59,7 @@ func runSearch(cmd *cobra.Command, args []string) {
 
 	store := vectorstore.New(entClient, client)
 
-	res, err := store.Search(ctx, query, config.Search.TopN)
+	res, err := store.Search(ctx, config.Repository, query, config.Search.TopN)
 	if err != nil {
 		log.Fatalf("failed to search: %v", err)
 	}

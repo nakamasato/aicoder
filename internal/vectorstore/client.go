@@ -15,7 +15,7 @@ import (
 
 type VectorStore interface {
 	AddDocument(ctx context.Context, doc *Document) error
-	Search(ctx context.Context, query string, k int) (*SearchResult, error)
+	Search(ctx context.Context, repository, query string, k int) (*SearchResult, error)
 }
 
 type vectorstore struct {
@@ -60,7 +60,7 @@ func (c *vectorstore) AddDocument(ctx context.Context, doc *Document) error {
 	return err
 }
 
-func (c *vectorstore) Search(ctx context.Context, query string, k int) (*SearchResult, error) {
+func (c *vectorstore) Search(ctx context.Context, repository, query string, k int) (*SearchResult, error) {
 	queryEmbedding, err := llm.GetEmbedding(ctx, c.openaiCli, query)
 	if err != nil {
 		return nil, err
@@ -69,8 +69,9 @@ func (c *vectorstore) Search(ctx context.Context, query string, k int) (*SearchR
 
 	docs, err := c.entClient.Document.
 		Query().
+		Where(document.RepositoryEQ(repository)).
 		Order(func(s *sql.Selector) {
-			s.OrderExpr(sql.ExprP("embedding <-> $1", vector))
+			s.OrderExpr(sql.ExprP("embedding <-> $2", vector))
 		}).Limit(k).All(ctx)
 	if err != nil {
 		return nil, err

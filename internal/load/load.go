@@ -178,3 +178,11 @@ func isIncluded(path string, include []string) bool {
 func matchesPath(target, pattern string) bool {
 	return strings.HasPrefix(target, pattern)
 }
+
+func LoadFileContent(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+	return string(data), nil
+}
