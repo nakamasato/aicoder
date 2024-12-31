@@ -8,6 +8,7 @@ import (
 
 	"github.com/nakamasato/aicoder/cmd/db"
 	"github.com/nakamasato/aicoder/cmd/load"
+	"github.com/nakamasato/aicoder/cmd/plan"
 	"github.com/nakamasato/aicoder/cmd/search"
 	"github.com/nakamasato/aicoder/config"
 	"github.com/spf13/cobra"
@@ -39,6 +40,7 @@ func init() {
 		load.Command(),
 		db.Command(),
 		search.Command(),
+		plan.Command(),
 	)
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", ".aicoder.yaml", "config file (default is .aicoder.yaml)")

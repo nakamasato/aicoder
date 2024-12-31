@@ -1,5 +1,5 @@
 {
-  "generated_at": "2024-12-31T14:02:10.002938+09:00",
+  "generated_at": "2024-12-31T20:31:53.165291+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -126,8 +126,8 @@
                 "name": "cmd.go",
                 "path": "cmd/load/cmd.go",
                 "is_dir": false,
-                "blob_hash": "ddd58bf2131e40e1c897580bbc036d28cea06eee",
-                "modified_at": "2024-12-31T14:01:46.132589511+09:00",
+                "blob_hash": "adf53e78102238f2f922577253c903d4f5a6e5aa",
+                "modified_at": "2024-12-31T20:31:48.835162306+09:00",
                 "size": 1
               }
             ],
@@ -139,7 +139,7 @@
             "path": "cmd/root.go",
             "is_dir": false,
             "blob_hash": "b79c4673283158cd0025604b59056157c07cc298",
-            "modified_at": "2024-12-30T20:23:17.605124588+09:00",
+            "modified_at": "2024-12-31T16:11:15.334847773+09:00",
             "size": 1
           },
           {
@@ -151,8 +151,8 @@
                 "name": "cmd.go",
                 "path": "cmd/search/cmd.go",
                 "is_dir": false,
-                "blob_hash": "f04b07af05fb6d3c1f925a244f2f836ddd32489e",
-                "modified_at": "2024-12-30T20:23:17.60556605+09:00",
+                "blob_hash": "0a2251f1aec03f36913cb40deb86ca98b2a28d65",
+                "modified_at": "2024-12-31T20:28:52.413107343+09:00",
                 "size": 1
               }
             ],
@@ -184,8 +184,8 @@
         "name": "go.mod",
         "path": "go.mod",
         "is_dir": false,
-        "blob_hash": "f0d44b8ca5fa1c1a26503f5ffd243d3263731348",
-        "modified_at": "2024-12-31T13:58:46.774051278+09:00",
+        "blob_hash": "fbc5e4f02d0783bd4f4684f399295da08c9b1ba6",
+        "modified_at": "2024-12-31T19:27:51.311589797+09:00",
         "size": 1
       },
       {
@@ -193,6 +193,64 @@
         "path": "internal",
         "is_dir": true,
         "children": [
+          {
+            "name": "llm",
+            "path": "internal/llm",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "embedding.go",
+                "path": "internal/llm/embedding.go",
+                "is_dir": false,
+                "blob_hash": "1b2c133216588a0b764cf920b1d8293ed4f9fa39",
+                "modified_at": "2024-12-31T15:54:38.846109024+09:00",
+                "size": 1
+              },
+              {
+                "name": "summarize.go",
+                "path": "internal/llm/summarize.go",
+                "is_dir": false,
+                "blob_hash": "fcddc12c3238b63482f8b51dfab27c1ae026301a",
+                "modified_at": "2024-12-31T15:54:38.846375695+09:00",
+                "size": 1
+              },
+              {
+                "name": "summarize_prompt.go",
+                "path": "internal/llm/summarize_prompt.go",
+                "is_dir": false,
+                "blob_hash": "470be14a30abfb732823d5685eab427b50b803cc",
+                "modified_at": "2024-12-31T15:54:38.846663159+09:00",
+                "size": 1
+              }
+            ],
+            "modified_at": "0001-01-01T00:00:00Z",
+            "size": 3
+          },
+          {
+            "name": "load",
+            "path": "internal/load",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "load.go",
+                "path": "internal/load/load.go",
+                "is_dir": false,
+                "blob_hash": "c9cd1d790ed3c75b2cf973bb3d3ac54b29b7039b",
+                "modified_at": "2024-12-31T15:54:38.846995789+09:00",
+                "size": 1
+              },
+              {
+                "name": "load_test.go",
+                "path": "internal/load/load_test.go",
+                "is_dir": false,
+                "blob_hash": "20ec4fb313657b6be55d47ddeb811d02b9522fe5",
+                "modified_at": "2024-12-31T15:54:38.84723721+09:00",
+                "size": 1
+              }
+            ],
+            "modified_at": "0001-01-01T00:00:00Z",
+            "size": 2
+          },
           {
             "name": "pgvector",
             "path": "internal/pgvector",
@@ -212,7 +270,7 @@
           }
         ],
         "modified_at": "0001-01-01T00:00:00Z",
-        "size": 1
+        "size": 6
       },
       {
         "name": "main.go",
