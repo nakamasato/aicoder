@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -66,6 +67,20 @@ func (du *DocumentUpdate) SetDescription(s string) *DocumentUpdate {
 func (du *DocumentUpdate) SetNillableDescription(s *string) *DocumentUpdate {
 	if s != nil {
 		du.SetDescription(*s)
+	}
+	return du
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (du *DocumentUpdate) SetUpdatedAt(t time.Time) *DocumentUpdate {
+	du.mutation.SetUpdatedAt(t)
+	return du
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (du *DocumentUpdate) SetNillableUpdatedAt(t *time.Time) *DocumentUpdate {
+	if t != nil {
+		du.SetUpdatedAt(*t)
 	}
 	return du
 }
@@ -134,6 +149,9 @@ func (du *DocumentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := du.mutation.Description(); ok {
 		_spec.SetField(document.FieldDescription, field.TypeString, value)
 	}
+	if value, ok := du.mutation.UpdatedAt(); ok {
+		_spec.SetField(document.FieldUpdatedAt, field.TypeTime, value)
+	}
 	if value, ok := du.mutation.Embedding(); ok {
 		_spec.SetField(document.FieldEmbedding, field.TypeOther, value)
 	}
@@ -195,6 +213,20 @@ func (duo *DocumentUpdateOne) SetDescription(s string) *DocumentUpdateOne {
 func (duo *DocumentUpdateOne) SetNillableDescription(s *string) *DocumentUpdateOne {
 	if s != nil {
 		duo.SetDescription(*s)
+	}
+	return duo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (duo *DocumentUpdateOne) SetUpdatedAt(t time.Time) *DocumentUpdateOne {
+	duo.mutation.SetUpdatedAt(t)
+	return duo
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (duo *DocumentUpdateOne) SetNillableUpdatedAt(t *time.Time) *DocumentUpdateOne {
+	if t != nil {
+		duo.SetUpdatedAt(*t)
 	}
 	return duo
 }
@@ -292,6 +324,9 @@ func (duo *DocumentUpdateOne) sqlSave(ctx context.Context) (_node *Document, err
 	}
 	if value, ok := duo.mutation.Description(); ok {
 		_spec.SetField(document.FieldDescription, field.TypeString, value)
+	}
+	if value, ok := duo.mutation.UpdatedAt(); ok {
+		_spec.SetField(document.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := duo.mutation.Embedding(); ok {
 		_spec.SetField(document.FieldEmbedding, field.TypeOther, value)

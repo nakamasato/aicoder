@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -23,6 +24,8 @@ type Document struct {
 	Filepath string `json:"filepath,omitempty"`
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Embedding holds the value of the "embedding" field.
 	Embedding    pgvector.Vector `json:"embedding,omitempty"`
 	selectValues sql.SelectValues
@@ -39,6 +42,8 @@ func (*Document) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case document.FieldRepository, document.FieldFilepath, document.FieldDescription:
 			values[i] = new(sql.NullString)
+		case document.FieldUpdatedAt:
+			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -77,6 +82,12 @@ func (d *Document) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				d.Description = value.String
+			}
+		case document.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				d.UpdatedAt = value.Time
 			}
 		case document.FieldEmbedding:
 			if value, ok := values[i].(*pgvector.Vector); !ok {
@@ -128,6 +139,9 @@ func (d *Document) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("description=")
 	builder.WriteString(d.Description)
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(d.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("embedding=")
 	builder.WriteString(fmt.Sprintf("%v", d.Embedding))

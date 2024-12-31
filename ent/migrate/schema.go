@@ -15,6 +15,7 @@ var (
 		{Name: "repository", Type: field.TypeString, Size: 2147483647},
 		{Name: "filepath", Type: field.TypeString, Size: 2147483647},
 		{Name: "description", Type: field.TypeString, Size: 2147483647},
+		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "embedding", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "vector(1536)"}},
 	}
 	// DocumentsTable holds the schema information for the "documents" table.
@@ -26,16 +27,16 @@ var (
 			{
 				Name:    "document_embedding",
 				Unique:  false,
-				Columns: []*schema.Column{DocumentsColumns[4]},
+				Columns: []*schema.Column{DocumentsColumns[5]},
 				Annotation: &entsql.IndexAnnotation{
 					OpClass: "vector_l2_ops",
 					Type:    "hnsw",
 				},
 			},
 			{
-				Name:    "document_repository",
-				Unique:  false,
-				Columns: []*schema.Column{DocumentsColumns[1]},
+				Name:    "document_repository_filepath",
+				Unique:  true,
+				Columns: []*schema.Column{DocumentsColumns[1], DocumentsColumns[2]},
 			},
 		},
 	}
