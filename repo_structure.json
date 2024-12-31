@@ -1,5 +1,5 @@
 {
-  "generated_at": "2024-12-31T09:01:01.985211+09:00",
+  "generated_at": "2024-12-31T13:32:09.825852+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -100,7 +100,7 @@
                 "name": "cmd.go",
                 "path": "cmd/load/cmd.go",
                 "is_dir": false,
-                "blob_hash": "5e8642cb3c4e23ee67ab971bbb635ad67d880acc"
+                "blob_hash": "ddd58bf2131e40e1c897580bbc036d28cea06eee"
               }
             ]
           },
@@ -135,56 +135,6 @@
             "path": "config/config.go",
             "is_dir": false,
             "blob_hash": "f35c79d094409b776a925f868ffc487edd360da6"
-          }
-        ]
-      },
-      {
-        "name": "ent",
-        "path": "ent",
-        "is_dir": true,
-        "children": [
-          {
-            "name": "document",
-            "path": "ent/document",
-            "is_dir": true
-          },
-          {
-            "name": "enttest",
-            "path": "ent/enttest",
-            "is_dir": true
-          },
-          {
-            "name": "hook",
-            "path": "ent/hook",
-            "is_dir": true
-          },
-          {
-            "name": "migrate",
-            "path": "ent/migrate",
-            "is_dir": true
-          },
-          {
-            "name": "predicate",
-            "path": "ent/predicate",
-            "is_dir": true
-          },
-          {
-            "name": "runtime",
-            "path": "ent/runtime",
-            "is_dir": true
-          },
-          {
-            "name": "schema",
-            "path": "ent/schema",
-            "is_dir": true,
-            "children": [
-              {
-                "name": "document.go",
-                "path": "ent/schema/document.go",
-                "is_dir": false,
-                "blob_hash": "6369da5ba42eefe981419639935c531e779c64eb"
-              }
-            ]
           }
         ]
       },
