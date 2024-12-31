@@ -55,6 +55,7 @@ func Command() *cobra.Command {
 		Use:   "load",
 		Short: "Load the repository structure from a Git repository and export it to a JSON file with summaries.",
 		Run: func(cmd *cobra.Command, args []string) {
+			startTs := time.Now()
 			ctx := context.Background()
 			config := config.GetConfig()
 
@@ -113,7 +114,7 @@ func Command() *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("Repository structure has been written to %s\n", outputFile)
+			fmt.Printf("Repository structure has been written to %s (%s)\n", outputFile, time.Since(startTs))
 		},
 	}
 
@@ -327,10 +328,13 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, cli
 				}
 
 				mu.Lock()
-				files = append(files, fileInfo)
 				mu.Unlock()
 			}(fileInfo, file)
 		}
+
+		mu.Lock()
+		files = append(files, fileInfo)
+		mu.Unlock()
 	}
 
 	wg.Wait()

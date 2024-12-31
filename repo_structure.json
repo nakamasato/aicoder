@@ -1,5 +1,5 @@
 {
-  "generated_at": "2024-12-31T08:19:33.24836+09:00",
+  "generated_at": "2024-12-31T09:01:01.985211+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -8,21 +8,38 @@
       {
         "name": ".aicoder.yaml",
         "path": ".aicoder.yaml",
-        "description": "- What is the code for? This code pertains to schema definitions used in an entity framework for a project involving AI coding tools.\n- Type of content: Documentation\n- Function names: None specified\n- References: The code is likely referenced within the context of the aicoder repository, specifically in relation to entity management.\n- Any other relevant information: The repository is set to exclude certain files while including schema definitions related to the entity framework, indicating a focus on data models and their structure.",
         "is_dir": false,
         "blob_hash": "8e789dd410650b81a9a9b4774480e7778ba3a9d0"
       },
       {
+        "name": ".github",
+        "path": ".github",
+        "is_dir": true,
+        "children": [
+          {
+            "name": "workflows",
+            "path": ".github/workflows",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "go.yaml",
+                "path": ".github/workflows/go.yaml",
+                "is_dir": false,
+                "blob_hash": "396ad81a2f64976640a14b02955801ddc90bcbe9"
+              }
+            ]
+          }
+        ]
+      },
+      {
         "name": ".gitignore",
         "path": ".gitignore",
-        "description": "- What is the code for? This is a configuration file used to store environment variables for a project.\n- Type of content: Configuration File\n- Function names: N/A (No functions defined in .env files)\n- References: Often used in conjunction with web frameworks or applications to manage settings like database connections, API keys, etc.\n- Any other relevant information: The .env file should not be committed to version control for security reasons, as it can contain sensitive information.",
         "is_dir": false,
         "blob_hash": "4c49bd78f1d08f2bc09fa0bd8191ed38b7dce5e3"
       },
       {
         "name": "DEVELOPMENT.md",
         "path": "DEVELOPMENT.md",
-        "description": "- What is the code for? This content provides instructions for initializing and managing a CLI application using the cobra library, as well as generating an Ent schema for database management.\n- Type of content: Documentation\n- Function names: cobra-cli init, cobra-cli add, ent new Document, make generate\n- References: The code references GitHub repositories for cobra-cli, pgvector-go, and entgo, with specific instructions for subcommand structure and Ent schema generation.\n- Any other relevant information: It emphasizes using separate packages for each subcommand in the cobra-cli structure for better manageability.",
         "is_dir": false,
         "blob_hash": "8a3ba5835e657ed18580115f88b107a5f16b3412"
       },
@@ -35,30 +52,199 @@
       {
         "name": "Makefile",
         "path": "Makefile",
-        "description": "- What is the code for? This Makefile defines various tasks for a Go project, including generating code, running linter, testing, formatting, executing the main application, managing the database, migrating database schemas, and loading data.\n- Type of content: Makefile\n- Function names: generate, lint, test, fmt, run, db, migrate, load\n- References: This code is used in the context of managing a Go application, specifically for tasks related to building and maintaining the application's codebase.\n- Any other relevant information: The Makefile employs standard Go tools and commands, indicating a typical workflow for Go developers.",
         "is_dir": false,
         "blob_hash": "7038f8ac43fe67d325543b4569c67bc078cae7ed"
       },
       {
         "name": "README.md",
         "path": "README.md",
-        "description": "- What is the code for? \"This content describes AICoder, an AI-powered CLI tool designed to enhance coding efficiency.\"\n- Type of content: \"Documentation\"\n- Function names: \"load\", \"search\", \"plan\", \"generate\", \"write\", \"check\"\n- References: \"AICoder uses OpenAI as an external endpoint, and relies on PostgreSQL with the PGVector extension.\"\n- Any other relevant information: \"AICoder emphasizes speed, security, compliance, and personal productivity. It requires an `OPENAI_API_KEY` for operation and includes a sample configuration in YAML format for repository management.\"",
         "is_dir": false,
         "blob_hash": "84e43032568d3ad5ae63bdaa56ddb4f2cbf6ded2"
       },
       {
+        "name": "cmd",
+        "path": "cmd",
+        "is_dir": true,
+        "children": [
+          {
+            "name": "db",
+            "path": "cmd/db",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "cmd.go",
+                "path": "cmd/db/cmd.go",
+                "is_dir": false,
+                "blob_hash": "b9841b8794eeba6700fb264d43c7fe2f8a16e9ff"
+              },
+              {
+                "name": "cmd_migrate.go",
+                "path": "cmd/db/cmd_migrate.go",
+                "is_dir": false,
+                "blob_hash": "e9e389b2cd2d95bf778989e9c03b50f5712c6bfb"
+              },
+              {
+                "name": "cmd_reset.go",
+                "path": "cmd/db/cmd_reset.go",
+                "is_dir": false,
+                "blob_hash": "809ec23700265d76b710ba81dacaabb6110f6508"
+              }
+            ]
+          },
+          {
+            "name": "load",
+            "path": "cmd/load",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "cmd.go",
+                "path": "cmd/load/cmd.go",
+                "is_dir": false,
+                "blob_hash": "5e8642cb3c4e23ee67ab971bbb635ad67d880acc"
+              }
+            ]
+          },
+          {
+            "name": "root.go",
+            "path": "cmd/root.go",
+            "is_dir": false,
+            "blob_hash": "b79c4673283158cd0025604b59056157c07cc298"
+          },
+          {
+            "name": "search",
+            "path": "cmd/search",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "cmd.go",
+                "path": "cmd/search/cmd.go",
+                "is_dir": false,
+                "blob_hash": "f04b07af05fb6d3c1f925a244f2f836ddd32489e"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "config",
+        "path": "config",
+        "is_dir": true,
+        "children": [
+          {
+            "name": "config.go",
+            "path": "config/config.go",
+            "is_dir": false,
+            "blob_hash": "f35c79d094409b776a925f868ffc487edd360da6"
+          }
+        ]
+      },
+      {
+        "name": "ent",
+        "path": "ent",
+        "is_dir": true,
+        "children": [
+          {
+            "name": "document",
+            "path": "ent/document",
+            "is_dir": true
+          },
+          {
+            "name": "enttest",
+            "path": "ent/enttest",
+            "is_dir": true
+          },
+          {
+            "name": "hook",
+            "path": "ent/hook",
+            "is_dir": true
+          },
+          {
+            "name": "migrate",
+            "path": "ent/migrate",
+            "is_dir": true
+          },
+          {
+            "name": "predicate",
+            "path": "ent/predicate",
+            "is_dir": true
+          },
+          {
+            "name": "runtime",
+            "path": "ent/runtime",
+            "is_dir": true
+          },
+          {
+            "name": "schema",
+            "path": "ent/schema",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "document.go",
+                "path": "ent/schema/document.go",
+                "is_dir": false,
+                "blob_hash": "6369da5ba42eefe981419639935c531e779c64eb"
+              }
+            ]
+          }
+        ]
+      },
+      {
         "name": "go.mod",
         "path": "go.mod",
-        "description": "- What is the code for? This is a Go module file that specifies the module name, Go version, and dependencies for a project named \"github.com/nakamasato/aicoder\".\n- Type of content: Module file\n- Function names: N/A (Module file does not contain functions)\n- References: The module is named \"aicoder\" hosted at github.com/nakamasato/aicoder.\n- Any other relevant information: The file lists both direct and indirect dependencies, including various libraries for database handling, Git operations, configuration management, and API interactions, such as OpenAI's Go client. The Go version used is 1.23.2, and significant dependencies include \"entgo.io/ent\" for ORM and \"github.com/openai/openai-go\" for OpenAI's API integration.",
         "is_dir": false,
         "blob_hash": "f0d44b8ca5fa1c1a26503f5ffd243d3263731348"
       },
       {
+        "name": "internal",
+        "path": "internal",
+        "is_dir": true,
+        "children": [
+          {
+            "name": "pgvector",
+            "path": "internal/pgvector",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "debug.go",
+                "path": "internal/pgvector/debug.go",
+                "is_dir": false,
+                "blob_hash": "d1656036a8db8355a461f15fa044cec4d7ffca55"
+              }
+            ]
+          }
+        ]
+      },
+      {
         "name": "main.go",
         "path": "main.go",
-        "description": "- What is the code for? This program serves as the entry point for a command-line application that executes a function from an external package.\n- Type of content: Code\n- Function names: main, Execute\n- References: This code references the \"cmd\" package from the \"github.com/nakamasato/aicoder\" repository.\n- Any other relevant information: The main function is responsible for initiating the command execution process in the application.",
         "is_dir": false,
         "blob_hash": "55fcf5fa0dc2e4e2abd435255afeaaeb41de49c7"
+      },
+      {
+        "name": "pkg",
+        "path": "pkg",
+        "is_dir": true,
+        "children": [
+          {
+            "name": "vectorutils",
+            "path": "pkg/vectorutils",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "distance.go",
+                "path": "pkg/vectorutils/distance.go",
+                "is_dir": false,
+                "blob_hash": "9fddbf6deb7f8459b2205bfda0f83a83640e0335"
+              },
+              {
+                "name": "distance_test.go",
+                "path": "pkg/vectorutils/distance_test.go",
+                "is_dir": false,
+                "blob_hash": "e1e16c78920534febf2935d2a89a097e2fb9073f"
+              }
+            ]
+          }
+        ]
       }
     ]
   }
