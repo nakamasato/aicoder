@@ -38,12 +38,12 @@ func main() {
 		panic(err)
 	}
 
-	_, err = conn.Exec(ctx, "DROP TABLE IF EXISTS documents")
+	_, err = conn.Exec(ctx, "DROP TABLE IF EXISTS documents_test")
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = conn.Exec(ctx, "CREATE TABLE documents (id bigserial PRIMARY KEY, content text, embedding vector(1536))")
+	_, err = conn.Exec(ctx, "CREATE TABLE documents_test (id bigserial PRIMARY KEY, content text, embedding vector(1536))")
 	if err != nil {
 		panic(err)
 	}
@@ -59,14 +59,14 @@ func main() {
 	}
 
 	for i, content := range input {
-		_, err := conn.Exec(ctx, "INSERT INTO documents (content, embedding) VALUES ($1, $2)", content, pgvector.NewVector(embeddings[i]))
+		_, err := conn.Exec(ctx, "INSERT INTO documents_test (content, embedding) VALUES ($1, $2)", content, pgvector.NewVector(embeddings[i]))
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	documentId := 1
-	rows, err := conn.Query(ctx, "SELECT id, content FROM documents WHERE id != $1 ORDER BY embedding <=> (SELECT embedding FROM documents WHERE id = $1) LIMIT 5", documentId)
+	rows, err := conn.Query(ctx, "SELECT id, content FROM documents_test WHERE id != $1 ORDER BY embedding <=> (SELECT embedding FROM documents_test WHERE id = $1) LIMIT 5", documentId)
 	if err != nil {
 		panic(err)
 	}

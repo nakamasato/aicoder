@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-01-01T09:33:39.186236+09:00",
+  "generated_at": "2025-01-01T09:38:09.945366+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -143,7 +143,7 @@
                 "name": "cmd.go",
                 "path": "cmd/load/cmd.go",
                 "is_dir": false,
-                "blob_hash": "02d9eb4fc9381f6c785315c00eb9eadcc5f0a68c",
+                "blob_hash": "74013f5cda707dca9107daffd7a8acfbfc90fa6d",
                 "modified_at": "2025-01-01T09:33:26.647309963+09:00",
                 "size": 1
               }
@@ -286,8 +286,8 @@
                 "name": "loader.go",
                 "path": "internal/loader/loader.go",
                 "is_dir": false,
-                "blob_hash": "78707f34e6397beb26534d01cdd4e11da52be7c0",
-                "modified_at": "2025-01-01T09:28:17.463682666+09:00",
+                "blob_hash": "dae6a1b8f69251987578a76a7ca7fb31e63fb504",
+                "modified_at": "2025-01-01T09:38:02.770920774+09:00",
                 "size": 1
               },
               {
@@ -328,13 +328,21 @@
                 "name": "planner.go",
                 "path": "internal/planner/planner.go",
                 "is_dir": false,
-                "blob_hash": "a8ace5e9c734bfb52564d887c004baf44cd0ac54",
+                "blob_hash": "65e57bd5737669277371ed99b3ca5c274dd9e4f7",
                 "modified_at": "2025-01-01T09:09:42.186338875+09:00",
+                "size": 1
+              },
+              {
+                "name": "planner_prompt.go",
+                "path": "internal/planner/planner_prompt.go",
+                "is_dir": false,
+                "blob_hash": "82b590b46300123a543f7d6ef4b0fefc638b9bdb",
+                "modified_at": "2025-01-01T09:08:55.974159438+09:00",
                 "size": 1
               }
             ],
             "modified_at": "0001-01-01T00:00:00Z",
-            "size": 1
+            "size": 2
           },
           {
             "name": "vectorstore",
@@ -355,7 +363,7 @@
           }
         ],
         "modified_at": "0001-01-01T00:00:00Z",
-        "size": 9
+        "size": 10
       },
       {
         "name": "main.go",

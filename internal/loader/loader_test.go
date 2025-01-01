@@ -1,10 +1,37 @@
 package loader
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/stretchr/testify/assert"
 )
+
+type MockFileInfoProvider struct{}
+
+func (m *MockFileInfoProvider) Stat(name string) (os.FileInfo, error) {
+	// Return a mock file info or an error based on the file name
+	if name == "file1.txt" {
+		return &mockFileInfo{name: "file1.txt", modTime: time.Now()}, nil
+	}
+	return nil, os.ErrNotExist
+}
+
+type mockFileInfo struct {
+	name    string
+	modTime time.Time
+}
+
+func (m *mockFileInfo) Name() string       { return m.name }
+func (m *mockFileInfo) Size() int64        { return 0 }
+func (m *mockFileInfo) Mode() os.FileMode  { return 0 }
+func (m *mockFileInfo) ModTime() time.Time { return m.modTime }
+func (m *mockFileInfo) IsDir() bool        { return false }
+func (m *mockFileInfo) Sys() interface{}   { return nil }
 
 func TestFileInfoGenerator(t *testing.T) {
 	// Create a sample FileInfo structure
@@ -58,43 +85,71 @@ func TestFileInfoGenerator(t *testing.T) {
 	}
 }
 
-// Mock data and helper functions can be added here
+// countFiles returns the number of files or directories in the specified directory.
+func countFiles(dir string) (int, error) {
+	entries, err := os.ReadDir(dir)
+	return len(entries), err
+}
 
-// func TestLoadRepoStructure(t *testing.T) {
-// 	// Setup a mock repository or use a temporary directory with a real git repo
-// 	ctx := context.Background()
-// 	gitRootPath := "/path/to/mock/repo"
-// 	branch := "main"
-// 	commitHash := ""
-// 	targetPath := ""
-// 	include := []string{}
-// 	exclude := []string{}
+func TestLoadRepoStructure(t *testing.T) {
+	ctx := context.Background()
+	gitRootPath := "../../"
+	targetPath := "cmd"
+	include := []string{"ent/schema"}
+	exclude := []string{"ent"}
 
-// 	// Call the function
-// 	repoStructure, err := LoadRepoStructure(ctx, gitRootPath, branch, commitHash, targetPath, include, exclude)
+	repoStructure, err := LoadRepoStructureFromHead(ctx, gitRootPath, targetPath, include, exclude)
+	assert.NoError(t, err)
 
-// 	// Assertions
-// 	assert.NoError(t, err)
-// 	assert.NotNil(t, repoStructure)
-// 	assert.Equal(t, gitRootPath, repoStructure.Root.Name)
-// }
+	// Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, gitRootPath, repoStructure.Root.Name)
+	assert.True(t, repoStructure.Root.IsDir)
 
-// func TestTraverseTree(t *testing.T) {
-// 	// Setup a mock tree object
-// 	ctx := context.Background()
-// 	tree := &object.Tree{} // This should be a valid tree object
-// 	parentPath := ""
-// 	include := []string{}
-// 	exclude := []string{}
+	// expected
+	count, err := countFiles(filepath.Join(gitRootPath, targetPath))
+	assert.NoError(t, err)
+	if len(repoStructure.Root.Children) != count {
+		for i, child := range repoStructure.Root.Children {
+			t.Logf("child: %d %v", i, child.Path)
+		}
+		t.Fatalf("expected %d children, got %d", count, len(repoStructure.Root.Children))
+	}
+}
 
-// 	// Call the function
-// 	files, err := traverseTree(ctx, tree, parentPath, exclude, include)
+func TestTraverseTree(t *testing.T) {
+	// Setup a mock tree object
+	ctx := context.Background()
+	gitRootPath := "../../"
+	targetPath := "cmd"
+	repo, err := git.PlainOpen(gitRootPath)
+	assert.NoError(t, err)
+	ref, err := repo.Head()
+	assert.NoError(t, err)
+	commit, err := repo.CommitObject(ref.Hash())
+	assert.NoError(t, err)
 
-// 	// Assertions
-// 	assert.NoError(t, err)
-// 	assert.NotNil(t, files)
-// 	// Add more assertions based on expected output
-// }
+	tree, err := commit.Tree()
+	assert.NoError(t, err)
+	tree, err = tree.Tree(targetPath)
+	assert.NoError(t, err)
+	include := []string{"ent/schema"}
+	exclude := []string{"ent"}
+
+	// Call the function
+	files, err := traverseTree(ctx, tree, gitRootPath, targetPath, exclude, include, osFileInfoProvider)
+
+	// expected
+	count, err := countFiles(filepath.Join(gitRootPath, targetPath))
+	assert.NoError(t, err)
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.NotNil(t, files)
+	if len(files) != count {
+		t.Fatalf("expected %d files, got %d", count, len(files))
+	}
+}
 
 func TestSkip(t *testing.T) {
 	path := "some/path/to/file"

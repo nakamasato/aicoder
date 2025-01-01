@@ -50,6 +50,20 @@ func (f *FileInfo) FileInfoGenerator() <-chan FileInfo {
 	return ch
 }
 
+// FileInfoProvider is an interface for getting file information.
+// This is useful for testing os.Stat.
+type FileInfoProvider interface {
+	Stat(name string) (os.FileInfo, error)
+}
+
+type OSFileInfoProvider struct{}
+
+func (p *OSFileInfoProvider) Stat(name string) (os.FileInfo, error) {
+	return os.Stat(name)
+}
+
+var osFileInfoProvider FileInfoProvider = &OSFileInfoProvider{}
+
 func getTreeFromHead(gitRootPath string) (*object.Tree, error) {
 	repo, err := git.PlainOpen(gitRootPath)
 	if err != nil {
@@ -101,7 +115,7 @@ func LoadRepoStructureFromHead(ctx context.Context, gitRootPath, targetPath stri
 	if err != nil {
 		return RepoStructure{}, err
 	}
-	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude)
+	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude, osFileInfoProvider)
 }
 
 func LoadRepoStructureFromCommitHash(ctx context.Context, gitRootPath, commitHash, targetPath string, include, exclude []string) (RepoStructure, error) {
@@ -109,7 +123,7 @@ func LoadRepoStructureFromCommitHash(ctx context.Context, gitRootPath, commitHas
 	if err != nil {
 		return RepoStructure{}, err
 	}
-	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude)
+	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude, osFileInfoProvider)
 }
 
 func LoadRepoStructureFromBranch(ctx context.Context, gitRootPath, branch, targetPath string, include, exclude []string) (RepoStructure, error) {
@@ -117,16 +131,25 @@ func LoadRepoStructureFromBranch(ctx context.Context, gitRootPath, branch, targe
 	if err != nil {
 		return RepoStructure{}, err
 	}
-	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude)
+	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude, osFileInfoProvider)
 }
 
-func LoadRepoStructure(ctx context.Context, gitRootPath string, tree *object.Tree, targetPath string, include, exclude []string) (RepoStructure, error) {
+func LoadRepoStructure(ctx context.Context, gitRootPath string, tree *object.Tree, targetPath string, include, exclude []string, fileInfoProvider FileInfoProvider) (RepoStructure, error) {
 	rootFileInfo := FileInfo{
 		Name:  gitRootPath,
 		Path:  targetPath,
 		IsDir: true,
 	}
-	children, err := traverseTree(ctx, tree, targetPath, exclude, include)
+
+	var err error
+	if targetPath != "" {
+		log.Printf("targetPath: %s", targetPath)
+		tree, err = tree.Tree(targetPath)
+		if err != nil {
+			return RepoStructure{}, fmt.Errorf("failed to get tree for target path: %w", err)
+		}
+	}
+	children, err := traverseTree(ctx, tree, gitRootPath, targetPath, exclude, include, fileInfoProvider)
 	if err != nil {
 		return RepoStructure{}, err
 	}
@@ -140,11 +163,12 @@ func LoadRepoStructure(ctx context.Context, gitRootPath string, tree *object.Tre
 
 // traverseTree recursively traverses the Git tree and collects FileInfo.
 // It updates the Description using OpenAI and stores embeddings in PostgreSQL.
-func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, exclude, include []string) ([]FileInfo, error) {
+func traverseTree(ctx context.Context, tree *object.Tree, gitRootPath, parentPath string, exclude, include []string, fileInfoProvider FileInfoProvider) ([]FileInfo, error) {
 	var files []FileInfo
 
 	for _, entry := range tree.Entries {
 		filePath := filepath.Join(parentPath, entry.Name)
+		// fmt.Printf("parentPath:%s,entry.Name:%s,filePath:%s\n", filePath, entry.Name, filePath)
 		fileInfo := FileInfo{
 			Name:  entry.Name,
 			Path:  filePath,
@@ -162,7 +186,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, exc
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subtree for %s: %w", entry.Name, err)
 			}
-			children, err := traverseTree(ctx, subtree, filePath, exclude, include)
+			children, err := traverseTree(ctx, subtree, gitRootPath, filePath, exclude, include, fileInfoProvider)
 			if err != nil {
 				return nil, err
 			}
@@ -172,9 +196,9 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, exc
 			}
 		} else {
 			fileInfo.BlobHash = entry.Hash.String()
-			info, err := os.Stat(fileInfo.Path)
+			info, err := fileInfoProvider.Stat(filepath.Join(gitRootPath, fileInfo.Path))
 			if err != nil {
-				log.Printf("Failed to stat file %s: %v", fileInfo.Path, err)
+				log.Printf("Failed to stat file fileInfo.Path:%s, entry.Name:%s, err:%v", fileInfo.Path, entry.Name, err)
 				continue
 			} else {
 				fileInfo.ModifiedAt = info.ModTime()
