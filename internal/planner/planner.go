@@ -23,7 +23,7 @@ type Change struct {
 	Path   string `json:"path" jsonschema_description:"Path to the file to be changed"`
 	Add    string `json:"content" jsonschema_description:"Content to be added to the file"`
 	Delete string `json:"delete" jsonschema_description:"Content to be deleted from the file"`
-	Line   int    `json:"line" jsonschema_description:"Line number to insert the content"`
+	Line   int    `json:"line" jsonschema_description:"Line number to insert the content. Line number starts from 1. To create a new file, set the line number to 0"`
 }
 
 var (
