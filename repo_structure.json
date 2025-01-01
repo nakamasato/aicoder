@@ -1,5 +1,5 @@
 {
-  "generated_at": "2024-12-31T20:31:53.165291+09:00",
+  "generated_at": "2025-01-01T09:38:09.945366+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -76,7 +76,7 @@
         "path": "README.md",
         "is_dir": false,
         "blob_hash": "84e43032568d3ad5ae63bdaa56ddb4f2cbf6ded2",
-        "modified_at": "2024-12-30T20:23:17.602800149+09:00",
+        "modified_at": "2025-01-01T09:07:55.217112887+09:00",
         "size": 1
       },
       {
@@ -84,6 +84,23 @@
         "path": "cmd",
         "is_dir": true,
         "children": [
+          {
+            "name": "apply",
+            "path": "cmd/apply",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "cmd.go",
+                "path": "cmd/apply/cmd.go",
+                "is_dir": false,
+                "blob_hash": "70b89a6ed85454a6ac61e675c121b00dba7b8add",
+                "modified_at": "2025-01-01T08:59:05.233618101+09:00",
+                "size": 1
+              }
+            ],
+            "modified_at": "0001-01-01T00:00:00Z",
+            "size": 1
+          },
           {
             "name": "db",
             "path": "cmd/db",
@@ -126,8 +143,25 @@
                 "name": "cmd.go",
                 "path": "cmd/load/cmd.go",
                 "is_dir": false,
-                "blob_hash": "adf53e78102238f2f922577253c903d4f5a6e5aa",
-                "modified_at": "2024-12-31T20:31:48.835162306+09:00",
+                "blob_hash": "74013f5cda707dca9107daffd7a8acfbfc90fa6d",
+                "modified_at": "2025-01-01T09:33:26.647309963+09:00",
+                "size": 1
+              }
+            ],
+            "modified_at": "0001-01-01T00:00:00Z",
+            "size": 1
+          },
+          {
+            "name": "plan",
+            "path": "cmd/plan",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "cmd.go",
+                "path": "cmd/plan/cmd.go",
+                "is_dir": false,
+                "blob_hash": "0be8b0d18887c2ddd0010b7cd9f3a16fbb984ae0",
+                "modified_at": "2025-01-01T08:43:39.445219252+09:00",
                 "size": 1
               }
             ],
@@ -138,8 +172,8 @@
             "name": "root.go",
             "path": "cmd/root.go",
             "is_dir": false,
-            "blob_hash": "b79c4673283158cd0025604b59056157c07cc298",
-            "modified_at": "2024-12-31T16:11:15.334847773+09:00",
+            "blob_hash": "74041073440ec613336b5b2f996129ffc841d550",
+            "modified_at": "2025-01-01T08:47:45.41532542+09:00",
             "size": 1
           },
           {
@@ -151,8 +185,8 @@
                 "name": "cmd.go",
                 "path": "cmd/search/cmd.go",
                 "is_dir": false,
-                "blob_hash": "0a2251f1aec03f36913cb40deb86ca98b2a28d65",
-                "modified_at": "2024-12-31T20:28:52.413107343+09:00",
+                "blob_hash": "2865b0ce854d4eb7441524d775d6898bb5990359",
+                "modified_at": "2024-12-31T21:01:02.004798622+09:00",
                 "size": 1
               }
             ],
@@ -161,7 +195,7 @@
           }
         ],
         "modified_at": "0001-01-01T00:00:00Z",
-        "size": 6
+        "size": 8
       },
       {
         "name": "config",
@@ -184,8 +218,8 @@
         "name": "go.mod",
         "path": "go.mod",
         "is_dir": false,
-        "blob_hash": "fbc5e4f02d0783bd4f4684f399295da08c9b1ba6",
-        "modified_at": "2024-12-31T19:27:51.311589797+09:00",
+        "blob_hash": "920deec9ada0424a32ef6898542416ca6116773b",
+        "modified_at": "2024-12-31T21:01:02.005541171+09:00",
         "size": 1
       },
       {
@@ -193,6 +227,23 @@
         "path": "internal",
         "is_dir": true,
         "children": [
+          {
+            "name": "applier",
+            "path": "internal/applier",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "applier.go",
+                "path": "internal/applier/applier.go",
+                "is_dir": false,
+                "blob_hash": "d4f81a4261056ae02b70bcc866a780d9c8033535",
+                "modified_at": "2025-01-01T08:53:38.473839522+09:00",
+                "size": 1
+              }
+            ],
+            "modified_at": "0001-01-01T00:00:00Z",
+            "size": 1
+          },
           {
             "name": "llm",
             "path": "internal/llm",
@@ -227,24 +278,24 @@
             "size": 3
           },
           {
-            "name": "load",
-            "path": "internal/load",
+            "name": "loader",
+            "path": "internal/loader",
             "is_dir": true,
             "children": [
               {
-                "name": "load.go",
-                "path": "internal/load/load.go",
+                "name": "loader.go",
+                "path": "internal/loader/loader.go",
                 "is_dir": false,
-                "blob_hash": "c9cd1d790ed3c75b2cf973bb3d3ac54b29b7039b",
-                "modified_at": "2024-12-31T15:54:38.846995789+09:00",
+                "blob_hash": "dae6a1b8f69251987578a76a7ca7fb31e63fb504",
+                "modified_at": "2025-01-01T09:38:02.770920774+09:00",
                 "size": 1
               },
               {
-                "name": "load_test.go",
-                "path": "internal/load/load_test.go",
+                "name": "loader_test.go",
+                "path": "internal/loader/loader_test.go",
                 "is_dir": false,
-                "blob_hash": "20ec4fb313657b6be55d47ddeb811d02b9522fe5",
-                "modified_at": "2024-12-31T15:54:38.84723721+09:00",
+                "blob_hash": "29076b4ef2e092532233c272620c6dc5246863a1",
+                "modified_at": "2025-01-01T08:48:00.579784249+09:00",
                 "size": 1
               }
             ],
@@ -267,10 +318,52 @@
             ],
             "modified_at": "0001-01-01T00:00:00Z",
             "size": 1
+          },
+          {
+            "name": "planner",
+            "path": "internal/planner",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "planner.go",
+                "path": "internal/planner/planner.go",
+                "is_dir": false,
+                "blob_hash": "65e57bd5737669277371ed99b3ca5c274dd9e4f7",
+                "modified_at": "2025-01-01T09:09:42.186338875+09:00",
+                "size": 1
+              },
+              {
+                "name": "planner_prompt.go",
+                "path": "internal/planner/planner_prompt.go",
+                "is_dir": false,
+                "blob_hash": "82b590b46300123a543f7d6ef4b0fefc638b9bdb",
+                "modified_at": "2025-01-01T09:08:55.974159438+09:00",
+                "size": 1
+              }
+            ],
+            "modified_at": "0001-01-01T00:00:00Z",
+            "size": 2
+          },
+          {
+            "name": "vectorstore",
+            "path": "internal/vectorstore",
+            "is_dir": true,
+            "children": [
+              {
+                "name": "client.go",
+                "path": "internal/vectorstore/client.go",
+                "is_dir": false,
+                "blob_hash": "82fe628d109b8049f7c1d0ddffd31e6a413a3908",
+                "modified_at": "2024-12-31T21:01:02.007579942+09:00",
+                "size": 1
+              }
+            ],
+            "modified_at": "0001-01-01T00:00:00Z",
+            "size": 1
           }
         ],
         "modified_at": "0001-01-01T00:00:00Z",
-        "size": 6
+        "size": 10
       },
       {
         "name": "main.go",
