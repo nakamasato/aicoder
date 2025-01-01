@@ -7,18 +7,29 @@ import (
 	"strings"
 
 	"github.com/nakamasato/aicoder/internal/planner"
+	"golang.org/x/sync/errgroup"
 )
 
-func ApplyChanges(changesPlan planner.ChangesPlan) error {
+func ApplyChanges(changesPlan planner.ChangesPlan, dryrun bool) error {
+	var g errgroup.Group
 	for _, change := range changesPlan.Changes {
-		if err := applyChange(change); err != nil {
-			return fmt.Errorf("failed to apply change to %s: %w", change.Path, err)
-		}
+		g.Go(func() error {
+			return applyChange(change, dryrun)
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("failed to apply changes: %w", err)
 	}
 	return nil
 }
 
-func applyChange(change planner.Change) error {
+// when dryrun is true, the changes are applied to a temporary file and the diff is shown
+func applyChange(change planner.Change, dryrun bool) error {
+	filepath := change.Path
+	if dryrun {
+		filepath = change.Path + ".tmp"
+	}
 	file, err := os.Open(change.Path)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
@@ -36,7 +47,12 @@ func applyChange(change planner.Change) error {
 	}
 
 	// Apply the change
-	if change.Line > 0 && change.Line <= len(lines) {
+	if change.Line == 0 { // Create a new file
+		if change.Add == "" {
+			return fmt.Errorf("add content is required to create a new file")
+		}
+		lines = append(lines, change.Add)
+	} else if change.Line > 0 && change.Line <= len(lines) {
 		if change.Delete != "" {
 			lines[change.Line-1] = strings.Replace(lines[change.Line-1], change.Delete, "", 1)
 		}
@@ -49,7 +65,7 @@ func applyChange(change planner.Change) error {
 
 	// Write the changes back to the file
 	output := strings.Join(lines, "\n")
-	if err := os.WriteFile(change.Path, []byte(output), 0644); err != nil {
+	if err := os.WriteFile(filepath, []byte(output), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

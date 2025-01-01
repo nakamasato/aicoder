@@ -11,6 +11,7 @@ import (
 )
 
 var planFile string
+var dryrun bool
 
 // NewApplyCmd creates a new apply command
 func Command() *cobra.Command {
@@ -22,6 +23,7 @@ func Command() *cobra.Command {
 	}
 
 	cmdApply.Flags().StringVarP(&planFile, "planfile", "p", "", "Path to the plan file to apply")
+	cmdApply.Flags().BoolVarP(&dryrun, "dryrun", "d", false, "Dry run the changes")
 
 	return cmdApply
 }
@@ -45,7 +47,7 @@ func runApply(cmd *cobra.Command, args []string) error {
 	}
 
 	// Apply the changes
-	if err := applier.ApplyChanges(changesPlan); err != nil {
+	if err := applier.ApplyChanges(changesPlan, dryrun); err != nil {
 		return err
 	}
 
