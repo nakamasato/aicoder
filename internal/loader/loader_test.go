@@ -138,6 +138,7 @@ func TestTraverseTree(t *testing.T) {
 
 	// Call the function
 	files, err := traverseTree(ctx, tree, gitRootPath, targetPath, exclude, include, osFileInfoProvider)
+	assert.NoError(t, err)
 
 	// expected
 	count, err := countFiles(filepath.Join(gitRootPath, targetPath))
