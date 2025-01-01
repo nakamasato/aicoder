@@ -67,21 +67,7 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 	}
 
 	// Create a comprehensive prompt
-	prompt := fmt.Sprintf(`You are a helpful assistant that generates detailed action plans based on provided project information.
------------------------
-Files in the repository:
-%s
------------------------
-Possibly relevant documents:
-%s
-
-------------------------
-My goal is: %s
-
-Based on the above information, please provide a detailed plan with actionable steps to achieve this goal. Please specify the existing file to change or create to achieve the goal.
-
-Ensure that each step is clear and actionable for human review and execution.
-`, contextInfo.String(), relevantDocs.String(), goal)
+	prompt := fmt.Sprintf(PLANNER_PROMPT, contextInfo.String(), relevantDocs.String(), goal)
 
 	return prompt, nil
 }
@@ -131,6 +117,7 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goa
 	return changesPlan, nil
 }
 
+// SavePlan saves the plan to a file.
 func SavePlan(plan ChangesPlan, outputFile string) error {
 	data, err := json.MarshalIndent(plan, "", "  ")
 	if err != nil {

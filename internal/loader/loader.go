@@ -50,49 +50,81 @@ func (f *FileInfo) FileInfoGenerator() <-chan FileInfo {
 	return ch
 }
 
-// LoadRepoStructure loads the repository structure from the specified Git repository.
-// Using git is to exclude files that are not git tracked.
-func LoadRepoStructure(ctx context.Context, gitRootPath, branch, commitHash, targetPath string, include, exclude []string) (RepoStructure, error) {
+func getTreeFromHead(gitRootPath string) (*object.Tree, error) {
 	repo, err := git.PlainOpen(gitRootPath)
 	if err != nil {
-		return RepoStructure{}, fmt.Errorf("failed to open git repository: %w", err)
+		return nil, fmt.Errorf("failed to open git repository: %w", err)
 	}
-
-	// Determine the reference to use (branch or specific commit)
-	var commit *object.Commit
-	if commitHash != "" {
-		commit, err = repo.CommitObject(plumbing.NewHash(commitHash))
-		if err != nil {
-			return RepoStructure{}, fmt.Errorf("failed to get commit %s: %w", commitHash, err)
-		}
-	} else {
-		ref, err := repo.Reference(plumbing.NewBranchReferenceName(branch), true)
-		if err != nil {
-			return RepoStructure{}, fmt.Errorf("failed to get branch %s: %w", branch, err)
-		}
-		commit, err = repo.CommitObject(ref.Hash())
-		if err != nil {
-			return RepoStructure{}, fmt.Errorf("failed to get commit for branch %s: %w", branch, err)
-		}
-	}
-
-	tree, err := commit.Tree()
+	ref, err := repo.Head()
 	if err != nil {
-		return RepoStructure{}, fmt.Errorf("failed to get tree from commit: %w", err)
+		return nil, fmt.Errorf("failed to get HEAD: %w", err)
 	}
+	commit, err := repo.CommitObject(ref.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get commit for HEAD: %w", err)
+	}
+	return commit.Tree()
+}
 
+func getTreeFromCommitHash(gitRootPath, commitHash string) (*object.Tree, error) {
+	repo, err := git.PlainOpen(gitRootPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open git repository: %w", err)
+	}
+	commit, err := repo.CommitObject(plumbing.NewHash(commitHash))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get commit %s: %w", commitHash, err)
+	}
+	return commit.Tree()
+}
+
+func getTreeFromBranch(gitRootPath, branch string) (*object.Tree, error) {
+	repo, err := git.PlainOpen(gitRootPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open git repository: %w", err)
+	}
+	ref, err := repo.Reference(plumbing.NewBranchReferenceName(branch), true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get branch %s: %w", branch, err)
+	}
+	commit, err := repo.CommitObject(ref.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get commit for branch %s: %w", branch, err)
+	}
+	return commit.Tree()
+}
+
+// LoadRepoStructure loads the repository structure from the specified Git repository.
+// Using git is to exclude files that are not git tracked.
+func LoadRepoStructureFromHead(ctx context.Context, gitRootPath, targetPath string, include, exclude []string) (RepoStructure, error) {
+	tree, err := getTreeFromHead(gitRootPath)
+	if err != nil {
+		return RepoStructure{}, err
+	}
+	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude)
+}
+
+func LoadRepoStructureFromCommitHash(ctx context.Context, gitRootPath, commitHash, targetPath string, include, exclude []string) (RepoStructure, error) {
+	tree, err := getTreeFromCommitHash(gitRootPath, commitHash)
+	if err != nil {
+		return RepoStructure{}, err
+	}
+	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude)
+}
+
+func LoadRepoStructureFromBranch(ctx context.Context, gitRootPath, branch, targetPath string, include, exclude []string) (RepoStructure, error) {
+	tree, err := getTreeFromBranch(gitRootPath, branch)
+	if err != nil {
+		return RepoStructure{}, err
+	}
+	return LoadRepoStructure(ctx, gitRootPath, tree, targetPath, include, exclude)
+}
+
+func LoadRepoStructure(ctx context.Context, gitRootPath string, tree *object.Tree, targetPath string, include, exclude []string) (RepoStructure, error) {
 	rootFileInfo := FileInfo{
 		Name:  gitRootPath,
 		Path:  targetPath,
 		IsDir: true,
-	}
-
-	if targetPath != "" {
-		log.Printf("targetPath: %s", targetPath)
-		tree, err = tree.Tree(targetPath)
-		if err != nil {
-			return RepoStructure{}, fmt.Errorf("failed to get tree for target path: %w", err)
-		}
 	}
 	children, err := traverseTree(ctx, tree, targetPath, exclude, include)
 	if err != nil {
@@ -117,7 +149,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, exc
 			Name:  entry.Name,
 			Path:  filePath,
 			IsDir: entry.Mode == filemode.Dir,
-			Size: 0,
+			Size:  0,
 		}
 
 		if skip(filePath, exclude, include) {
@@ -143,10 +175,11 @@ func traverseTree(ctx context.Context, tree *object.Tree, parentPath string, exc
 			info, err := os.Stat(fileInfo.Path)
 			if err != nil {
 				log.Printf("Failed to stat file %s: %v", fileInfo.Path, err)
-				return nil, err
+				continue
+			} else {
+				fileInfo.ModifiedAt = info.ModTime()
+				fileInfo.Size += 1
 			}
-			fileInfo.ModifiedAt = info.ModTime()
-			fileInfo.Size += 1
 		}
 		files = append(files, fileInfo)
 	}

@@ -22,12 +22,10 @@ import (
 
 var (
 	outputFile   string
-	branch       string
-	commitHash   string
 	openaiAPIKey string
 	openaiModel  string
-	maxTokens    int
 	dbConnString string
+	refresh      bool
 )
 
 func Command() *cobra.Command {
@@ -39,11 +37,9 @@ func Command() *cobra.Command {
 
 	// Define flags and configuration settings for loaderCmd
 	loadCmd.Flags().StringVarP(&outputFile, "output", "o", "repo_structure.json", "Output JSON file")
-	loadCmd.Flags().StringVarP(&branch, "branch", "b", "main", "Branch to load the structure from")
-	loadCmd.Flags().StringVarP(&commitHash, "commit", "c", "", "Specific commit hash to load the structure from")
 	loadCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
-	loadCmd.Flags().StringVar(&openaiModel, "model", "gpt-4o-mini", "OpenAI model to use for summarization")
-	loadCmd.Flags().IntVar(&maxTokens, "max-tokens", 150, "Maximum number of tokens for the summary")
+	loadCmd.Flags().StringVarP(&openaiModel, "model", "m", "gpt-4o-mini", "OpenAI model to use for summarization")
+	loadCmd.Flags().BoolVarP(&refresh, "refresh", "r", false, "Refresh all the document summaries")
 	loadCmd.Flags().StringVar(&dbConnString, "db-conn", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable", "PostgreSQL connection string (e.g., postgres://aicoder:aicoder@localhost:5432/aicoder)")
 
 	return loadCmd
@@ -76,6 +72,13 @@ func runLoad(cmd *cobra.Command, args []string) {
 	}
 	defer entClient.Close()
 
+	if refresh {
+		log.Printf("Refreshing all documents for repository: %s", config.Repository)
+		if _, err := entClient.Document.Delete().Where(document.RepositoryEQ(config.Repository)).Exec(ctx); err != nil {
+			log.Fatalf("failed to delete existing documents: %v", err)
+		}
+	}
+
 	store := vectorstore.New(entClient, client)
 
 	// Load existing RepoStructure if exists
@@ -91,7 +94,8 @@ func runLoad(cmd *cobra.Command, args []string) {
 	}
 
 	// Load current RepoStructure
-	currentRepo, err := loader.LoadRepoStructure(ctx, gitRootPath, branch, commitHash, config.Load.TargetPath, config.Load.Include, config.Load.Exclude)
+	// currentRepo, err := loader.LoadRepoStructure(ctx, gitRootPath, branch, commitHash, config.Load.TargetPath, config.Load.Include, config.Load.Exclude)
+	currentRepo, err := loader.LoadRepoStructureFromHead(ctx, gitRootPath, config.Load.TargetPath, config.Load.Include, config.Load.Exclude)
 	if err != nil {
 		fmt.Printf("Error loading repo structure: %v\n", err)
 		os.Exit(1)
