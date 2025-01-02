@@ -3,6 +3,7 @@ package apply
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/nakamasato/aicoder/internal/applier"
@@ -19,38 +20,37 @@ func Command() *cobra.Command {
 		Use:   "apply",
 		Short: "Apply changes",
 		Long:  `Apply changes to the system based on the provided configuration.`,
-		RunE:  runApply,
+		Run:   runApply,
 	}
 
-	cmdApply.Flags().StringVarP(&planFile, "planfile", "p", "", "Path to the plan file to apply")
+	cmdApply.Flags().StringVarP(&planFile, "planfile", "p", "plan.json", "Path to the plan file to apply")
 	cmdApply.Flags().BoolVarP(&dryrun, "dryrun", "d", false, "Dry run the changes")
 
 	return cmdApply
 }
 
-func runApply(cmd *cobra.Command, args []string) error {
+func runApply(cmd *cobra.Command, args []string) {
 	if planFile == "" {
-		return fmt.Errorf("plan file is required")
+		log.Fatalln("plan file is required")
 	}
 	fmt.Printf("apply %s", planFile)
 
 	// Read the plan file
 	data, err := os.ReadFile(planFile)
 	if err != nil {
-		return fmt.Errorf("failed to read plan file: %v", err)
+		log.Fatalf("failed to read plan file: %v", err)
 	}
 
 	// Unmarshal the JSON data into changesPlan
 	var changesPlan planner.ChangesPlan
 	if err := json.Unmarshal(data, &changesPlan); err != nil {
-		return fmt.Errorf("failed to unmarshal plan file: %v", err)
+		log.Fatalf("failed to unmarshal plan file: %v", err)
 	}
 
 	// Apply the changes
 	if err := applier.ApplyChanges(changesPlan, dryrun); err != nil {
-		return err
+		log.Fatalf("failed to apply changes: %v", err)
 	}
 
 	fmt.Printf("Successfully applied changes from %s", planFile)
-	return nil
 }
