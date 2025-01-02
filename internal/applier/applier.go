@@ -47,20 +47,20 @@ func applyChange(change planner.Change, dryrun bool) error {
 	}
 
 	// Apply the change
-	if change.Line == 0 { // Create a new file
+	if change.LineNum == 0 { // Create a new file
 		if change.Add == "" {
 			return fmt.Errorf("add content is required to create a new file")
 		}
 		lines = append(lines, change.Add)
-	} else if change.Line > 0 && change.Line <= len(lines) {
+	} else if change.LineNum > 0 && change.LineNum <= len(lines) {
 		if change.Delete != "" {
-			lines[change.Line-1] = strings.Replace(lines[change.Line-1], change.Delete, "", 1)
+			lines[change.LineNum-1] = strings.Replace(lines[change.LineNum-1], change.Delete, "", 1)
 		}
 		if change.Add != "" {
-			lines[change.Line-1] = lines[change.Line-1] + change.Add
+			lines[change.LineNum-1] = lines[change.LineNum-1] + change.Add
 		}
 	} else {
-		return fmt.Errorf("line number %d out of range", change.Line)
+		return fmt.Errorf("line number %d out of range", change.LineNum)
 	}
 
 	// Write the changes back to the file
