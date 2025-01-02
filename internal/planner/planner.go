@@ -117,7 +117,7 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 	return prompt, nil
 }
 
-func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore) (ChangesPlan, error) {
+func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore, maxAttempts int) (ChangesPlan, error) {
 	prompt, err := generatePrompt(ctx, entClient, goal, repo, docsWithScore)
 	if err != nil {
 		return ChangesPlan{}, fmt.Errorf("failed to generate prompt: %w", err)
@@ -127,37 +127,22 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goa
 	if err != nil {
 		return ChangesPlan{}, fmt.Errorf("failed to generate plan: %w", err)
 	}
-	if err := changesPlan.Validate(); err == nil {
-		log.Println("Plan is valid")
-		return changesPlan, nil
-	}
-	changesPlan, err = validateAndReplan(ctx, changesPlan, client, goal, docsWithScore)
-	if err != nil {
-		return ChangesPlan{}, fmt.Errorf("failed to validate and replan: %w", err)
-	}
-	return changesPlan, nil
-}
 
-func validateAndReplan(ctx context.Context, plan ChangesPlan, client *openai.Client, goal string, docsWithScore *[]vectorstore.DocumentWithScore) (ChangesPlan, error) {
-	maxAttempts := 3
-	var err error
-	var previousPlan ChangesPlan
-	previousPlan = plan
 	for attempt := 0; attempt < maxAttempts; attempt++ {
-		log.Printf("validating a plan (attempt: %d)", attempt)
-		err = previousPlan.Validate()
-		if err == nil {
-			return previousPlan, nil
+		if err = changesPlan.Validate(); err == nil {
+			log.Println("Plan is valid")
+			return changesPlan, nil
 		}
-		log.Printf("Invalid plan (attempt: %d): %v", attempt, err)
-		prompt := fmt.Sprintf(REPLAN_PROMPT, goal, getRelevantDocsString(docsWithScore), previousPlan, err)
-		plan, err := generatePlan(ctx, prompt, client)
+
+		log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
+		prompt = fmt.Sprintf(REPLAN_PROMPT, goal, getRelevantDocsString(docsWithScore), changesPlan, err)
+		changesPlan, err = generatePlan(ctx, prompt, client)
 		if err != nil {
-			fmt.Printf("Failed to generate plan: %v\n", err)
+			log.Printf("Failed to generate plan: %v", err)
 			continue
 		}
-		previousPlan = plan
 	}
+
 	return ChangesPlan{}, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
 }
 
