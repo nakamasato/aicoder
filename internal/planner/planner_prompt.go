@@ -18,6 +18,13 @@ For existing file, specify the line number (starting with 1) to change or delete
 Multiple changes cannot be made for the same file. If you need multiple changes on the file. please update the target lines by adding and deleteing the content in the target lines.
 `
 
+const VALIDATE_GOAL_PROMPT = `Please validate the given goal.
+
+Currently AICoder is still under development and only support goals that explicitly specficy a file to change or create.
+
+-----------------------
+Goal: %s`
+
 
 const REPLAN_PROMPT = `You are a helpful assistant that generates detailed action plans based on provided project information.
 The plan you've just made failed the validation.

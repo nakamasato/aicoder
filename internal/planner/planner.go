@@ -107,8 +107,13 @@ type Change struct {
 	LineNum     int    `json:"line" jsonschema_description:"Line number to insert the content. Line number starts from 1. To create a new file, set the line number to 0"`
 }
 
+type YesOrNo struct {
+	Answer bool `json:"answer" jsonschema_description:"Answer to the yes or no question"`
+}
+
 var (
 	ChangesPlanSchema = GenerateSchema[ChangesPlan]()
+	YesOrNoSchema     = GenerateSchema[YesOrNo]()
 )
 
 func GenerateSchema[T any]() interface{} {
@@ -157,6 +162,13 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 }
 
 func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore, maxAttempts int) (ChangesPlan, error) {
+
+	if isValid, err := validateGoal(ctx, client, goal); err != nil {
+		return ChangesPlan{}, fmt.Errorf("failed to validate goal: %w", err)
+	} else if !isValid {
+		return ChangesPlan{}, fmt.Errorf("goal needs to explicitly specify the file to change.")
+	}
+
 	prompt, err := generatePrompt(ctx, entClient, goal, repo, docsWithScore)
 	if err != nil {
 		return ChangesPlan{}, fmt.Errorf("failed to generate prompt: %w", err)
@@ -232,6 +244,42 @@ func generatePlan(ctx context.Context, prompt string, client *openai.Client) (Ch
 	fmt.Printf("Plan: %s\n", changesPlan.String())
 
 	return changesPlan, nil
+}
+
+func validateGoal(ctx context.Context, client *openai.Client, goal string) (bool, error) {
+
+	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("answer"),
+		Description: openai.F("Answer to the yes or no question"),
+		Schema:      openai.F(YesOrNoSchema),
+		Strict:      openai.Bool(true),
+	}
+
+	chat, err := client.Chat.Completions.New(ctx,
+		openai.ChatCompletionNewParams{
+			Model: openai.F(openai.ChatModelGPT4oMini),
+			Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage("You are a helpful validator that is tasked to validate the given goal."),
+				openai.UserMessage(fmt.Sprintf(VALIDATE_GOAL_PROMPT, goal)),
+			}),
+			ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
+				openai.ResponseFormatJSONSchemaParam{
+					Type:       openai.F(openai.ResponseFormatJSONSchemaTypeJSONSchema),
+					JSONSchema: openai.F(schemaParam),
+				},
+			),
+		})
+
+	if err != nil {
+		return false, fmt.Errorf("failed to create chat completion: %w", err)
+	}
+
+	var answer YesOrNo
+	if err := json.Unmarshal([]byte(chat.Choices[0].Message.Content), &answer); err != nil {
+		return false, fmt.Errorf("failed to unmarshal answer: %w", err)
+	}
+
+	return answer.Answer, nil
 }
 
 // SavePlan saves the plan to a file.
