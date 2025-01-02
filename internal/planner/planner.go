@@ -1,6 +1,7 @@
 package planner
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,8 +23,10 @@ type ChangesPlan struct {
 
 func (c ChangesPlan) Validate() error {
 	errorsMap := make(map[string][]error)
+	changesPerFile := make(map[string]int)
 	var err error
 	for _, change := range c.Changes {
+		changesPerFile[change.Path]++
 		if change.Path == "" {
 			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("path is required for all changes"))
 		}
@@ -39,6 +42,42 @@ func (c ChangesPlan) Validate() error {
 		}
 		if err == nil && change.LineNum == 0 {
 			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("file already exists at path: %s, need to specify the line num.", change.Path))
+		}
+		if change.Delete != "" {
+			file, err := os.Open(change.Path)
+			if err != nil {
+				errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("failed to open file: %v", err))
+				continue
+			}
+			defer file.Close()
+
+			scanner := bufio.NewScanner(file)
+			currentLine := 1
+			found := false
+			for scanner.Scan() {
+				if currentLine == change.LineNum {
+					if scanner.Text() != change.Delete {
+						errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("content to delete does not match at line %d", change.LineNum))
+					} else {
+						found = true
+					}
+					break
+				}
+				currentLine++
+			}
+
+			if !found {
+				errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("line number %d not found in file", change.LineNum))
+			}
+
+			if err := scanner.Err(); err != nil {
+				errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("error reading file: %v", err))
+			}
+		}
+	}
+	for path, count := range changesPerFile {
+		if count > 1 {
+			errorsMap[path] = append(errorsMap[path], fmt.Errorf("multiple changes for the same file"))
 		}
 	}
 	if len(errorsMap) > 0 {
@@ -62,7 +101,7 @@ func (c ChangesPlan) String() string {
 
 type Change struct {
 	Path        string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	Add         string `json:"content" jsonschema_description:"Content to be added to the file"`
+	Add         string `json:"add" jsonschema_description:"Content to be added to the file"`
 	Delete      string `json:"delete" jsonschema_description:"Content to be deleted from the file"`
 	Explanation string `json:"explanation" jsonschema_description:"Explanation for the change including why this change is needed and what is achieved by this change, etc."`
 	LineNum     int    `json:"line" jsonschema_description:"Line number to insert the content. Line number starts from 1. To create a new file, set the line number to 0"`
@@ -135,7 +174,7 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goa
 		}
 
 		log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
-		prompt = fmt.Sprintf(REPLAN_PROMPT, goal, getRelevantDocsString(docsWithScore), changesPlan, err)
+		prompt = fmt.Sprintf(REPLAN_PROMPT, goal, changesPlan, err)
 		changesPlan, err = generatePlan(ctx, prompt, client)
 		if err != nil {
 			log.Printf("Failed to generate plan: %v", err)

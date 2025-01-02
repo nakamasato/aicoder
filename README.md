@@ -1,4 +1,34 @@
 # AICoder
+## Prerequisites
+
+- Go version 1.23.2 or later
+- PostgreSQL 15 or later with the `pgvector` extension installed.
+- `OPENAI_API_KEY` environment variable set for using OpenAI API.
+
+## Available Commands
+1. **load**: Load the repository structure from a Git repository and export it to a JSON file with summaries.
+2. **search**: Search for files related to a given query.
+3. **plan**: Generate a project plan based on a specified goal.
+4. **apply**: Apply changes based on the configuration provided in a plan file.
+5. **check**: Validate the configuration and ensure all parameters are correctly set up.
+
+## Example Usages
+- To load the repository structure and summarize files:
+  ```bash
+  aicoder load --output=repo_structure.json
+  ```
+- To search for a specific file related to a query:
+  ```bash
+  aicoder search --query="function example"
+  ```
+- To generate a plan based on a goal:
+  ```bash
+  aicoder plan --goal="improve CLI documentation" --output=plan.json
+  ```
+- To apply changes defined in a plan:
+  ```bash
+  aicoder apply --planfile=plan.json
+  ```
 
 AICoder is a AI-powered CLI that helps you code quickly.
 
