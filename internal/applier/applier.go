@@ -3,13 +3,14 @@ package applier
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 
 	"github.com/fatih/color"
 	"github.com/nakamasato/aicoder/internal/planner"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -30,23 +31,22 @@ func ApplyChanges(changesPlan planner.ChangesPlan, dryrun bool) error {
 				targetPath = change.Path + ".tmp"
 			}
 			// Apply change to temp file
-			originalContent, modifiedContent, err := applyChange(change, targetPath)
+			_, _, err := applyChange(change, targetPath)
 			if err != nil {
 				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
 			}
 
-			// Generate diff
-			diff := GenerateGitDiff(originalContent, modifiedContent, change.Path)
+			if dryrun {
+				cmd := exec.Command("diff", "-u", change.Path, targetPath)
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					log.Println("There is diff")
+				}
 
-			// Collect diffs safely
-			mu.Lock()
-			diffs = append(diffs, diff)
-			mu.Unlock()
-
-			// Remove temp file
-			// if err := os.Remove(tempFilePath); err != nil {
-			// 	return fmt.Errorf("failed to remove temp file (%s): %w", tempFilePath, err)
-			// }
+				mu.Lock()
+				diffs = append(diffs, string(output))
+				mu.Unlock()
+			}
 
 			return nil
 		})
@@ -58,9 +58,22 @@ func ApplyChanges(changesPlan planner.ChangesPlan, dryrun bool) error {
 	}
 
 	if dryrun {
-		// Display all collected diffs
 		for _, diff := range diffs {
-			fmt.Println(diff)
+			scanner := bufio.NewScanner(strings.NewReader(diff))
+			for scanner.Scan() {
+				line := scanner.Text()
+				if strings.HasPrefix(line, "+") {
+					color.New(color.FgGreen).Println(line)
+				} else if strings.HasPrefix(line, "-") {
+					color.New(color.FgRed).Println(line)
+				} else {
+					fmt.Println(line)
+				}
+			}
+
+			if err := scanner.Err(); err != nil {
+				log.Printf("Error reading diff output: %v", err)
+			}
 		}
 	}
 
@@ -136,34 +149,6 @@ func updateExistingFile(change planner.Change, targetPath string) (originalConte
 	fmt.Printf("Successfully updated existing file: %s\n", targetPath)
 
 	return originalContent, []byte(output), nil
-}
-
-// GenerateGitDiff generates a git diff style string between original and modified content.
-func GenerateGitDiff(original, modified []byte, filePath string) string {
-	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(string(original), string(modified), false)
-	dmp.DiffCleanupSemantic(diffs)
-
-	var buffer strings.Builder
-
-	// Add git diff headers
-	buffer.WriteString(fmt.Sprintf("diff --git a/%s b/%s\n", filePath, filePath))
-	buffer.WriteString(fmt.Sprintf("--- a/%s\n", filePath))
-	buffer.WriteString(fmt.Sprintf("+++ b/%s\n", filePath))
-
-	for _, diff := range diffs {
-		switch diff.Type {
-		case diffmatchpatch.DiffInsert:
-			color.New(color.FgGreen).Fprintf(&buffer, "+ %s\n", diff.Text)
-		case diffmatchpatch.DiffDelete:
-			color.New(color.FgRed).Fprintf(&buffer, "- %s\n", diff.Text)
-		case diffmatchpatch.DiffEqual:
-			// In git diff, unchanged lines are prefixed with two spaces
-			// buffer.WriteString(fmt.Sprintf("  %s\n", diff.Text))
-		}
-	}
-
-	return buffer.String()
 }
 
 // GetFileContent retrieves the content of the specified file.
