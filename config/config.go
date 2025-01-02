@@ -2,12 +2,9 @@ package config
 
 import (
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v2"
 )
 
 // AICoderConfig holds the configuration for the application.
@@ -54,25 +51,6 @@ type SearchConfig struct {
 // cfg holds the loaded configuration.
 var cfg AICoderConfig
 
-// ReadConfig loads the configuration from the specified file.
-func ReadConfig(cfgFile string) {
-	absPath, err := filepath.Abs(cfgFile)
-	if err != nil {
-		log.Fatalf("Failed to get absolute path of config file: %v", err)
-	}
-
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		log.Fatalf("Failed to read config file %s: %v", absPath, err)
-	}
-
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		log.Fatalf("Failed to parse config file: %v", err)
-	}
-
-	log.Printf("Configuration loaded from %s", absPath)
-}
-
 // LoadConfig initializes the configuration using Viper
 func InitConfig() {
 	viper.SetConfigName(".aicoder") // Name of config file (without extension)
@@ -85,7 +63,9 @@ func InitConfig() {
 	viper.SetDefault("search", SearchConfig{})
 
 	// Bind environment variables
-	viper.BindEnv("openai_api_key", "OPENAI_API_KEY")
+	if err := viper.BindEnv("openai_api_key", "OPENAI_API_KEY"); err != nil {
+		log.Fatalf("Failed to bind environment variable: %v", err)
+	}
 
 	// Read the config file
 	if err := viper.ReadInConfig(); err != nil {

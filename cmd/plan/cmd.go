@@ -4,7 +4,6 @@ package plan
 import (
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/nakamasato/aicoder/config"
@@ -49,13 +48,13 @@ func runPlan(cmd *cobra.Command, args []string) {
 	goal := strings.Join(args, " ")
 
 	// Initialize OpenAI client
-	if openaiAPIKey == "" {
-		openaiAPIKey = os.Getenv("OPENAI_API_KEY")
+	if openaiAPIKey != "" {
+		config.OpenAIAPIKey = openaiAPIKey
 	}
-	if openaiAPIKey == "" {
+	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	client := openai.NewClient(option.WithAPIKey(openaiAPIKey))
+	client := openai.NewClient(option.WithAPIKey(config.OpenAIAPIKey))
 
 	// Initialize entgo client
 	entClient, err := ent.Open("postgres", dbConnString)
@@ -82,6 +81,9 @@ func runPlan(cmd *cobra.Command, args []string) {
 		files = append(files, &file.File{Path: path, Content: content})
 	}
 	prompt, err := planner.GenerateGoalPrompt(ctx, client, entClient, goal, config.Repository, files)
+	if err != nil {
+		log.Fatalf("failed to generate goal prompt: %v", err)
+	}
 	plan, err := planner.Plan(ctx, client, entClient, goal, prompt, maxAttempts)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
