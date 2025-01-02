@@ -12,8 +12,7 @@ import (
 	"github.com/invopop/jsonschema"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/ent/document"
-	"github.com/nakamasato/aicoder/internal/loader"
-	"github.com/nakamasato/aicoder/internal/vectorstore"
+	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/openai/openai-go"
 )
 
@@ -126,20 +125,15 @@ func GenerateSchema[T any]() interface{} {
 	return schema
 }
 
-func getRelevantDocsString(docsWithScore *[]vectorstore.DocumentWithScore) string {
-	var relevantDocs strings.Builder
-	for _, r := range *docsWithScore {
-		content, err := loader.LoadFileContent(r.Document.Filepath)
-		if err != nil {
-			return ""
-		}
-		relevantDocs.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---", r.Document.Filepath, content))
-	}
-	return relevantDocs.String()
-}
+// generateGoalPrompt creates a prompt for OpenAI based on the goal and repository data.
+func GenerateGoalPrompt(ctx context.Context, client *openai.Client, entClient *ent.Client, goal, repo string, files file.Files) (string, error) {
 
-// generatePrompt creates a prompt for OpenAI based on the goal and repository data.
-func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore) (string, error) {
+	if isValid, err := validateGoal(ctx, client, goal); err != nil {
+		return "", fmt.Errorf("failed to validate goal: %w", err)
+	} else if !isValid {
+		return "", fmt.Errorf("goal needs to explicitly specify the file to change.")
+	}
+
 	// Fetch relevant documents or summaries from the database
 	docs, err := entClient.Document.
 		Query().
@@ -156,23 +150,13 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 	}
 
 	// Create a comprehensive prompt
-	prompt := fmt.Sprintf(PLANNER_PROMPT, contextInfo.String(), getRelevantDocsString(docsWithScore), goal)
+	prompt := fmt.Sprintf(PLANNER_GOAL_PROMPT, contextInfo.String(), files.String(), goal)
 
 	return prompt, nil
 }
 
-func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore, maxAttempts int) (ChangesPlan, error) {
-
-	if isValid, err := validateGoal(ctx, client, goal); err != nil {
-		return ChangesPlan{}, fmt.Errorf("failed to validate goal: %w", err)
-	} else if !isValid {
-		return ChangesPlan{}, fmt.Errorf("goal needs to explicitly specify the file to change.")
-	}
-
-	prompt, err := generatePrompt(ctx, entClient, goal, repo, docsWithScore)
-	if err != nil {
-		return ChangesPlan{}, fmt.Errorf("failed to generate prompt: %w", err)
-	}
+// Plan with validation
+func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, query, prompt string, maxAttempts int) (ChangesPlan, error) {
 
 	changesPlan, err := generatePlan(ctx, prompt, client)
 	if err != nil {
@@ -186,7 +170,7 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goa
 		}
 
 		log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
-		prompt = fmt.Sprintf(REPLAN_PROMPT, goal, changesPlan, err)
+		prompt = fmt.Sprintf(REPLAN_PROMPT, query, changesPlan, err)
 		changesPlan, err = generatePlan(ctx, prompt, client)
 		if err != nil {
 			log.Printf("Failed to generate plan: %v", err)

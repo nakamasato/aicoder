@@ -1,10 +1,8 @@
 package search
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/nakamasato/aicoder/config"
@@ -37,18 +35,18 @@ func Command() *cobra.Command {
 }
 
 func runSearch(cmd *cobra.Command, args []string) {
-	ctx := context.Background()
+	ctx := cmd.Context()
 	config := config.GetConfig()
 	query := strings.Join(args, " ")
 
 	// Initialize OpenAI client
-	if openaiAPIKey == "" {
-		openaiAPIKey = os.Getenv("OPENAI_API_KEY")
+	if openaiAPIKey != "" {
+		config.OpenAIAPIKey = openaiAPIKey
 	}
-	if openaiAPIKey == "" {
+	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	client := openai.NewClient(option.WithAPIKey(openaiAPIKey))
+	client := openai.NewClient(option.WithAPIKey(config.OpenAIAPIKey))
 
 	// Initialize entgo client
 	entClient, err := ent.Open("postgres", dbConnString)

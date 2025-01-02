@@ -8,6 +8,7 @@ import (
 
 	"github.com/nakamasato/aicoder/cmd/apply"
 	"github.com/nakamasato/aicoder/cmd/db"
+	"github.com/nakamasato/aicoder/cmd/debug"
 	"github.com/nakamasato/aicoder/cmd/load"
 	"github.com/nakamasato/aicoder/cmd/plan"
 	"github.com/nakamasato/aicoder/cmd/search"
@@ -16,8 +17,6 @@ import (
 )
 
 var (
-	cfgFile string
-
 	RootCmd = &cobra.Command{
 		Use:   "aicoder",
 		Short: "Aicoder is a AI-powered CLI tool that helps you to code quickly.",
@@ -43,11 +42,10 @@ func init() {
 		search.Command(),
 		plan.Command(),
 		apply.Command(),
+		debug.Command(),
 	)
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", ".aicoder.yaml", "config file (default is .aicoder.yaml)")
 }
 
 func initConfig() {
-	config.ReadConfig(cfgFile)
+	config.InitConfig()
 }

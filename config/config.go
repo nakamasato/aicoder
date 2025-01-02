@@ -2,18 +2,17 @@ package config
 
 import (
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	"github.com/spf13/viper"
 )
 
 // AICoderConfig holds the configuration for the application.
 type AICoderConfig struct {
-	Repository string       `yaml:"repository"`
-	Load       LoadConfig   `yaml:"load"`
-	Search     SearchConfig `yaml:"search"`
+	Repository   string
+	Load         LoadConfig
+	Search       SearchConfig
+	OpenAIAPIKey string
 }
 
 type LoadConfig struct {
@@ -52,23 +51,34 @@ type SearchConfig struct {
 // cfg holds the loaded configuration.
 var cfg AICoderConfig
 
-// ReadConfig loads the configuration from the specified file.
-func ReadConfig(cfgFile string) {
-	absPath, err := filepath.Abs(cfgFile)
-	if err != nil {
-		log.Fatalf("Failed to get absolute path of config file: %v", err)
+// LoadConfig initializes the configuration using Viper
+func InitConfig() {
+	viper.SetConfigName(".aicoder") // Name of config file (without extension)
+	viper.SetConfigType("yaml")     // Required if the config file does not have the extension in the name
+	viper.AddConfigPath(".")        // Optionally look for config in the working directory
+
+	// Set default values
+	viper.SetDefault("repository", "default-repo")
+	viper.SetDefault("load", LoadConfig{})
+	viper.SetDefault("search", SearchConfig{})
+
+	// Bind environment variables
+	if err := viper.BindEnv("openai_api_key", "OPENAI_API_KEY"); err != nil {
+		log.Fatalf("Failed to bind environment variable: %v", err)
 	}
 
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		log.Fatalf("Failed to read config file %s: %v", absPath, err)
+	// Read the config file
+	if err := viper.ReadInConfig(); err != nil {
+		log.Printf("Error reading config file, %s", err)
 	}
 
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		log.Fatalf("Failed to parse config file: %v", err)
+	// Unmarshal the config into the struct
+	if err := viper.Unmarshal(&cfg); err != nil {
+		log.Fatalf("Failed to unmarshal config: %v", err)
 	}
 
-	log.Printf("Configuration loaded from %s", absPath)
+	// Manually set the OpenAI API Key from environment variable
+	cfg.OpenAIAPIKey = viper.GetString("openai_api_key")
 }
 
 // GetConfig returns the loaded configuration.

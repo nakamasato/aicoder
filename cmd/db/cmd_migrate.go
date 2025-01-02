@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -24,7 +23,7 @@ func migrateCommand() *cobra.Command {
 
 func dbMigrate(cmd *cobra.Command, args []string) {
 	fmt.Println("db migrate")
-	ctx := context.Background()
+	ctx := cmd.Context()
 	entClient, err := ent.Open("postgres", dbConnString)
 	if err != nil {
 		log.Fatalf("failed opening connection to postgres: %v", err)
