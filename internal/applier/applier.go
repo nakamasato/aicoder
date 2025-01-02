@@ -1,10 +1,9 @@
 package applier
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -15,59 +14,39 @@ import (
 )
 
 // ApplyChanges applies changes based on the provided changesPlan.
-// If dryrun is true, it displays the diff without modifying the actual files.
+// If dryrun is true, it displays the diffs without modifying the actual files.
 func ApplyChanges(changesPlan planner.ChangesPlan, dryrun bool) error {
-	// Group changes by file
-	fileChanges := groupChangesByFile(changesPlan.Changes)
-
+	var g errgroup.Group
 	var mu sync.Mutex
 	var diffs []string
 
-	var g errgroup.Group
-
-	for filePath, changes := range fileChanges {
-		filePath := filePath // Correctly reference within closure
-		changes := changes   // Correctly reference within closure
+	for _, change := range changesPlan.Changes {
+		// Capture the current value of change to avoid closure issues
+		change := change
 		g.Go(func() error {
-			var diff string
-			var err error
-
+			targetPath := change.Path
 			if dryrun {
 				// Generate temporary file path
-				tempFilePath := filepath.Join(os.TempDir(), generateTempFileName(filePath))
-
-				// Retrieve original file content
-				originalContent, err := GetFileContent(filePath)
-				if err != nil {
-					return fmt.Errorf("failed to read original file (%s): %w", filePath, err)
-				}
-
-				// Apply changes to get modified content
-				modifiedContent, err := applyAllChanges(originalContent, changes)
-				if err != nil {
-					return fmt.Errorf("failed to apply changes (%s): %w", filePath, err)
-				}
-
-				// Save modified content to temporary file
-				if err := os.WriteFile(tempFilePath, modifiedContent, 0644); err != nil {
-					return fmt.Errorf("failed to write to temporary file (%s): %w", tempFilePath, err)
-				}
-				defer os.Remove(tempFilePath) // Cleanup
-
-				// Generate diff
-				diff = GenerateGitDiff(originalContent, modifiedContent, filePath)
-
-				// Collect diffs
-				mu.Lock()
-				diffs = append(diffs, diff)
-				mu.Unlock()
-			} else {
-				// Apply changes to the actual file
-				err = applyAllChangesToFile(filePath, changes)
-				if err != nil {
-					return fmt.Errorf("failed to apply changes (%s): %w", filePath, err)
-				}
+				targetPath = change.Path + ".tmp"
 			}
+			// Apply change to temp file
+			originalContent, modifiedContent, err := applyChange(change, targetPath)
+			if err != nil {
+				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
+			}
+
+			// Generate diff
+			diff := GenerateGitDiff(originalContent, modifiedContent, change.Path)
+
+			// Collect diffs safely
+			mu.Lock()
+			diffs = append(diffs, diff)
+			mu.Unlock()
+
+			// Remove temp file
+			// if err := os.Remove(tempFilePath); err != nil {
+			// 	return fmt.Errorf("failed to remove temp file (%s): %w", tempFilePath, err)
+			// }
 
 			return nil
 		})
@@ -79,7 +58,7 @@ func ApplyChanges(changesPlan planner.ChangesPlan, dryrun bool) error {
 	}
 
 	if dryrun {
-		// Display collected diffs
+		// Display all collected diffs
 		for _, diff := range diffs {
 			fmt.Println(diff)
 		}
@@ -88,78 +67,86 @@ func ApplyChanges(changesPlan planner.ChangesPlan, dryrun bool) error {
 	return nil
 }
 
-// groupChangesByFile groups changes by their file paths.
-func groupChangesByFile(changes []planner.Change) map[string][]planner.Change {
-	fileChanges := make(map[string][]planner.Change)
-	for _, change := range changes {
-		fileChanges[change.Path] = append(fileChanges[change.Path], change)
+func applyChange(change planner.Change, targetPath string) (originalContent, modifiedContent []byte, err error) {
+	if _, err := os.Stat(change.Path); os.IsNotExist(err) {
+		return createNewFile(change, targetPath)
 	}
-	return fileChanges
+	return updateExistingFile(change, targetPath)
 }
 
-// generateTempFileName generates a temporary file name based on the original path.
-func generateTempFileName(originalPath string) string {
-	base := filepath.Base(originalPath)
-	return fmt.Sprintf("%s.tmp", base)
+func createNewFile(change planner.Change, targetPath string) (originalContent, modifiedContent []byte, err error) {
+
+	if change.LineNum != 0 {
+		return originalContent, modifiedContent, fmt.Errorf("line number must be 0 for new files")
+	}
+
+	if change.Add == "" {
+		return originalContent, modifiedContent, fmt.Errorf("add content is required for new files")
+	}
+
+	if err := os.WriteFile(targetPath, []byte(change.Add), 0644); err != nil {
+		return originalContent, modifiedContent, fmt.Errorf("failed to create new file: %w", err)
+	}
+	fmt.Printf("Successfully created new file: %s\n", targetPath)
+	return originalContent, []byte(change.Add), nil
 }
 
-// applyAllChanges applies a series of changes to the original content and returns the modified content.
-func applyAllChanges(original []byte, changes []planner.Change) ([]byte, error) {
-	lines := strings.Split(string(original), "\n")
+// applyChange applies a single change to the specified file.
+// If targetPath is a temporary file (during dryrun), it writes the modified content there.
+// Otherwise, it writes directly to the original file.
+func updateExistingFile(change planner.Change, targetPath string) (originalContent, modifiedContent []byte, err error) {
+	// Open the original file
+	file, err := os.Open(change.Path)
+	if err != nil {
+		return originalContent, modifiedContent, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
 
-	for _, change := range changes {
-		if change.LineNum == 0 { // Create a new file
-			if change.Add == "" {
-				return nil, fmt.Errorf("add content is required to create a new file (%s)", change.Path)
-			}
-			lines = append(lines, change.Add)
-		} else if change.LineNum > 0 && change.LineNum <= len(lines) {
-			if change.Delete != "" {
-				lines[change.LineNum-1] = strings.Replace(lines[change.LineNum-1], change.Delete, "", 1)
-			}
-			if change.Add != "" {
-				lines[change.LineNum-1] = lines[change.LineNum-1] + change.Add
-			}
-		} else {
-			return nil, fmt.Errorf("line number %d out of range (%s)", change.LineNum, change.Path)
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		bytes := scanner.Bytes()
+		originalContent = append(originalContent, bytes...)
+		lines = append(lines, string(bytes))
+	}
+
+	if err := scanner.Err(); err != nil {
+		return originalContent, modifiedContent, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Apply the change
+	if change.LineNum > 0 && change.LineNum <= len(lines) {
+		if change.Delete != "" {
+			lines[change.LineNum-1] = strings.Replace(lines[change.LineNum-1], change.Delete, "", 1)
 		}
+		if change.Add != "" {
+			lines[change.LineNum-1] = lines[change.LineNum-1] + change.Add
+		}
+	} else {
+		return originalContent, modifiedContent, fmt.Errorf("line number %d out of range", change.LineNum)
 	}
 
-	modifiedContent := strings.Join(lines, "\n")
-	return []byte(modifiedContent), nil
+	// Join the lines back into a single string
+	output := strings.Join(lines, "\n")
+
+	// Write the changes back to the target file
+	if err := os.WriteFile(targetPath, []byte(output), 0644); err != nil {
+		return originalContent, modifiedContent, fmt.Errorf("failed to write file: %w", err)
+	}
+	fmt.Printf("Successfully updated existing file: %s\n", targetPath)
+
+	return originalContent, []byte(output), nil
 }
 
-// applyAllChangesToFile applies a series of changes directly to the specified file.
-func applyAllChangesToFile(filePath string, changes []planner.Change) error {
-	// Retrieve original file content
-	originalContent, err := GetFileContent(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to read original file: %w", err)
-	}
-
-	// Apply changes
-	modifiedContent, err := applyAllChanges(originalContent, changes)
-	if err != nil {
-		return err
-	}
-
-	// Write modified content back to the file
-	if err := os.WriteFile(filePath, modifiedContent, 0644); err != nil {
-		return fmt.Errorf("failed to write to file: %w", err)
-	}
-
-	return nil
-}
-
-// GenerateGitDiff generates a git diff style string between the original and modified content.
+// GenerateGitDiff generates a git diff style string between original and modified content.
 func GenerateGitDiff(original, modified []byte, filePath string) string {
 	dmp := diffmatchpatch.New()
 	diffs := dmp.DiffMain(string(original), string(modified), false)
 	dmp.DiffCleanupSemantic(diffs)
 
-	var buffer bytes.Buffer
+	var buffer strings.Builder
 
-	// Add headers
+	// Add git diff headers
 	buffer.WriteString(fmt.Sprintf("diff --git a/%s b/%s\n", filePath, filePath))
 	buffer.WriteString(fmt.Sprintf("--- a/%s\n", filePath))
 	buffer.WriteString(fmt.Sprintf("+++ b/%s\n", filePath))
@@ -172,7 +159,7 @@ func GenerateGitDiff(original, modified []byte, filePath string) string {
 			color.New(color.FgRed).Fprintf(&buffer, "- %s\n", diff.Text)
 		case diffmatchpatch.DiffEqual:
 			// In git diff, unchanged lines are prefixed with two spaces
-			buffer.WriteString(fmt.Sprintf("  %s\n", diff.Text))
+			// buffer.WriteString(fmt.Sprintf("  %s\n", diff.Text))
 		}
 	}
 
