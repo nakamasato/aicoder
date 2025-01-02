@@ -4,9 +4,8 @@ AICoder is a AI-powered CLI that helps you code quickly.
 
 1. load
 1. search
-1. plan
-1. generate
-1. write
+1. plan (validate)
+1. apply (dryrun)
 1. check
 
 ## Why is AICoder necessary?

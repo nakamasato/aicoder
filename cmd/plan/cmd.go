@@ -21,6 +21,7 @@ var (
 	outputFile   string
 	dbConnString string
 	openaiAPIKey string
+	maxAttempts  int
 )
 
 // Command creates the plan command.
@@ -36,6 +37,7 @@ func Command() *cobra.Command {
 	planCmd.Flags().StringVarP(&outputFile, "output", "o", "plan.json", "Output JSON file for the generated plan")
 	planCmd.Flags().StringVar(&dbConnString, "db-conn", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable", "PostgreSQL connection string")
 	planCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
+	planCmd.Flags().IntVarP(&maxAttempts, "max-attempts", "m", 3, "Maximum number of attempts to generate a plan")
 
 	return planCmd
 }
@@ -69,7 +71,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	}
 
 	// Generate plan using OpenAI
-	plan, err := planner.Plan(ctx, client, entClient, goal, config.Repository, res.Documents)
+	plan, err := planner.Plan(ctx, client, entClient, goal, config.Repository, res.Documents, maxAttempts)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
@@ -79,7 +81,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 		fmt.Printf("Change %s:\n", change.Path)
 		fmt.Printf("  Add: %s\n", change.Add)
 		fmt.Printf("  Delete: %s\n", change.Delete)
-		fmt.Printf("  Line: %d\n", change.Line)
+		fmt.Printf("  Line: %d\n", change.LineNum)
 	}
 
 	// Save plan to file

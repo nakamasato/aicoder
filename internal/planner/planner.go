@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -19,11 +20,52 @@ type ChangesPlan struct {
 	Changes []Change `json:"changes" jsonschema_description:"List of changes to be made to achieve the goal"`
 }
 
+func (c ChangesPlan) Validate() error {
+	errorsMap := make(map[string][]error)
+	var err error
+	for _, change := range c.Changes {
+		if change.Path == "" {
+			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("path is required for all changes"))
+		}
+		if change.Add == "" && change.Delete == "" {
+			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("either add or delete content is required for all changes"))
+		}
+		if change.LineNum < 0 {
+			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("line number must be greater than or equal to 0"))
+		}
+		_, err := os.Stat(change.Path)
+		if os.IsNotExist(err) && change.LineNum != 0 {
+			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("file does not exist at path: %s", change.Path))
+		}
+		if err == nil && change.LineNum == 0 {
+			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("file already exists at path: %s, need to specify the line num.", change.Path))
+		}
+	}
+	if len(errorsMap) > 0 {
+		var errorMessages []string
+		for path, errors := range errorsMap {
+			errorMessages = append(errorMessages, fmt.Sprintf("path: %s, errors: %v", path, errors))
+		}
+		err = fmt.Errorf("validation failed: %v", errorMessages)
+	}
+	return err
+}
+
+func (c ChangesPlan) String() string {
+	jsonData, err := json.Marshal(c)
+	if err != nil {
+		log.Printf("Error marshalling ChangesPlan to JSON: %v", err)
+		return ""
+	}
+	return string(jsonData)
+}
+
 type Change struct {
-	Path   string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	Add    string `json:"content" jsonschema_description:"Content to be added to the file"`
-	Delete string `json:"delete" jsonschema_description:"Content to be deleted from the file"`
-	Line   int    `json:"line" jsonschema_description:"Line number to insert the content"`
+	Path        string `json:"path" jsonschema_description:"Path to the file to be changed"`
+	Add         string `json:"content" jsonschema_description:"Content to be added to the file"`
+	Delete      string `json:"delete" jsonschema_description:"Content to be deleted from the file"`
+	Explanation string `json:"explanation" jsonschema_description:"Explanation for the change including why this change is needed and what is achieved by this change, etc."`
+	LineNum     int    `json:"line" jsonschema_description:"Line number to insert the content. Line number starts from 1. To create a new file, set the line number to 0"`
 }
 
 var (
@@ -40,6 +82,18 @@ func GenerateSchema[T any]() interface{} {
 	return schema
 }
 
+func getRelevantDocsString(docsWithScore *[]vectorstore.DocumentWithScore) string {
+	var relevantDocs strings.Builder
+	for _, r := range *docsWithScore {
+		content, err := loader.LoadFileContent(r.Document.Filepath)
+		if err != nil {
+			return ""
+		}
+		relevantDocs.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---", r.Document.Filepath, content))
+	}
+	return relevantDocs.String()
+}
+
 // generatePrompt creates a prompt for OpenAI based on the goal and repository data.
 func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore) (string, error) {
 	// Fetch relevant documents or summaries from the database
@@ -51,15 +105,6 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 		return "", fmt.Errorf("failed to fetch documents: %w", err)
 	}
 
-	var relevantDocs strings.Builder
-	for _, r := range *docsWithScore {
-		content, err := loader.LoadFileContent(r.Document.Filepath)
-		if err != nil {
-			return "", fmt.Errorf("failed to load file content: %w", err)
-		}
-		relevantDocs.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---", r.Document.Filepath, content))
-	}
-
 	// Aggregate the descriptions to provide context
 	var contextInfo strings.Builder
 	for _, doc := range docs {
@@ -67,17 +112,41 @@ func generatePrompt(ctx context.Context, entClient *ent.Client, goal, repo strin
 	}
 
 	// Create a comprehensive prompt
-	prompt := fmt.Sprintf(PLANNER_PROMPT, contextInfo.String(), relevantDocs.String(), goal)
+	prompt := fmt.Sprintf(PLANNER_PROMPT, contextInfo.String(), getRelevantDocsString(docsWithScore), goal)
 
 	return prompt, nil
 }
 
-func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore) (ChangesPlan, error) {
-
+func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goal, repo string, docsWithScore *[]vectorstore.DocumentWithScore, maxAttempts int) (ChangesPlan, error) {
 	prompt, err := generatePrompt(ctx, entClient, goal, repo, docsWithScore)
 	if err != nil {
 		return ChangesPlan{}, fmt.Errorf("failed to generate prompt: %w", err)
 	}
+
+	changesPlan, err := generatePlan(ctx, prompt, client)
+	if err != nil {
+		return ChangesPlan{}, fmt.Errorf("failed to generate plan: %w", err)
+	}
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if err = changesPlan.Validate(); err == nil {
+			log.Println("Plan is valid")
+			return changesPlan, nil
+		}
+
+		log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
+		prompt = fmt.Sprintf(REPLAN_PROMPT, goal, getRelevantDocsString(docsWithScore), changesPlan, err)
+		changesPlan, err = generatePlan(ctx, prompt, client)
+		if err != nil {
+			log.Printf("Failed to generate plan: %v", err)
+			continue
+		}
+	}
+
+	return ChangesPlan{}, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
+}
+
+func generatePlan(ctx context.Context, prompt string, client *openai.Client) (ChangesPlan, error) {
 
 	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        openai.F("changes"),
@@ -108,11 +177,20 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, goa
 		return ChangesPlan{}, fmt.Errorf("no response from OpenAI")
 	}
 
+	responseJSON, err := json.MarshalIndent(chat.Choices[0].Message.Content, "", "  ")
+	if err != nil {
+		log.Printf("Error marshalling chat response: %v", err)
+	} else {
+		log.Printf("Chat completion response: %s", responseJSON)
+	}
+
 	changesPlan := ChangesPlan{}
 	err = json.Unmarshal([]byte(chat.Choices[0].Message.Content), &changesPlan)
 	if err != nil {
-		panic(err.Error())
+		return ChangesPlan{}, fmt.Errorf("failed to unmarshal changes plan: %w", err)
 	}
+
+	fmt.Printf("Plan: %s\n", changesPlan.String())
 
 	return changesPlan, nil
 }
