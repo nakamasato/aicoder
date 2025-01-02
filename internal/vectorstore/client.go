@@ -2,6 +2,8 @@ package vectorstore
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -36,6 +38,22 @@ type DocumentWithScore struct {
 
 type SearchResult struct {
 	Documents *[]DocumentWithScore
+}
+
+func (r *SearchResult) String() string {
+	var b strings.Builder
+	for i, doc := range *r.Documents {
+		b.WriteString(fmt.Sprintf("%d. %s (Score: %.2f)\n", i+1, doc.Document.Filepath, doc.Score))
+	}
+	return b.String()
+}
+
+func (r *SearchResult) FilePaths() []string {
+	var paths []string
+	for _, doc := range *r.Documents {
+		paths = append(paths, doc.Document.Filepath)
+	}
+	return paths
 }
 
 func New(entClient *ent.Client, openaiCli *openai.Client) VectorStore {

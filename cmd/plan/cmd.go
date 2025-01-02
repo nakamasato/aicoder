@@ -2,7 +2,6 @@
 package plan
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +9,8 @@ import (
 
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/internal/file"
+	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
@@ -43,7 +44,7 @@ func Command() *cobra.Command {
 }
 
 func runPlan(cmd *cobra.Command, args []string) {
-	ctx := context.Background()
+	ctx := cmd.Context()
 	config := config.GetConfig()
 	goal := strings.Join(args, " ")
 
@@ -70,8 +71,18 @@ func runPlan(cmd *cobra.Command, args []string) {
 		log.Fatalf("failed to search: %v", err)
 	}
 
-	// Generate plan using OpenAI
-	plan, err := planner.Plan(ctx, client, entClient, goal, config.Repository, res.Documents, maxAttempts)
+	// Load file content
+	filepaths := res.FilePaths()
+	var files file.Files
+	for _, path := range filepaths {
+		content, err := loader.LoadFileContent(path)
+		if err != nil {
+			log.Fatalf("failed to load file content: %v", err)
+		}
+		files = append(files, &file.File{Path: path, Content: content})
+	}
+	prompt, err := planner.GenerateGoalPrompt(ctx, client, entClient, goal, config.Repository, files)
+	plan, err := planner.Plan(ctx, client, entClient, goal, prompt, maxAttempts)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}

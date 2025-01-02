@@ -1,7 +1,6 @@
 package load
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -47,19 +46,19 @@ func Command() *cobra.Command {
 
 func runLoad(cmd *cobra.Command, args []string) {
 	startTs := time.Now()
-	ctx := context.Background()
+	ctx := cmd.Context()
 	config := config.GetConfig()
 
 	gitRootPath := "."
 
 	// Initialize OpenAI client
-	if openaiAPIKey == "" {
-		openaiAPIKey = os.Getenv("OPENAI_API_KEY")
+	if openaiAPIKey != "" {
+		config.OpenAIAPIKey = openaiAPIKey
 	}
-	if openaiAPIKey == "" {
+	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	client := openai.NewClient(option.WithAPIKey(openaiAPIKey))
+	client := openai.NewClient(option.WithAPIKey(config.OpenAIAPIKey))
 
 	// Initialize PostgreSQL connection
 	if dbConnString == "" {
@@ -137,7 +136,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 				return
 			}
 
-			summary, err := llm.SummarizeFileContent(client, string(buf))
+			summary, err := llm.SummarizeFileContent(ctx, client, string(buf))
 			if err != nil {
 				errChan <- fmt.Errorf("failed to summarize content: %v", err)
 				return

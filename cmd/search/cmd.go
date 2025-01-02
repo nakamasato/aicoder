@@ -1,7 +1,6 @@
 package search
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"os"
@@ -37,7 +36,7 @@ func Command() *cobra.Command {
 }
 
 func runSearch(cmd *cobra.Command, args []string) {
-	ctx := context.Background()
+	ctx := cmd.Context()
 	config := config.GetConfig()
 	query := strings.Join(args, " ")
 

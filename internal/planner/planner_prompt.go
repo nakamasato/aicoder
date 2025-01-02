@@ -1,6 +1,6 @@
 package planner
 
-const PLANNER_PROMPT = `You are a helpful assistant that generates detailed action plans based on provided project information.
+const PLANNER_GOAL_PROMPT = `You are a helpful assistant that generates detailed action plans based on provided project information.
 -----------------------
 Files in the repository:
 %s
@@ -24,7 +24,6 @@ Currently AICoder is still under development and only support goals that explici
 
 -----------------------
 Goal: %s`
-
 
 const REPLAN_PROMPT = `You are a helpful assistant that generates detailed action plans based on provided project information.
 The plan you've just made failed the validation.

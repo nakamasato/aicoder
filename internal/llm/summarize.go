@@ -8,11 +8,10 @@ import (
 )
 
 // summarizeContent uses OpenAI to summarize the given text content.
-func SummarizeFileContent(client *openai.Client, content string) (string, error) {
+func SummarizeFileContent(ctx context.Context, client *openai.Client, content string) (string, error) {
 	if len(content) == 0 {
 		return "", nil
 	}
-	ctx := context.Background()
 
 	// Prepare the prompt for summarization
 	prompt := fmt.Sprintf(SUMMARIZE_FILE_CONTENT_PROMPT, content)

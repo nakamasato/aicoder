@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"fmt"
 	"log"
 
@@ -23,7 +22,7 @@ func resetCommand() *cobra.Command {
 
 func reset(cmd *cobra.Command, args []string) {
 	fmt.Println("db reset")
-	ctx := context.Background()
+	ctx := cmd.Context()
 	entClient, err := ent.Open("postgres", dbConnString)
 	if err != nil {
 		log.Fatalf("failed opening connection to postgres: %v", err)
