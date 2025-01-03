@@ -11,6 +11,9 @@ func Command() *cobra.Command {
 		Short: "Debugging tools",
 	}
 
-	DebugCmd.AddCommand(refactorCommand())
+	DebugCmd.AddCommand(
+		refactorCommand(),
+		parseCommand(),
+	)
 	return DebugCmd
 }
