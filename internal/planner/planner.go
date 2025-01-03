@@ -16,6 +16,9 @@ import (
 	"github.com/openai/openai-go"
 )
 
+// ChangesPlan is a list of changes each of which consists of PATH, ADD, DELETE, LINE and EXPLANATION.
+// This strategy changes a file partially by specifying the content to be added or deleted at a specific line.
+// This migtht not work well empirically, seemingly because the line number is not properly predicted.
 type ChangesPlan struct {
 	Changes []Change `json:"changes" jsonschema_description:"List of changes to be made to achieve the goal"`
 }
@@ -98,12 +101,22 @@ func (c ChangesPlan) String() string {
 	return string(jsonData)
 }
 
+
+// Change is a single change to be made to a file.
 type Change struct {
 	Path        string `json:"path" jsonschema_description:"Path to the file to be changed"`
 	Add         string `json:"add" jsonschema_description:"Content to be added to the file"`
-	Delete      string `json:"delete" jsonschema_description:"Content to be deleted from the file"`
+	Delete      string `json:"delete" jsonschema_description:"Content to be deleted from the file. When this is specified, the line number must be provided. The content to be deleted must match the content in the file at the specified line number."`
 	Explanation string `json:"explanation" jsonschema_description:"Explanation for the change including why this change is needed and what is achieved by this change, etc."`
 	LineNum     int    `json:"line" jsonschema_description:"Line number to insert the content. Line number starts from 1. To create a new file, set the line number to 0"`
+}
+
+// ChangeFile is used to replace the entire content of the specified file with the modified content.
+// This might work bettter than ChangesPlan.
+type ChangeFile struct {
+	Path            string `json:"path" jsonschema_description:"Path to the file to be changed"`
+	OriginalContent string `json:"original_content" jsonschema_description:"Original content of the file"`
+	ModifiedContent string `json:"modified_content" jsonschema_description:"Modified content of the file"`
 }
 
 type YesOrNo struct {
@@ -113,6 +126,7 @@ type YesOrNo struct {
 var (
 	ChangesPlanSchema = GenerateSchema[ChangesPlan]()
 	YesOrNoSchema     = GenerateSchema[YesOrNo]()
+	ChangeFileSchema  = GenerateSchema[ChangeFile]()
 )
 
 func GenerateSchema[T any]() interface{} {
