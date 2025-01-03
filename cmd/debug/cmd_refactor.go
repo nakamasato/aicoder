@@ -66,7 +66,8 @@ func runRefactor(cmd *cobra.Command, args []string) {
 	}
 
 	query := "Refactor the code. If there's no need of refactoring, please no changes needed."
-	prompt := fmt.Sprintf("Refactor the code %s\n---\n%s", filename, string(data))
+	prompt := fmt.Sprintf("Refactor the code\n--- %s start ---\n%s\n---- %s end ----", filename, string(data), filename)
+
 	plan, err := planner.Plan(ctx, client, entClient, query, prompt, maxAttempts)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)

@@ -9,6 +9,7 @@ import (
 	"github.com/nakamasato/aicoder/cmd/apply"
 	"github.com/nakamasato/aicoder/cmd/db"
 	"github.com/nakamasato/aicoder/cmd/debug"
+	"github.com/nakamasato/aicoder/cmd/initialize"
 	"github.com/nakamasato/aicoder/cmd/load"
 	"github.com/nakamasato/aicoder/cmd/plan"
 	"github.com/nakamasato/aicoder/cmd/search"
@@ -43,6 +44,7 @@ func init() {
 		plan.Command(),
 		apply.Command(),
 		debug.Command(),
+		initialize.Command(),
 	)
 }
 
