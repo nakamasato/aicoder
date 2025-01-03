@@ -41,11 +41,7 @@ func runInit(cmd *cobra.Command, args []string) {
 		content := fmt.Sprintf(`repository: %s
 load:
   exclude:
-    - ent
-    - go.sum
-    - repo_structure.json
   include:
-    - ent/schema
 
 search:
   top_n: 5
