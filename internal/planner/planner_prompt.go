@@ -49,3 +49,8 @@ Add: '## New Title'
 Delete: '## Old Title'
 Line: 1
 `
+
+const VALIDATE_FILE_PROMPT = `Please check the syntax of the file you have just modified.
+
+The file content:
+`

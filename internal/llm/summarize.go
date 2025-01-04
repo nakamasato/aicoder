@@ -7,7 +7,7 @@ import (
 	"github.com/openai/openai-go"
 )
 
-// summarizeContent uses OpenAI to summarize the given text content.
+// SummarizeFileContent uses OpenAI to summarize the given text content.
 func SummarizeFileContent(ctx context.Context, client *openai.Client, content string) (string, error) {
 	if len(content) == 0 {
 		return "", nil

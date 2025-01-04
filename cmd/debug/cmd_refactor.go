@@ -1,12 +1,15 @@
 package debug
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/internal/applier"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -23,8 +26,9 @@ var (
 
 func refactorCommand() *cobra.Command {
 	refactorCmd := &cobra.Command{
-		Use:   "refactor",
+		Use:   "refactor [message]",
 		Short: "Refactor the code using OpenAI suggestions",
+		Args:  cobra.MinimumNArgs(1),
 		Run:   runRefactor,
 	}
 	refactorCmd.Flags().StringVarP(&outputFile, "output", "o", "plan.json", "Output JSON file for the generated plan")
@@ -39,6 +43,7 @@ func refactorCommand() *cobra.Command {
 func runRefactor(cmd *cobra.Command, args []string) {
 	ctx := cmd.Context()
 	config := config.GetConfig()
+	message := strings.Join(args, " ")
 
 	if filename == "" {
 		log.Fatal("Please provide a filename to refactor")
@@ -65,24 +70,27 @@ func runRefactor(cmd *cobra.Command, args []string) {
 		log.Fatalf("Error reading file: %v\n", err)
 	}
 
-	query := "Refactor the code. If there's no need of refactoring, please no changes needed."
-	prompt := fmt.Sprintf("Refactor the code\n--- %s start ---\n%s\n---- %s end ----", filename, string(data), filename)
+	query := message
+	prompt := fmt.Sprintf("The code content:\n--- %s start ---\n%s\n---- %s end ----", filename, string(data), filename)
 
-	plan, err := planner.Plan(ctx, client, entClient, query, prompt, maxAttempts)
+	changeFilePlan, err := planner.GenerateChangeFilePlanWithRetry(ctx, client, prompt, query, 10)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
 
-	for _, change := range plan.Changes {
-		fmt.Println("-----------------------------")
-		fmt.Printf("Change %s:\n", change.Path)
-		fmt.Printf("  Add: %s\n", change.Add)
-		fmt.Printf("  Delete: %s\n", change.Delete)
-		fmt.Printf("  Line: %d\n", change.LineNum)
+	// Print plan
+	planJSON, err := json.MarshalIndent(changeFilePlan, "", "  ")
+	if err != nil {
+		log.Fatalf("failed to marshal plan: %v", err)
 	}
+	fmt.Println(string(planJSON))
 
 	// Save plan to file
-	if err := planner.SavePlan(plan, outputFile); err != nil {
-		log.Fatalf("failed to save plan: %v", err)
+	// if err := planner.SavePlan[planner.ChangeFilePlan](*changeFilePlan, outputFile); err != nil {
+	// 	log.Fatalf("failed to save plan: %v", err)
+	// }
+	// log.Printf("Successfully saved to %s", outputFile)
+	if err = applier.ApplyChangeFilePlan(changeFilePlan, changeFilePlan.Path); err != nil {
+		log.Fatalf("failed to apply plan: %v", err)
 	}
 }

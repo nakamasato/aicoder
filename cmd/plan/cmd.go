@@ -84,7 +84,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("failed to generate goal prompt: %v", err)
 	}
-	plan, err := planner.Plan(ctx, client, entClient, goal, prompt, maxAttempts)
+	plan, err := planner.GenerateChangesPlanWithRetry(ctx, client, entClient, goal, prompt, maxAttempts)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
@@ -98,7 +98,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	}
 
 	// Save plan to file
-	if err := planner.SavePlan(plan, outputFile); err != nil {
+	if err := planner.SavePlan[planner.ChangesPlan](plan, outputFile); err != nil {
 		log.Fatalf("failed to save plan: %v", err)
 	}
 }

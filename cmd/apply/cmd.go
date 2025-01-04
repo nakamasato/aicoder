@@ -1,10 +1,8 @@
 package apply
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/nakamasato/aicoder/internal/applier"
 	"github.com/nakamasato/aicoder/internal/planner"
@@ -36,15 +34,9 @@ func runApply(cmd *cobra.Command, args []string) {
 	fmt.Printf("apply %s", planFile)
 
 	// Read the plan file
-	data, err := os.ReadFile(planFile)
+	changesPlan, err := planner.LoadPlanFile[planner.ChangesPlan](planFile)
 	if err != nil {
 		log.Fatalf("failed to read plan file: %v", err)
-	}
-
-	// Unmarshal the JSON data into changesPlan
-	var changesPlan planner.ChangesPlan
-	if err := json.Unmarshal(data, &changesPlan); err != nil {
-		log.Fatalf("failed to unmarshal plan file: %v", err)
 	}
 
 	// Apply the changes

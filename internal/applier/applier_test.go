@@ -9,7 +9,7 @@ import (
 )
 
 func TestApplyChanges(t *testing.T) {
-	changesPlan := planner.ChangesPlan{
+	changesPlan := &planner.ChangesPlan{
 		Changes: []planner.Change{
 			{
 				Path:    "testfile.txt",
