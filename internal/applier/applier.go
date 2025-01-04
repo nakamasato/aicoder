@@ -16,7 +16,7 @@ import (
 
 // ApplyChanges applies changes based on the provided changesPlan.
 // If dryrun is true, it displays the diffs without modifying the actual files.
-func ApplyChanges(changesPlan planner.ChangesPlan, dryrun bool) error {
+func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 	var g errgroup.Group
 	var mu sync.Mutex
 	var diffs []string
@@ -154,4 +154,12 @@ func updateExistingFile(change planner.Change, targetPath string) (originalConte
 // GetFileContent retrieves the content of the specified file.
 func GetFileContent(path string) ([]byte, error) {
 	return os.ReadFile(path)
+}
+
+func ApplyChangeFilePlan(change *planner.ChangeFilePlan, targetPath string) error {
+	if err := os.WriteFile(targetPath, []byte(change.ModifiedContent), 0644); err != nil {
+		return fmt.Errorf("failed to create new file: %w", err)
+	}
+	fmt.Printf("Successfully created new file: %s\n", targetPath)
+	return nil
 }

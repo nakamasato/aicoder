@@ -9,6 +9,7 @@ import (
 
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/internal/applier"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -72,55 +73,24 @@ func runRefactor(cmd *cobra.Command, args []string) {
 	query := message
 	prompt := fmt.Sprintf("The code content:\n--- %s start ---\n%s\n---- %s end ----", filename, string(data), filename)
 
-	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("changes"),
-		Description: openai.F("List of changes to be made to achieve the goal"),
-		Schema:      openai.F(planner.ChangeFileSchema),
-		Strict:      openai.Bool(true),
-	}
-
-	chat, err := client.Chat.Completions.New(ctx,
-		openai.ChatCompletionNewParams{
-			Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-				openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-				openai.UserMessage(query),
-				openai.SystemMessage(prompt),
-			}),
-			Model: openai.F(openai.ChatModelGPT4oMini),
-			ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
-				openai.ResponseFormatJSONSchemaParam{
-					Type: openai.F(openai.ResponseFormatJSONSchemaTypeJSONSchema),
-					JSONSchema: openai.F(schemaParam),
-				},
-			),
-		},
-	)
-	if err != nil {
-		log.Fatalf("failed to execute Chat.Completion: %v", err)
-	}
-
-	fmt.Printf("Answer: %s\n---\n", chat.Choices[0].Message.Content)
-	var changeFile planner.ChangeFile
-	if err = json.Unmarshal([]byte(chat.Choices[0].Message.Content), &changeFile); err != nil {
-		log.Fatalf("failed to unmarshal content to ChanegFile: %v", err)
-	}
-	fmt.Printf("Parsed Answer: %s", changeFile)
-
-	plan, err := planner.Plan(ctx, client, entClient, query, prompt, maxAttempts)
+	changeFilePlan, err := planner.GenerateChangeFilePlan(ctx, client, prompt, query)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
 
-	// for _, change := range plan.Changes {
-	// 	fmt.Println("-----------------------------")
-	// 	fmt.Printf("Change %s:\n", change.Path)
-	// 	fmt.Printf("  Add: %s\n", change.Add)
-	// 	fmt.Printf("  Delete: %s\n", change.Delete)
-	// 	fmt.Printf("  Line: %d\n", change.LineNum)
-	// }
+	// Print plan
+	planJSON, err := json.MarshalIndent(changeFilePlan, "", "  ")
+	if err != nil {
+		log.Fatalf("failed to marshal plan: %v", err)
+	}
+	fmt.Println(string(planJSON))
 
 	// Save plan to file
-	if err := planner.SavePlan(plan, outputFile); err != nil {
-		log.Fatalf("failed to save plan: %v", err)
+	// if err := planner.SavePlan[planner.ChangeFilePlan](*changeFilePlan, outputFile); err != nil {
+	// 	log.Fatalf("failed to save plan: %v", err)
+	// }
+	// log.Printf("Successfully saved to %s", outputFile)
+	if err = applier.ApplyChangeFilePlan(changeFilePlan, changeFilePlan.Path); err != nil {
+		log.Fatalf("failed to apply plan: %v", err)
 	}
 }

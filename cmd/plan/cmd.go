@@ -98,7 +98,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	}
 
 	// Save plan to file
-	if err := planner.SavePlan(plan, outputFile); err != nil {
+	if err := planner.SavePlan[planner.ChangesPlan](plan, outputFile); err != nil {
 		log.Fatalf("failed to save plan: %v", err)
 	}
 }
