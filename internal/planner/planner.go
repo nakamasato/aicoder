@@ -258,7 +258,7 @@ func GenerateChangeFilePlanWithRetry(ctx context.Context, client *openai.Client,
 	}
 
 	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("code syntax validation"),
+		Name:        openai.F("syntax_validation"),
 		Description: openai.F("The result of judging Whether the syntax of the generated code is correct"),
 		Schema:      openai.F(CodeValidationSchema),
 		Strict:      openai.Bool(true),
@@ -285,7 +285,8 @@ func GenerateChangeFilePlanWithRetry(ctx context.Context, client *openai.Client,
 		)
 
 		if err != nil {
-			return nil, fmt.Errorf("failed to execute Chat.Completion: %v", err)
+			log.Printf("failed to execute Chat.Completion: %v", err)
+			continue
 		}
 
 		var validation CodeValidation
