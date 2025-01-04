@@ -157,7 +157,7 @@ func GetFileContent(path string) ([]byte, error) {
 }
 
 func ApplyChangeFilePlan(change *planner.ChangeFilePlan, targetPath string) error {
-	if err := os.WriteFile(targetPath, []byte(change.ModifiedContent), 0644); err != nil {
+	if err := os.WriteFile(targetPath, []byte(change.NewContent), 0644); err != nil {
 		return fmt.Errorf("failed to create new file: %w", err)
 	}
 	fmt.Printf("Successfully created new file: %s\n", targetPath)

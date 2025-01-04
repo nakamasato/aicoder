@@ -73,7 +73,7 @@ func runRefactor(cmd *cobra.Command, args []string) {
 	query := message
 	prompt := fmt.Sprintf("The code content:\n--- %s start ---\n%s\n---- %s end ----", filename, string(data), filename)
 
-	changeFilePlan, err := planner.GenerateChangeFilePlan(ctx, client, prompt, query)
+	changeFilePlan, err := planner.GenerateChangeFilePlanWithRetry(ctx, client, prompt, query, 10)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}

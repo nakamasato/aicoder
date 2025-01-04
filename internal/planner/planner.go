@@ -113,19 +113,25 @@ type Change struct {
 // ChangeFilePlan is used to replace the entire content of the specified file with the modified content.
 // This might work bettter than ChangesPlan.
 type ChangeFilePlan struct {
-	Path            string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	// OriginalContent string `json:"original_content" jsonschema_description:"Original content of the file"`
-	ModifiedContent string `json:"modified_content" jsonschema_description:"Modified content of the file."`
+	Path string `json:"path" jsonschema_description:"Path to the file to be changed"`
+	// OldContent string `json:"old_content" jsonschema_description:"Original content of the file"`
+	NewContent string `json:"new_content" jsonschema_description:"The new content of the file."`
 }
 
 type YesOrNo struct {
 	Answer bool `json:"answer" jsonschema_description:"Answer to the yes or no question"`
 }
 
+type CodeValidation struct {
+	IsValid         bool     `json:"is_valid" jsonschema_description:"true if the code syntax is valid."`
+	InvalidSyntaxes []string `json:"reason" jsonschema_description:"The explanation of invalid syntaxes. Please write where is wrong and how to fix."`
+}
+
 var (
-	ChangesPlanSchema = GenerateSchema[ChangesPlan]()
-	YesOrNoSchema     = GenerateSchema[YesOrNo]()
-	ChangeFileSchema  = GenerateSchema[ChangeFilePlan]()
+	ChangesPlanSchema    = GenerateSchema[ChangesPlan]()
+	YesOrNoSchema        = GenerateSchema[YesOrNo]()
+	ChangeFileSchema     = GenerateSchema[ChangeFilePlan]()
+	CodeValidationSchema = GenerateSchema[CodeValidation]()
 )
 
 func GenerateSchema[T any]() interface{} {
@@ -168,10 +174,10 @@ func GenerateGoalPrompt(ctx context.Context, client *openai.Client, entClient *e
 	return prompt, nil
 }
 
-// Plan with validation
-func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, query, prompt string, maxAttempts int) (*ChangesPlan, error) {
+// GenerateChangesPlanWithRetry generates ChangesPlan with validation and retry attempts
+func GenerateChangesPlanWithRetry(ctx context.Context, client *openai.Client, entClient *ent.Client, query, prompt string, maxAttempts int) (*ChangesPlan, error) {
 
-	changesPlan, err := generateChangesPlan(ctx, prompt, client)
+	changesPlan, err := generateChangesPlan(ctx, client, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate plan: %w", err)
 	}
@@ -184,7 +190,7 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, que
 
 		log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
 		prompt = fmt.Sprintf(REPLAN_PROMPT, query, changesPlan, err)
-		changesPlan, err = generateChangesPlan(ctx, prompt, client)
+		changesPlan, err = generateChangesPlan(ctx, client, prompt)
 		if err != nil {
 			log.Printf("Failed to generate plan: %v", err)
 			continue
@@ -196,7 +202,7 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, que
 
 // generateChangesPlan creates a ChangesPlan based on the prompt.
 // If you need validate and replan, use Plan function instead.
-func generateChangesPlan(ctx context.Context, prompt string, client *openai.Client) (*ChangesPlan, error) {
+func generateChangesPlan(ctx context.Context, client *openai.Client, prompt string) (*ChangesPlan, error) {
 
 	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        openai.F("changes"),
@@ -245,8 +251,74 @@ func generateChangesPlan(ctx context.Context, prompt string, client *openai.Clie
 	return &changesPlan, nil
 }
 
+func GenerateChangeFilePlanWithRetry(ctx context.Context, client *openai.Client, prompt, query string, maxAttempts int) (*ChangeFilePlan, error) {
+	changesPlan, err := GenerateChangeFilePlan(ctx, client, openai.UserMessage(query), openai.SystemMessage(prompt))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate plan: %w", err)
+	}
+
+	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("code syntax validation"),
+		Description: openai.F("The result of judging Whether the syntax of the generated code is correct"),
+		Schema:      openai.F(CodeValidationSchema),
+		Strict:      openai.Bool(true),
+	}
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		// validation
+		chat, err := client.Chat.Completions.New(
+			ctx,
+			openai.ChatCompletionNewParams{
+				Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
+					openai.SystemMessage("You're a code validator to check whether the generated code is correct syntax"),
+					openai.UserMessage(VALIDATE_FILE_PROMPT),
+					openai.SystemMessage(changesPlan.NewContent),
+				}),
+				Model: openai.F(openai.ChatModelGPT4oMini),
+				ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
+					openai.ResponseFormatJSONSchemaParam{
+						Type:       openai.F(openai.ResponseFormatJSONSchemaTypeJSONSchema),
+						JSONSchema: openai.F(schemaParam),
+					},
+				),
+			},
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute Chat.Completion: %v", err)
+		}
+
+		var validation CodeValidation
+		if err = json.Unmarshal([]byte(chat.Choices[0].Message.Content), &validation); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal content to CodeValidation: %v", err)
+		}
+		if validation.IsValid {
+			return changesPlan, nil
+		}
+		log.Printf("syntax validation failed. %d invalid syntaxes", len(validation.InvalidSyntaxes))
+		for i, s := range validation.InvalidSyntaxes {
+			log.Printf("%d. %s", i+1, s)
+		}
+
+		// regenerate
+		changesPlan, err = GenerateChangeFilePlan(ctx, client,
+			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
+			openai.UserMessage(query),
+			openai.SystemMessage(prompt),
+			openai.SystemMessage(changesPlan.NewContent),
+			openai.SystemMessage(fmt.Sprintf("The syntax validation failed the reasons are the followings:\n%s", strings.Join(validation.InvalidSyntaxes, "\n"))),
+			openai.UserMessage("Please fix the syntax errors."),
+		)
+		if err != nil {
+			log.Fatalf("failed to generate ChangesFilePlan: %v", err)
+		}
+	}
+
+	return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
+}
+
 // GenerateChangeFilePlan creates a ChangeFilePlan based on the prompt.
-func GenerateChangeFilePlan(ctx context.Context, client *openai.Client, prompt, query string) (*ChangeFilePlan, error) {
+func GenerateChangeFilePlan(ctx context.Context, client *openai.Client, prompts ...openai.ChatCompletionMessageParamUnion) (*ChangeFilePlan, error) {
 
 	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        openai.F("changes"),
@@ -255,13 +327,14 @@ func GenerateChangeFilePlan(ctx context.Context, client *openai.Client, prompt, 
 		Strict:      openai.Bool(true),
 	}
 
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
+	}
+	messages = append(messages, prompts...)
+
 	chat, err := client.Chat.Completions.New(ctx,
 		openai.ChatCompletionNewParams{
-			Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
-				openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-				openai.UserMessage(query),
-				openai.SystemMessage(prompt),
-			}),
+			Messages: openai.F(messages),
 			Model: openai.F(openai.ChatModelGPT4oMini),
 			ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
 				openai.ResponseFormatJSONSchemaParam{
