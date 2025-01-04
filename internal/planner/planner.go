@@ -114,8 +114,8 @@ type Change struct {
 // This might work bettter than ChangesPlan.
 type ChangeFilePlan struct {
 	Path            string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	OriginalContent string `json:"original_content" jsonschema_description:"Original content of the file"`
-	ModifiedContent string `json:"modified_content" jsonschema_description:"Modified content of the file"`
+	// OriginalContent string `json:"original_content" jsonschema_description:"Original content of the file"`
+	ModifiedContent string `json:"modified_content" jsonschema_description:"Modified content of the file."`
 }
 
 type YesOrNo struct {
@@ -169,11 +169,11 @@ func GenerateGoalPrompt(ctx context.Context, client *openai.Client, entClient *e
 }
 
 // Plan with validation
-func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, query, prompt string, maxAttempts int) (ChangesPlan, error) {
+func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, query, prompt string, maxAttempts int) (*ChangesPlan, error) {
 
 	changesPlan, err := generateChangesPlan(ctx, prompt, client)
 	if err != nil {
-		return ChangesPlan{}, fmt.Errorf("failed to generate plan: %w", err)
+		return nil, fmt.Errorf("failed to generate plan: %w", err)
 	}
 
 	for attempt := 0; attempt < maxAttempts; attempt++ {
@@ -191,12 +191,12 @@ func Plan(ctx context.Context, client *openai.Client, entClient *ent.Client, que
 		}
 	}
 
-	return ChangesPlan{}, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
+	return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
 }
 
 // generateChangesPlan creates a ChangesPlan based on the prompt.
 // If you need validate and replan, use Plan function instead.
-func generateChangesPlan(ctx context.Context, prompt string, client *openai.Client) (ChangesPlan, error) {
+func generateChangesPlan(ctx context.Context, prompt string, client *openai.Client) (*ChangesPlan, error) {
 
 	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        openai.F("changes"),
@@ -220,11 +220,11 @@ func generateChangesPlan(ctx context.Context, prompt string, client *openai.Clie
 			),
 		})
 	if err != nil {
-		return ChangesPlan{}, fmt.Errorf("failed to create chat completion: %w", err)
+		return nil, fmt.Errorf("failed to create chat completion: %w", err)
 	}
 
 	if len(chat.Choices) == 0 {
-		return ChangesPlan{}, fmt.Errorf("no response from OpenAI")
+		return nil, fmt.Errorf("no response from OpenAI")
 	}
 
 	responseJSON, err := json.MarshalIndent(chat.Choices[0].Message.Content, "", "  ")
@@ -234,15 +234,15 @@ func generateChangesPlan(ctx context.Context, prompt string, client *openai.Clie
 		log.Printf("Chat completion response: %s", responseJSON)
 	}
 
-	changesPlan := ChangesPlan{}
+	var changesPlan ChangesPlan
 	err = json.Unmarshal([]byte(chat.Choices[0].Message.Content), &changesPlan)
 	if err != nil {
-		return ChangesPlan{}, fmt.Errorf("failed to unmarshal changes plan: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
 	}
 
 	fmt.Printf("Plan: %s\n", changesPlan.String())
 
-	return changesPlan, nil
+	return &changesPlan, nil
 }
 
 // GenerateChangeFilePlan creates a ChangeFilePlan based on the prompt.
@@ -335,7 +335,7 @@ func LoadPlanFile[T any](planFile string) (*T, error) {
 }
 
 // SavePlan saves the plan to a file.
-func SavePlan[T any](plan T, outputFile string) error {
+func SavePlan[T any](plan *T, outputFile string) error {
 	data, err := json.MarshalIndent(plan, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal plan: %w", err)
