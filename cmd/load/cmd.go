@@ -1,6 +1,7 @@
 package load
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -17,6 +18,9 @@ import (
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/spf13/cobra"
+    "entgo.io/ent/dialect"
+    entsql "entgo.io/ent/dialect/sql"
+    _ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (
@@ -65,10 +69,17 @@ func runLoad(cmd *cobra.Command, args []string) {
 		log.Fatal("Database connection string must be provided via --db-conn")
 	}
 
-	entClient, err := ent.Open("postgres", dbConnString)
-	if err != nil {
-		log.Fatalf("failed opening connection to postgres: %v", err)
-	}
+	db, err := sql.Open("pgx", dbConnString)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Create an ent.Driver from `db`.
+    drv := entsql.OpenDB(dialect.Postgres, db)
+	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(30)
+	db.SetConnMaxLifetime(time.Minute * 5)
+	entClient := ent.NewClient(ent.Driver(drv))
 	defer entClient.Close()
 
 	if refresh {
@@ -93,7 +104,8 @@ func runLoad(cmd *cobra.Command, args []string) {
 	}
 
 	// Load current RepoStructure
-	currentRepo, err := loader.LoadRepoStructureFromHead(ctx, gitRootPath, config.Load.TargetPath, config.Load.Include, config.Load.Exclude)
+	loadCfg := config.GetCurrentLoadConfig()
+	currentRepo, err := loader.LoadRepoStructureFromHead(ctx, gitRootPath, loadCfg.TargetPath, loadCfg.Include, loadCfg.Exclude)
 	if err != nil {
 		fmt.Printf("Error loading repo structure: %v\n", err)
 		os.Exit(1)
@@ -116,6 +128,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 	// var mu sync.Mutex
 	var wg sync.WaitGroup
 	var errChan = make(chan error, currentRepo.Root.Size)
+	log.Printf("found %d files", currentRepo.Root.Size)
 	for fileinfo := range currentRepo.Root.FileInfoGenerator() {
 		wg.Add(1)
 		go func(fileInfo loader.FileInfo) {
@@ -123,15 +136,31 @@ func runLoad(cmd *cobra.Command, args []string) {
 			if fileinfo.IsDir {
 				return
 			}
+
+			loadCfg := config.GetCurrentLoadConfig()
+			if loadCfg.IsExcluded(fileinfo.Path) && !loadCfg.IsIncluded(fileinfo.Path) {
+				return
+			}
+
 			buf, err := os.ReadFile(fileinfo.Path)
 			if err != nil {
 				errChan <- fmt.Errorf("failed to open file %s: %v", fileinfo.Path, err)
 				return
 			}
 
-			doc, err := entClient.Document.Query().Where(document.FilepathEQ(fileinfo.Path)).First(ctx)
+			doc, err := entClient.Document.Query().Where(document.RepositoryEQ(config.Repository), document.FilepathEQ(fileinfo.Path), document.ContextEQ(config.CurrentContext)).First(ctx)
 			if err == nil && doc.UpdatedAt.After(fileinfo.ModifiedAt) {
 				fmt.Printf("Document %s is up-to-date\n", fileinfo.Path)
+				return
+			}
+
+			if err != nil && !ent.IsNotFound(err) {
+				errChan <- fmt.Errorf("failed to query document %s: %v", fileinfo.Path, err)
+				return
+			}
+
+			if string(buf) == "" {
+				fmt.Printf("File is empty: %s\n", fileinfo.Path)
 				return
 			}
 
@@ -146,6 +175,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 			}
 			vsDoc := &vectorstore.Document{
 				Repository:  config.Repository,
+				Context:     config.CurrentContext,
 				Filepath:    fileinfo.Path,
 				Description: summary,
 			}

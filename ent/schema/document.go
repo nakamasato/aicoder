@@ -19,6 +19,7 @@ func (Document) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id"),
 		field.Text("repository"),
+		field.Text("context"),
 		field.Text("filepath"),
 		field.Text("description"),
 		field.Time("updated_at"),
@@ -41,6 +42,6 @@ func (Document) Indexes() []ent.Index {
 				entsql.IndexType("hnsw"),
 				entsql.OpClass("vector_l2_ops"),
 			),
-		index.Fields("repository", "filepath").Unique(),
+		index.Fields("repository", "context", "filepath").Unique(),
 	}
 }

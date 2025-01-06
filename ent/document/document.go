@@ -13,6 +13,8 @@ const (
 	FieldID = "id"
 	// FieldRepository holds the string denoting the repository field in the database.
 	FieldRepository = "repository"
+	// FieldContext holds the string denoting the context field in the database.
+	FieldContext = "context"
 	// FieldFilepath holds the string denoting the filepath field in the database.
 	FieldFilepath = "filepath"
 	// FieldDescription holds the string denoting the description field in the database.
@@ -29,6 +31,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldRepository,
+	FieldContext,
 	FieldFilepath,
 	FieldDescription,
 	FieldUpdatedAt,
@@ -56,6 +59,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByRepository orders the results by the repository field.
 func ByRepository(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRepository, opts...).ToFunc()
+}
+
+// ByContext orders the results by the context field.
+func ByContext(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldContext, opts...).ToFunc()
 }
 
 // ByFilepath orders the results by the filepath field.

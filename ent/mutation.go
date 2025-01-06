@@ -35,6 +35,7 @@ type DocumentMutation struct {
 	typ           string
 	id            *int64
 	repository    *string
+	context       *string
 	filepath      *string
 	description   *string
 	updated_at    *time.Time
@@ -183,6 +184,42 @@ func (m *DocumentMutation) OldRepository(ctx context.Context) (v string, err err
 // ResetRepository resets all changes to the "repository" field.
 func (m *DocumentMutation) ResetRepository() {
 	m.repository = nil
+}
+
+// SetContext sets the "context" field.
+func (m *DocumentMutation) SetContext(s string) {
+	m.context = &s
+}
+
+// Context returns the value of the "context" field in the mutation.
+func (m *DocumentMutation) Context() (r string, exists bool) {
+	v := m.context
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContext returns the old "context" field's value of the Document entity.
+// If the Document object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DocumentMutation) OldContext(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContext is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContext requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContext: %w", err)
+	}
+	return oldValue.Context, nil
+}
+
+// ResetContext resets all changes to the "context" field.
+func (m *DocumentMutation) ResetContext() {
+	m.context = nil
 }
 
 // SetFilepath sets the "filepath" field.
@@ -363,9 +400,12 @@ func (m *DocumentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *DocumentMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.repository != nil {
 		fields = append(fields, document.FieldRepository)
+	}
+	if m.context != nil {
+		fields = append(fields, document.FieldContext)
 	}
 	if m.filepath != nil {
 		fields = append(fields, document.FieldFilepath)
@@ -389,6 +429,8 @@ func (m *DocumentMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case document.FieldRepository:
 		return m.Repository()
+	case document.FieldContext:
+		return m.Context()
 	case document.FieldFilepath:
 		return m.Filepath()
 	case document.FieldDescription:
@@ -408,6 +450,8 @@ func (m *DocumentMutation) OldField(ctx context.Context, name string) (ent.Value
 	switch name {
 	case document.FieldRepository:
 		return m.OldRepository(ctx)
+	case document.FieldContext:
+		return m.OldContext(ctx)
 	case document.FieldFilepath:
 		return m.OldFilepath(ctx)
 	case document.FieldDescription:
@@ -431,6 +475,13 @@ func (m *DocumentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRepository(v)
+		return nil
+	case document.FieldContext:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContext(v)
 		return nil
 	case document.FieldFilepath:
 		v, ok := value.(string)
@@ -511,6 +562,9 @@ func (m *DocumentMutation) ResetField(name string) error {
 	switch name {
 	case document.FieldRepository:
 		m.ResetRepository()
+		return nil
+	case document.FieldContext:
+		m.ResetContext()
 		return nil
 	case document.FieldFilepath:
 		m.ResetFilepath()

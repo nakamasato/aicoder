@@ -43,6 +43,20 @@ func (du *DocumentUpdate) SetNillableRepository(s *string) *DocumentUpdate {
 	return du
 }
 
+// SetContext sets the "context" field.
+func (du *DocumentUpdate) SetContext(s string) *DocumentUpdate {
+	du.mutation.SetContext(s)
+	return du
+}
+
+// SetNillableContext sets the "context" field if the given value is not nil.
+func (du *DocumentUpdate) SetNillableContext(s *string) *DocumentUpdate {
+	if s != nil {
+		du.SetContext(*s)
+	}
+	return du
+}
+
 // SetFilepath sets the "filepath" field.
 func (du *DocumentUpdate) SetFilepath(s string) *DocumentUpdate {
 	du.mutation.SetFilepath(s)
@@ -143,6 +157,9 @@ func (du *DocumentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := du.mutation.Repository(); ok {
 		_spec.SetField(document.FieldRepository, field.TypeString, value)
 	}
+	if value, ok := du.mutation.Context(); ok {
+		_spec.SetField(document.FieldContext, field.TypeString, value)
+	}
 	if value, ok := du.mutation.Filepath(); ok {
 		_spec.SetField(document.FieldFilepath, field.TypeString, value)
 	}
@@ -185,6 +202,20 @@ func (duo *DocumentUpdateOne) SetRepository(s string) *DocumentUpdateOne {
 func (duo *DocumentUpdateOne) SetNillableRepository(s *string) *DocumentUpdateOne {
 	if s != nil {
 		duo.SetRepository(*s)
+	}
+	return duo
+}
+
+// SetContext sets the "context" field.
+func (duo *DocumentUpdateOne) SetContext(s string) *DocumentUpdateOne {
+	duo.mutation.SetContext(s)
+	return duo
+}
+
+// SetNillableContext sets the "context" field if the given value is not nil.
+func (duo *DocumentUpdateOne) SetNillableContext(s *string) *DocumentUpdateOne {
+	if s != nil {
+		duo.SetContext(*s)
 	}
 	return duo
 }
@@ -318,6 +349,9 @@ func (duo *DocumentUpdateOne) sqlSave(ctx context.Context) (_node *Document, err
 	}
 	if value, ok := duo.mutation.Repository(); ok {
 		_spec.SetField(document.FieldRepository, field.TypeString, value)
+	}
+	if value, ok := duo.mutation.Context(); ok {
+		_spec.SetField(document.FieldContext, field.TypeString, value)
 	}
 	if value, ok := duo.mutation.Filepath(); ok {
 		_spec.SetField(document.FieldFilepath, field.TypeString, value)
