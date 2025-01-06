@@ -183,7 +183,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, gitRootPath, parentPat
 		}
 
 		if entry.Mode == filemode.Dir {
-			// log.Printf("traversing dir:%s", entry.Name)
+			log.Printf("traversing dir:%s", entry.Name)
 			subtree, err := tree.Tree(entry.Name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subtree for %s: %w", entry.Name, err)
