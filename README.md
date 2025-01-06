@@ -74,6 +74,7 @@ load:
     - ent
   include:
     - ent/schema
+  target_path: cmd
 
 search:
   top_n: 5
