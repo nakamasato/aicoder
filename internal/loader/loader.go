@@ -111,6 +111,7 @@ func getTreeFromBranch(gitRootPath, branch string) (*object.Tree, error) {
 // LoadRepoStructure loads the repository structure from the specified Git repository.
 // Using git is to exclude files that are not git tracked.
 func LoadRepoStructureFromHead(ctx context.Context, gitRootPath, targetPath string, include, exclude []string) (RepoStructure, error) {
+	log.Printf("Loading... gitRootPath:%s, targetPath:%s, include:%s, exclude:%s", gitRootPath, targetPath, strings.Join(include, ","), strings.Join(exclude, ","))
 	tree, err := getTreeFromHead(gitRootPath)
 	if err != nil {
 		return RepoStructure{}, err
@@ -142,8 +143,8 @@ func LoadRepoStructure(ctx context.Context, gitRootPath string, tree *object.Tre
 	}
 
 	var err error
+	log.Printf("targetPath: %s", targetPath)
 	if targetPath != "" {
-		log.Printf("targetPath: %s", targetPath)
 		tree, err = tree.Tree(targetPath)
 		if err != nil {
 			return RepoStructure{}, fmt.Errorf("failed to get tree for target path: %w", err)
@@ -182,6 +183,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, gitRootPath, parentPat
 		}
 
 		if entry.Mode == filemode.Dir {
+			log.Printf("traversing dir:%s", entry.Name)
 			subtree, err := tree.Tree(entry.Name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subtree for %s: %w", entry.Name, err)

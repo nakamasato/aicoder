@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io"
 	"log"
 	"strings"
 
@@ -9,16 +10,16 @@ import (
 
 // AICoderConfig holds the configuration for the application.
 type AICoderConfig struct {
-	Repository   string
-	Load         LoadConfig
-	Search       SearchConfig
-	OpenAIAPIKey string
+	Repository   string       `mapstructure:"repository"`
+	Load         LoadConfig   `mapstructure:"load"`
+	Search       SearchConfig `mapstructure:"search"`
+	OpenAIAPIKey string       `mapstructure:"openai_api_key"`
 }
 
 type LoadConfig struct {
-	TargetPath string   `yaml:"target_path"` // Target path to load files from
-	Exclude    []string `yaml:"exclude"`     // List of paths to exclude
-	Include    []string `yaml:"include"`     // List of paths to include in excluded paths
+	TargetPath string   `mapstructure:"target_path"` // Target path to load files from
+	Exclude    []string `mapstructure:"exclude"`     // List of paths to exclude
+	Include    []string `mapstructure:"include"`     // List of paths to include in excluded paths
 }
 
 func (c *LoadConfig) IsExcluded(path string) bool {
@@ -45,22 +46,19 @@ func matchesPath(target, pattern string) bool {
 }
 
 type SearchConfig struct {
-	TopN int `yaml:"top_n"`
+	TopN int `mapstructure:"top_n"`
 }
 
 // cfg holds the loaded configuration.
 var cfg AICoderConfig
 
 // LoadConfig initializes the configuration using Viper
-func InitConfig() {
-	viper.SetConfigName(".aicoder") // Name of config file (without extension)
-	viper.SetConfigType("yaml")     // Required if the config file does not have the extension in the name
-	viper.AddConfigPath(".")        // Optionally look for config in the working directory
-
+func InitConfig(reader io.Reader) {
+	viper.SetConfigType("yaml")
 	// Set default values
-	viper.SetDefault("repository", "default-repo")
-	viper.SetDefault("load", LoadConfig{})
-	viper.SetDefault("search", SearchConfig{})
+	// viper.SetDefault("repository", "default-repo")
+	// viper.SetDefault("load", LoadConfig{})
+	// viper.SetDefault("search", SearchConfig{})
 
 	// Bind environment variables
 	if err := viper.BindEnv("openai_api_key", "OPENAI_API_KEY"); err != nil {
@@ -68,8 +66,8 @@ func InitConfig() {
 	}
 
 	// Read the config file
-	if err := viper.ReadInConfig(); err != nil {
-		log.Printf("Error reading config file, %s", err)
+	if err := viper.ReadConfig(reader); err != nil {
+		log.Printf("Error reading config from reader, %s", err)
 	}
 
 	// Unmarshal the config into the struct

@@ -93,7 +93,6 @@ func runLoad(cmd *cobra.Command, args []string) {
 	}
 
 	// Load current RepoStructure
-	// currentRepo, err := loader.LoadRepoStructure(ctx, gitRootPath, branch, commitHash, config.Load.TargetPath, config.Load.Include, config.Load.Exclude)
 	currentRepo, err := loader.LoadRepoStructureFromHead(ctx, gitRootPath, config.Load.TargetPath, config.Load.Include, config.Load.Exclude)
 	if err != nil {
 		fmt.Printf("Error loading repo structure: %v\n", err)

@@ -4,7 +4,9 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/nakamasato/aicoder/cmd/apply"
 	"github.com/nakamasato/aicoder/cmd/db"
@@ -18,7 +20,8 @@ import (
 )
 
 var (
-	RootCmd = &cobra.Command{
+	configFile string
+	RootCmd    = &cobra.Command{
 		Use:   "aicoder",
 		Short: "Aicoder is a AI-powered CLI tool that helps you to code quickly.",
 		Long:  `Aicoder is a AI-powered CLI tool that helps you to code quickly.`,
@@ -37,6 +40,8 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
+	RootCmd.PersistentFlags().StringVar(&configFile, "config", ".aicoder.yaml", "config file (default is .aicoder.yaml)")
+
 	RootCmd.AddCommand(
 		load.Command(),
 		db.Command(),
@@ -49,5 +54,12 @@ func init() {
 }
 
 func initConfig() {
-	config.InitConfig()
+	var configReader io.Reader
+	file, err := os.Open(filepath.Clean(configFile))
+	if err != nil {
+		os.Exit(1)
+	}
+	defer file.Close()
+	configReader = file
+	config.InitConfig(configReader)
 }
