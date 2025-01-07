@@ -17,7 +17,7 @@ import (
 
 type VectorStore interface {
 	AddDocument(ctx context.Context, doc *Document) error
-	Search(ctx context.Context, repository, query string, k int) (*SearchResult, error)
+	Search(ctx context.Context, repository, context, query string, k int) (*SearchResult, error)
 }
 
 type vectorstore struct {
@@ -27,6 +27,7 @@ type vectorstore struct {
 
 type Document struct {
 	Repository  string
+	Context     string
 	Filepath    string
 	Description string
 }
@@ -69,16 +70,17 @@ func (c *vectorstore) AddDocument(ctx context.Context, doc *Document) error {
 	err = c.entClient.Document.Create().
 		SetFilepath(doc.Filepath).
 		SetRepository(doc.Repository).
+		SetContext(doc.Context).
 		SetDescription(doc.Description).
 		SetEmbedding(vector).
 		SetUpdatedAt(time.Now()).
-		OnConflictColumns(document.FieldRepository, document.FieldFilepath).
+		OnConflictColumns(document.FieldRepository, document.FieldContext, document.FieldFilepath).
 		UpdateNewValues().
 		Exec(ctx)
 	return err
 }
 
-func (c *vectorstore) Search(ctx context.Context, repository, query string, k int) (*SearchResult, error) {
+func (c *vectorstore) Search(ctx context.Context, repository, context, query string, k int) (*SearchResult, error) {
 	queryEmbedding, err := llm.GetEmbedding(ctx, c.openaiCli, query)
 	if err != nil {
 		return nil, err
@@ -88,6 +90,7 @@ func (c *vectorstore) Search(ctx context.Context, repository, query string, k in
 	docs, err := c.entClient.Document.
 		Query().
 		Where(document.RepositoryEQ(repository)).
+		Where(document.ContextEQ(context)).
 		Order(func(s *sql.Selector) {
 			s.OrderExpr(sql.ExprP("embedding <-> $2", vector))
 		}).Limit(k).All(ctx)
@@ -100,6 +103,7 @@ func (c *vectorstore) Search(ctx context.Context, repository, query string, k in
 		*results.Documents = append(*results.Documents, DocumentWithScore{
 			Document: &Document{
 				Repository:  doc.Repository,
+				Context:     doc.Context,
 				Filepath:    doc.Filepath,
 				Description: doc.Description,
 			},

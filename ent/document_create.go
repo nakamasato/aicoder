@@ -29,6 +29,12 @@ func (dc *DocumentCreate) SetRepository(s string) *DocumentCreate {
 	return dc
 }
 
+// SetContext sets the "context" field.
+func (dc *DocumentCreate) SetContext(s string) *DocumentCreate {
+	dc.mutation.SetContext(s)
+	return dc
+}
+
 // SetFilepath sets the "filepath" field.
 func (dc *DocumentCreate) SetFilepath(s string) *DocumentCreate {
 	dc.mutation.SetFilepath(s)
@@ -96,6 +102,9 @@ func (dc *DocumentCreate) check() error {
 	if _, ok := dc.mutation.Repository(); !ok {
 		return &ValidationError{Name: "repository", err: errors.New(`ent: missing required field "Document.repository"`)}
 	}
+	if _, ok := dc.mutation.Context(); !ok {
+		return &ValidationError{Name: "context", err: errors.New(`ent: missing required field "Document.context"`)}
+	}
 	if _, ok := dc.mutation.Filepath(); !ok {
 		return &ValidationError{Name: "filepath", err: errors.New(`ent: missing required field "Document.filepath"`)}
 	}
@@ -144,6 +153,10 @@ func (dc *DocumentCreate) createSpec() (*Document, *sqlgraph.CreateSpec) {
 	if value, ok := dc.mutation.Repository(); ok {
 		_spec.SetField(document.FieldRepository, field.TypeString, value)
 		_node.Repository = value
+	}
+	if value, ok := dc.mutation.Context(); ok {
+		_spec.SetField(document.FieldContext, field.TypeString, value)
+		_node.Context = value
 	}
 	if value, ok := dc.mutation.Filepath(); ok {
 		_spec.SetField(document.FieldFilepath, field.TypeString, value)
@@ -222,6 +235,18 @@ func (u *DocumentUpsert) SetRepository(v string) *DocumentUpsert {
 // UpdateRepository sets the "repository" field to the value that was provided on create.
 func (u *DocumentUpsert) UpdateRepository() *DocumentUpsert {
 	u.SetExcluded(document.FieldRepository)
+	return u
+}
+
+// SetContext sets the "context" field.
+func (u *DocumentUpsert) SetContext(v string) *DocumentUpsert {
+	u.Set(document.FieldContext, v)
+	return u
+}
+
+// UpdateContext sets the "context" field to the value that was provided on create.
+func (u *DocumentUpsert) UpdateContext() *DocumentUpsert {
+	u.SetExcluded(document.FieldContext)
 	return u
 }
 
@@ -332,6 +357,20 @@ func (u *DocumentUpsertOne) SetRepository(v string) *DocumentUpsertOne {
 func (u *DocumentUpsertOne) UpdateRepository() *DocumentUpsertOne {
 	return u.Update(func(s *DocumentUpsert) {
 		s.UpdateRepository()
+	})
+}
+
+// SetContext sets the "context" field.
+func (u *DocumentUpsertOne) SetContext(v string) *DocumentUpsertOne {
+	return u.Update(func(s *DocumentUpsert) {
+		s.SetContext(v)
+	})
+}
+
+// UpdateContext sets the "context" field to the value that was provided on create.
+func (u *DocumentUpsertOne) UpdateContext() *DocumentUpsertOne {
+	return u.Update(func(s *DocumentUpsert) {
+		s.UpdateContext()
 	})
 }
 
@@ -615,6 +654,20 @@ func (u *DocumentUpsertBulk) SetRepository(v string) *DocumentUpsertBulk {
 func (u *DocumentUpsertBulk) UpdateRepository() *DocumentUpsertBulk {
 	return u.Update(func(s *DocumentUpsert) {
 		s.UpdateRepository()
+	})
+}
+
+// SetContext sets the "context" field.
+func (u *DocumentUpsertBulk) SetContext(v string) *DocumentUpsertBulk {
+	return u.Update(func(s *DocumentUpsert) {
+		s.SetContext(v)
+	})
+}
+
+// UpdateContext sets the "context" field to the value that was provided on create.
+func (u *DocumentUpsertBulk) UpdateContext() *DocumentUpsertBulk {
+	return u.Update(func(s *DocumentUpsert) {
+		s.UpdateContext()
 	})
 }
 

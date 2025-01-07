@@ -13,6 +13,7 @@ var (
 	DocumentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "repository", Type: field.TypeString, Size: 2147483647},
+		{Name: "context", Type: field.TypeString, Size: 2147483647},
 		{Name: "filepath", Type: field.TypeString, Size: 2147483647},
 		{Name: "description", Type: field.TypeString, Size: 2147483647},
 		{Name: "updated_at", Type: field.TypeTime},
@@ -27,16 +28,16 @@ var (
 			{
 				Name:    "document_embedding",
 				Unique:  false,
-				Columns: []*schema.Column{DocumentsColumns[5]},
+				Columns: []*schema.Column{DocumentsColumns[6]},
 				Annotation: &entsql.IndexAnnotation{
 					OpClass: "vector_l2_ops",
 					Type:    "hnsw",
 				},
 			},
 			{
-				Name:    "document_repository_filepath",
+				Name:    "document_repository_context_filepath",
 				Unique:  true,
-				Columns: []*schema.Column{DocumentsColumns[1], DocumentsColumns[2]},
+				Columns: []*schema.Column{DocumentsColumns[1], DocumentsColumns[2], DocumentsColumns[3]},
 			},
 		},
 	}

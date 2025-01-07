@@ -155,6 +155,9 @@ func LoadRepoStructure(ctx context.Context, gitRootPath string, tree *object.Tre
 		return RepoStructure{}, err
 	}
 	rootFileInfo.Children = children
+	for _, child := range children {
+		rootFileInfo.Size += child.Size
+	}
 
 	return RepoStructure{
 		GeneratedAt: time.Now(),
@@ -183,7 +186,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, gitRootPath, parentPat
 		}
 
 		if entry.Mode == filemode.Dir {
-			log.Printf("traversing dir:%s", entry.Name)
+			// log.Printf("traversing dir:%s", entry.Name)
 			subtree, err := tree.Tree(entry.Name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subtree for %s: %w", entry.Name, err)
@@ -207,6 +210,7 @@ func traverseTree(ctx context.Context, tree *object.Tree, gitRootPath, parentPat
 				fileInfo.Size += 1
 			}
 		}
+		// log.Printf("fileInfo Path:%s, Size: %d", fileInfo.Path, fileInfo.Size)
 		files = append(files, fileInfo)
 	}
 	return files, nil

@@ -65,7 +65,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 
 	store := vectorstore.New(entClient, client)
 
-	res, err := store.Search(ctx, config.Repository, goal, 10)
+	res, err := store.Search(ctx, config.Repository, config.CurrentContext, goal, 10)
 	if err != nil {
 		log.Fatalf("failed to search: %v", err)
 	}

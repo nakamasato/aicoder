@@ -60,6 +60,11 @@ func Repository(v string) predicate.Document {
 	return predicate.Document(sql.FieldEQ(FieldRepository, v))
 }
 
+// Context applies equality check predicate on the "context" field. It's identical to ContextEQ.
+func Context(v string) predicate.Document {
+	return predicate.Document(sql.FieldEQ(FieldContext, v))
+}
+
 // Filepath applies equality check predicate on the "filepath" field. It's identical to FilepathEQ.
 func Filepath(v string) predicate.Document {
 	return predicate.Document(sql.FieldEQ(FieldFilepath, v))
@@ -143,6 +148,71 @@ func RepositoryEqualFold(v string) predicate.Document {
 // RepositoryContainsFold applies the ContainsFold predicate on the "repository" field.
 func RepositoryContainsFold(v string) predicate.Document {
 	return predicate.Document(sql.FieldContainsFold(FieldRepository, v))
+}
+
+// ContextEQ applies the EQ predicate on the "context" field.
+func ContextEQ(v string) predicate.Document {
+	return predicate.Document(sql.FieldEQ(FieldContext, v))
+}
+
+// ContextNEQ applies the NEQ predicate on the "context" field.
+func ContextNEQ(v string) predicate.Document {
+	return predicate.Document(sql.FieldNEQ(FieldContext, v))
+}
+
+// ContextIn applies the In predicate on the "context" field.
+func ContextIn(vs ...string) predicate.Document {
+	return predicate.Document(sql.FieldIn(FieldContext, vs...))
+}
+
+// ContextNotIn applies the NotIn predicate on the "context" field.
+func ContextNotIn(vs ...string) predicate.Document {
+	return predicate.Document(sql.FieldNotIn(FieldContext, vs...))
+}
+
+// ContextGT applies the GT predicate on the "context" field.
+func ContextGT(v string) predicate.Document {
+	return predicate.Document(sql.FieldGT(FieldContext, v))
+}
+
+// ContextGTE applies the GTE predicate on the "context" field.
+func ContextGTE(v string) predicate.Document {
+	return predicate.Document(sql.FieldGTE(FieldContext, v))
+}
+
+// ContextLT applies the LT predicate on the "context" field.
+func ContextLT(v string) predicate.Document {
+	return predicate.Document(sql.FieldLT(FieldContext, v))
+}
+
+// ContextLTE applies the LTE predicate on the "context" field.
+func ContextLTE(v string) predicate.Document {
+	return predicate.Document(sql.FieldLTE(FieldContext, v))
+}
+
+// ContextContains applies the Contains predicate on the "context" field.
+func ContextContains(v string) predicate.Document {
+	return predicate.Document(sql.FieldContains(FieldContext, v))
+}
+
+// ContextHasPrefix applies the HasPrefix predicate on the "context" field.
+func ContextHasPrefix(v string) predicate.Document {
+	return predicate.Document(sql.FieldHasPrefix(FieldContext, v))
+}
+
+// ContextHasSuffix applies the HasSuffix predicate on the "context" field.
+func ContextHasSuffix(v string) predicate.Document {
+	return predicate.Document(sql.FieldHasSuffix(FieldContext, v))
+}
+
+// ContextEqualFold applies the EqualFold predicate on the "context" field.
+func ContextEqualFold(v string) predicate.Document {
+	return predicate.Document(sql.FieldEqualFold(FieldContext, v))
+}
+
+// ContextContainsFold applies the ContainsFold predicate on the "context" field.
+func ContextContainsFold(v string) predicate.Document {
+	return predicate.Document(sql.FieldContainsFold(FieldContext, v))
 }
 
 // FilepathEQ applies the EQ predicate on the "filepath" field.

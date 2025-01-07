@@ -41,9 +41,10 @@ AICoder is a AI-powered CLI that helps you code quickly.
 ## Why is AICoder necessary?
 
 - **Fast and secure**: AICoder works in your local, LLM (e.g. OpenAI) is the only external endpoint that AICoder interacts with.
-- **CI support**: you can use the same CLI in you CI. (PR review with domain knowledge of the repository.)
-- **Compliance**: Not like [devlo.ai](https://devlo.ai/) or [devin.ai](https://devin.ai/) (which I love using), no need of installation and setup at organization level, which is not easy and quick for an enterprise company.
-- **Personal**: the concept is to help you improve your productivity by accumulating the domain knowledge in your local and speed up your development speed.
+- **CI support** (TODO): you can use the same CLI in you CI. (PR review with domain knowledge of the repository.)
+- **Compliance**: Not like [devlo.ai](https://devlo.ai/) or [devin.ai](https://devin.ai/) (which I love using), no need of organization-level installation and setup, which is not easy and quick for an enterprise company.
+- **Personal**: the concept is to help you improve your productivity by accumulating the domain knowledge in your local and accelarate up your development speed.
+- **Multi files change** (TODO): AICoder aims at complicated changes which requires changes in multiple files.
 
 ## Environment Variables
 

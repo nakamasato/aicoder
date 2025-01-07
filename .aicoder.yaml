@@ -1,11 +1,13 @@
 repository: aicoder
-load:
-  exclude:
-    - ent
-    - go.sum
-    - repo_structure.json
-  include:
-    - ent/schema
-
+contexts:
+  default:
+    target_path:
+    exclude:
+      - ent
+      - go.sum
+      - repo_structure.json
+    include:
+      - ent/schema
+current_context: default
 search:
-  top_n: 5
+  top_n: 10

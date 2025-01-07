@@ -4,14 +4,13 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"io"
+	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/nakamasato/aicoder/cmd/apply"
+	cmdconfig "github.com/nakamasato/aicoder/cmd/config"
 	"github.com/nakamasato/aicoder/cmd/db"
 	"github.com/nakamasato/aicoder/cmd/debug"
-	"github.com/nakamasato/aicoder/cmd/initialize"
 	"github.com/nakamasato/aicoder/cmd/load"
 	"github.com/nakamasato/aicoder/cmd/plan"
 	"github.com/nakamasato/aicoder/cmd/search"
@@ -38,7 +37,13 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(
+		func() {
+			log.Println(RootCmd.CalledAs())
+			if RootCmd.CalledAs() != "config" {
+				initConfig()
+			}
+		})
 
 	RootCmd.PersistentFlags().StringVar(&configFile, "config", ".aicoder.yaml", "config file (default is .aicoder.yaml)")
 
@@ -49,17 +54,10 @@ func init() {
 		plan.Command(),
 		apply.Command(),
 		debug.Command(),
-		initialize.Command(),
+		cmdconfig.Command(),
 	)
 }
 
 func initConfig() {
-	var configReader io.Reader
-	file, err := os.Open(filepath.Clean(configFile))
-	if err != nil {
-		os.Exit(1)
-	}
-	defer file.Close()
-	configReader = file
-	config.InitConfig(configReader)
+	config.InitConfig(configFile)
 }
