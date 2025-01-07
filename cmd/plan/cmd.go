@@ -9,6 +9,7 @@ import (
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/internal/file"
+	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
@@ -80,16 +81,17 @@ func runPlan(cmd *cobra.Command, args []string) {
 		}
 		files = append(files, &file.File{Path: path, Content: content})
 	}
-	prompt, err := planner.GenerateGoalPrompt(ctx, client, entClient, goal, config.Repository, files)
+	plnr := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
+	prompt, err := plnr.GenerateGoalPrompt(ctx, goal, config.Repository, files)
 	if err != nil {
 		log.Fatalf("failed to generate goal prompt: %v", err)
 	}
-	plan, err := planner.GenerateChangesPlanWithRetry(ctx, client, entClient, goal, prompt, maxAttempts)
+	p, err := plnr.GenerateChangesPlanWithRetry(ctx, goal, prompt, maxAttempts)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
 
-	for _, change := range plan.Changes {
+	for _, change := range p.Changes {
 		fmt.Println("-----------------------------")
 		fmt.Printf("Change %s:\n", change.Path)
 		fmt.Printf("  Add: %s\n", change.Add)
@@ -98,7 +100,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	}
 
 	// Save plan to file
-	if err := planner.SavePlan[planner.ChangesPlan](plan, outputFile); err != nil {
+	if err := planner.SavePlan[planner.ChangesPlan](p, outputFile); err != nil {
 		log.Fatalf("failed to save plan: %v", err)
 	}
 }

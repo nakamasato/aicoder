@@ -10,9 +10,8 @@ import (
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/internal/applier"
+	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/planner"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +55,6 @@ func runRefactor(cmd *cobra.Command, args []string) {
 	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	client := openai.NewClient(option.WithAPIKey(config.OpenAIAPIKey))
 
 	// Initialize entgo client
 	entClient, err := ent.Open("postgres", dbConnString)
@@ -73,7 +71,9 @@ func runRefactor(cmd *cobra.Command, args []string) {
 	query := message
 	prompt := fmt.Sprintf("The code content:\n--- %s start ---\n%s\n---- %s end ----", filename, string(data), filename)
 
-	changeFilePlan, err := planner.GenerateChangeFilePlanWithRetry(ctx, client, prompt, query, 10)
+	plnr := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
+
+	changeFilePlan, err := plnr.GenerateChangeFilePlanWithRetry(ctx, prompt, query, 10)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
