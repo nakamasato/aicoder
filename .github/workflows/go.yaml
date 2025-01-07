@@ -35,6 +35,12 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Create vector extension
+        env:
+          PGPASSWORD: aicoder
+        run: |
+          psql -h localhost -U aicoder -d aicoder -c "CREATE EXTENSION vector;"
+
       - name: setup db
         run: go run main.go db migrate
 
