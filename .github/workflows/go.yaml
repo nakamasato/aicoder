@@ -35,6 +35,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: setup db
+        run: go run main.go db migrate
+
       - name: Run tests
         run: make test
 
