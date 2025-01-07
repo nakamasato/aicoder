@@ -145,6 +145,27 @@ var (
 	YesOrNoSchema        = GenerateSchema[YesOrNo]()
 	ChangeFileSchema     = GenerateSchema[ChangeFilePlan]()
 	CodeValidationSchema = GenerateSchema[CodeValidation]()
+
+	ChangeFileSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("changes"),
+		Description: openai.F("List of changes to be made to achieve the goal"),
+		Schema:      openai.F(ChangeFileSchema),
+		Strict:      openai.Bool(true),
+	}
+
+	ChangesPlanSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("changes"),
+		Description: openai.F("List of changes to be made to meet the requirements"),
+		Schema:      openai.F(ChangesPlanSchema),
+		Strict:      openai.Bool(true),
+	}
+
+	CodeValidationSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("syntax_validation"),
+		Description: openai.F("The result of judging Whether the syntax of the generated code is correct"),
+		Schema:      openai.F(CodeValidationSchema),
+		Strict:      openai.Bool(true),
+	}
 )
 
 func GenerateSchema[T any]() interface{} {
@@ -190,7 +211,7 @@ func (p *Planner) GenerateGoalPrompt(ctx context.Context, goal, repo string, fil
 // GenerateChangesPlanWithRetry generates ChangesPlan with validation and retry attempts
 func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query, prompt string, maxAttempts int) (*ChangesPlan, error) {
 
-	changesPlan, err := p.generateChangesPlan(ctx, prompt)
+	changesPlan, err := p.GenerateChangesPlan(ctx, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate plan: %w", err)
 	}
@@ -203,7 +224,7 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query, promp
 
 		log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
 		prompt = fmt.Sprintf(REPLAN_PROMPT, query, changesPlan, err)
-		changesPlan, err = p.generateChangesPlan(ctx, prompt)
+		changesPlan, err = p.GenerateChangesPlan(ctx, prompt)
 		if err != nil {
 			log.Printf("Failed to generate plan: %v", err)
 			continue
@@ -213,23 +234,16 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query, promp
 	return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
 }
 
-// generateChangesPlan creates a ChangesPlan based on the prompt.
-// If you need validate and replan, use Plan function instead.
-func (p *Planner) generateChangesPlan(ctx context.Context, prompt string) (*ChangesPlan, error) {
-
-	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("changes"),
-		Description: openai.F("List of changes to be made to meet the requirements"),
-		Schema:      openai.F(ChangesPlanSchema),
-		Strict:      openai.Bool(true),
-	}
+// GenerateChangesPlan creates a ChangesPlan based on the prompt.
+// If you need validate and replan, use GenerateChangesPlanWithRetry function instead.
+func (p *Planner) GenerateChangesPlan(ctx context.Context, prompt string) (*ChangesPlan, error) {
 
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage("You are a helpful assistant that generates detailed action plans based on provided project information."),
 			openai.UserMessage(prompt),
 		},
-		schemaParam)
+		ChangesPlanSchemaParam)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
 	}
@@ -258,13 +272,6 @@ func (p *Planner) GenerateChangeFilePlanWithRetry(ctx context.Context, prompt, q
 		return nil, fmt.Errorf("failed to generate plan: %w", err)
 	}
 
-	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("syntax_validation"),
-		Description: openai.F("The result of judging Whether the syntax of the generated code is correct"),
-		Schema:      openai.F(CodeValidationSchema),
-		Strict:      openai.Bool(true),
-	}
-
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		// validation
 		messages := []openai.ChatCompletionMessageParamUnion{
@@ -274,7 +281,7 @@ func (p *Planner) GenerateChangeFilePlanWithRetry(ctx context.Context, prompt, q
 		}
 
 		content, err := p.llmClient.GenerateCompletion(
-			ctx, messages, schemaParam)
+			ctx, messages, CodeValidationSchemaParam)
 
 		if err != nil {
 			log.Printf("failed to execute Chat.Completion: %v", err)
@@ -313,19 +320,12 @@ func (p *Planner) GenerateChangeFilePlanWithRetry(ctx context.Context, prompt, q
 // GenerateChangeFilePlan creates a ChangeFilePlan based on the prompt.
 func (p *Planner) GenerateChangeFilePlan(ctx context.Context, prompts ...openai.ChatCompletionMessageParamUnion) (*ChangeFilePlan, error) {
 
-	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("changes"),
-		Description: openai.F("List of changes to be made to achieve the goal"),
-		Schema:      openai.F(ChangeFileSchema),
-		Strict:      openai.Bool(true),
-	}
-
 	messages := []openai.ChatCompletionMessageParamUnion{
 		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
 	}
 	messages = append(messages, prompts...)
 
-	content, err := p.llmClient.GenerateCompletion(ctx, messages, schemaParam)
+	content, err := p.llmClient.GenerateCompletion(ctx, messages, ChangeFileSchemaParam)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute Chat.Completion: %v", err)
 	}

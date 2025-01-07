@@ -92,7 +92,7 @@ func (c *vectorstore) Search(ctx context.Context, repository, context, query str
 		Where(document.RepositoryEQ(repository)).
 		Where(document.ContextEQ(context)).
 		Order(func(s *sql.Selector) {
-			s.OrderExpr(sql.ExprP("embedding <-> $2", vector))
+			s.OrderExpr(sql.ExprP("embedding <-> $3", vector))
 		}).Limit(k).All(ctx)
 	if err != nil {
 		return nil, err

@@ -50,6 +50,10 @@ AICoder is a AI-powered CLI that helps you code quickly.
 
 - `OPENAI_API_KEY`
 
+`copy .env.example .env`
+
+`direnv allow`
+
 ## PGVector
 
 ```
