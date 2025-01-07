@@ -2,21 +2,17 @@ package vectorstore
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	_ "github.com/lib/pq"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/ent/document"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
+	"github.com/nakamasato/aicoder/internal/llm"
 )
 
 func TestVectorStore_AddDocument(t *testing.T) {
 	ctx := context.Background()
-	// Initialize OpenAI client
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	openaiClient := openai.NewClient(option.WithAPIKey(apiKey))
+
 	// Initialize entgo client
 	entClient, err := ent.Open("postgres", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable")
 	if err != nil {
@@ -24,7 +20,7 @@ func TestVectorStore_AddDocument(t *testing.T) {
 	}
 	defer entClient.Close()
 	// Initialize vectorstore client
-	vectorstoreClient := New(entClient, openaiClient)
+	vectorstoreClient := New(entClient, llm.DummyClient{})
 	// Create a document
 	doc := &Document{
 		Repository:  "test-repository",

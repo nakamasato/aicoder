@@ -7,9 +7,8 @@ import (
 
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 	"github.com/spf13/cobra"
 )
 
@@ -46,7 +45,6 @@ func runSearch(cmd *cobra.Command, args []string) {
 	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	client := openai.NewClient(option.WithAPIKey(config.OpenAIAPIKey))
 
 	// Initialize entgo client
 	entClient, err := ent.Open("postgres", dbConnString)
@@ -55,7 +53,7 @@ func runSearch(cmd *cobra.Command, args []string) {
 	}
 	defer entClient.Close()
 
-	store := vectorstore.New(entClient, client)
+	store := vectorstore.New(entClient, llm.NewClient(config.OpenAIAPIKey))
 
 	res, err := store.Search(ctx, config.Repository, config.CurrentContext, query, config.Search.TopN)
 	if err != nil {

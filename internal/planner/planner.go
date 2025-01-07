@@ -18,11 +18,11 @@ import (
 )
 
 type Planner struct {
-	llmClient *llm.Client
+	llmClient llm.Client
 	entClient *ent.Client
 }
 
-func NewPlanner(llmClient *llm.Client, entClient *ent.Client) *Planner {
+func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
 	return &Planner{
 		llmClient: llmClient,
 		entClient: entClient,
