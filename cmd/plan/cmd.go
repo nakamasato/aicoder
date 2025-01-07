@@ -13,8 +13,6 @@ import (
 	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 	"github.com/spf13/cobra"
 )
 
@@ -55,7 +53,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	client := openai.NewClient(option.WithAPIKey(config.OpenAIAPIKey))
+	llmClient := llm.NewClient(config.OpenAIAPIKey)
 
 	// Initialize entgo client
 	entClient, err := ent.Open("postgres", dbConnString)
@@ -64,7 +62,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	}
 	defer entClient.Close()
 
-	store := vectorstore.New(entClient, client)
+	store := vectorstore.New(entClient, llmClient)
 
 	res, err := store.Search(ctx, config.Repository, config.CurrentContext, goal, 10)
 	if err != nil {
@@ -81,7 +79,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 		}
 		files = append(files, &file.File{Path: path, Content: content})
 	}
-	plnr := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
+	plnr := planner.NewPlanner(llmClient, entClient)
 	prompt, err := plnr.GenerateGoalPrompt(ctx, goal, config.Repository, files)
 	if err != nil {
 		log.Fatalf("failed to generate goal prompt: %v", err)

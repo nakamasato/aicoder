@@ -11,7 +11,6 @@ import (
 	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/pkg/vectorutils"
-	"github.com/openai/openai-go"
 	"github.com/pgvector/pgvector-go"
 )
 
@@ -21,7 +20,7 @@ type VectorStore interface {
 }
 
 type vectorstore struct {
-	openaiCli *openai.Client
+	llmClient llm.Client
 	entClient *ent.Client
 }
 
@@ -57,12 +56,12 @@ func (r *SearchResult) FilePaths() []string {
 	return paths
 }
 
-func New(entClient *ent.Client, openaiCli *openai.Client) VectorStore {
-	return &vectorstore{entClient: entClient, openaiCli: openaiCli}
+func New(entClient *ent.Client, llmClient llm.Client) VectorStore {
+	return &vectorstore{entClient: entClient, llmClient: llmClient}
 }
 
 func (c *vectorstore) AddDocument(ctx context.Context, doc *Document) error {
-	embedding, err := llm.GetEmbedding(ctx, c.openaiCli, doc.Description)
+	embedding, err := c.llmClient.GetEmbedding(ctx, doc.Description)
 	if err != nil {
 		return err
 	}
@@ -81,7 +80,7 @@ func (c *vectorstore) AddDocument(ctx context.Context, doc *Document) error {
 }
 
 func (c *vectorstore) Search(ctx context.Context, repository, context, query string, k int) (*SearchResult, error) {
-	queryEmbedding, err := llm.GetEmbedding(ctx, c.openaiCli, query)
+	queryEmbedding, err := c.llmClient.GetEmbedding(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +91,7 @@ func (c *vectorstore) Search(ctx context.Context, repository, context, query str
 		Where(document.RepositoryEQ(repository)).
 		Where(document.ContextEQ(context)).
 		Order(func(s *sql.Selector) {
-			s.OrderExpr(sql.ExprP("embedding <-> $2", vector))
+			s.OrderExpr(sql.ExprP("embedding <-> $3", vector))
 		}).Limit(k).All(ctx)
 	if err != nil {
 		return nil, err

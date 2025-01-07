@@ -9,6 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/ent/document"
@@ -16,11 +19,7 @@ import (
 	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 	"github.com/spf13/cobra"
-    "entgo.io/ent/dialect"
-    entsql "entgo.io/ent/dialect/sql"
-    _ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var (
@@ -62,7 +61,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	client := openai.NewClient(option.WithAPIKey(config.OpenAIAPIKey))
+	llmClient := llm.NewClient(config.OpenAIAPIKey)
 
 	// Initialize PostgreSQL connection
 	if dbConnString == "" {
@@ -70,12 +69,12 @@ func runLoad(cmd *cobra.Command, args []string) {
 	}
 
 	db, err := sql.Open("pgx", dbConnString)
-    if err != nil {
-        log.Fatal(err)
-    }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    // Create an ent.Driver from `db`.
-    drv := entsql.OpenDB(dialect.Postgres, db)
+	// Create an ent.Driver from `db`.
+	drv := entsql.OpenDB(dialect.Postgres, db)
 	db.SetMaxOpenConns(100)
 	db.SetMaxIdleConns(30)
 	db.SetConnMaxLifetime(time.Minute * 5)
@@ -89,7 +88,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	store := vectorstore.New(entClient, client)
+	store := vectorstore.New(entClient, llmClient)
 
 	// Load existing RepoStructure if exists
 	var previousRepo loader.RepoStructure
@@ -164,7 +163,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 				return
 			}
 
-			summary, err := llm.SummarizeFileContent(ctx, client, string(buf))
+			summary, err := llmClient.GenerateCompletionSimple(ctx, []openai.ChatCompletionMessageParamUnion{openai.UserMessage(fmt.Sprintf(llm.SUMMARIZE_FILE_CONTENT_PROMPT, string(buf)))})
 			if err != nil {
 				errChan <- fmt.Errorf("failed to summarize content: %v", err)
 				return
