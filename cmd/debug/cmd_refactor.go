@@ -71,9 +71,9 @@ func runRefactor(cmd *cobra.Command, args []string) {
 	query := message
 	prompt := fmt.Sprintf("The code content:\n--- %s start ---\n%s\n---- %s end ----", filename, string(data), filename)
 
-	plan := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
+	plnr := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
 
-	changeFilePlan, err := plan.GenerateChangeFilePlanWithRetry(ctx, prompt, query, 10)
+	changeFilePlan, err := plnr.GenerateChangeFilePlanWithRetry(ctx, prompt, query, 10)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}

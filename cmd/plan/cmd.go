@@ -81,12 +81,12 @@ func runPlan(cmd *cobra.Command, args []string) {
 		}
 		files = append(files, &file.File{Path: path, Content: content})
 	}
-	plan := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
-	prompt, err := plan.GenerateGoalPrompt(ctx, goal, config.Repository, files)
+	plnr := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
+	prompt, err := plnr.GenerateGoalPrompt(ctx, goal, config.Repository, files)
 	if err != nil {
 		log.Fatalf("failed to generate goal prompt: %v", err)
 	}
-	p, err := plan.GenerateChangesPlanWithRetry(ctx, goal, prompt, maxAttempts)
+	p, err := plnr.GenerateChangesPlanWithRetry(ctx, goal, prompt, maxAttempts)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
