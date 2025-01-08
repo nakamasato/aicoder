@@ -2,10 +2,7 @@ package planner
 
 const PLANNER_GOAL_PROMPT = `You are a helpful assistant that generates detailed action plans based on provided project information.
 -----------------------
-Files in the repository:
-%s
------------------------
-Possibly relevant documents:
+Relevant files:
 %s
 
 ------------------------

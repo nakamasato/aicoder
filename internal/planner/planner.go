@@ -11,7 +11,6 @@ import (
 
 	"github.com/invopop/jsonschema"
 	"github.com/nakamasato/aicoder/ent"
-	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/openai/openai-go"
@@ -166,6 +165,13 @@ var (
 		Schema:      openai.F(CodeValidationSchema),
 		Strict:      openai.Bool(true),
 	}
+
+	YesOrNoSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("yes_or_no"),
+		Description: openai.F("Answer to the yes or no question"),
+		Schema:      openai.F(YesOrNoSchema),
+		Strict:      openai.Bool(true),
+	}
 )
 
 func GenerateSchema[T any]() interface{} {
@@ -179,30 +185,61 @@ func GenerateSchema[T any]() interface{} {
 }
 
 // generateGoalPrompt creates a prompt for OpenAI based on the goal and repository data.
-func (p *Planner) GenerateGoalPrompt(ctx context.Context, goal, repo string, files file.Files) (string, error) {
-	// Fetch relevant documents or summaries from the database
-	docs, err := p.entClient.Document.
-		Query().
-		Where(document.RepositoryEQ(repo)).
-		All(ctx)
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch documents: %w", err)
-	}
-
-	// Aggregate the descriptions to provide context
-	var contextInfo strings.Builder
-	for _, doc := range docs {
-		contextInfo.WriteString(fmt.Sprintf("- %s: %s\n", doc.Filepath, doc.Description))
-	}
-
+func (p *Planner) GenerateGoalPrompt(ctx context.Context, goal string, files []file.File) (string, error) {
 	// Create a comprehensive prompt
-	prompt := fmt.Sprintf(PLANNER_GOAL_PROMPT, contextInfo.String(), files.String(), goal)
+	var builder strings.Builder
+	for _, f := range files {
+		builder.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---", f.Path, f.Content))
+	}
+	prompt := fmt.Sprintf(PLANNER_GOAL_PROMPT, builder.String(), goal)
 
 	return prompt, nil
 }
 
+// removeUnrelevantFiles removes irrelevant files from the list of files using LLM.
+func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files []file.File) ([]file.File, error) {
+
+	var filteredFiles []file.File
+	for _, f := range files {
+		// Use LLM to determine if the file is relevant to the query
+		content, err := p.llmClient.GenerateCompletion(ctx,
+			[]openai.ChatCompletionMessageParamUnion{
+				openai.SystemMessage("You are a helpful assistant that determines if a file is relevant to a given query."),
+				openai.UserMessage(fmt.Sprintf("Query: %s\nFile Content: %s", query, f.Content)),
+			},
+			YesOrNoSchemaParam)
+		if err != nil {
+			log.Printf("failed to determine file relevance: %v", err)
+			continue
+		}
+
+		var yesOrNo YesOrNo
+		if err = json.Unmarshal([]byte(content), &yesOrNo); err != nil {
+			log.Printf("failed to unmarshal content to YesOrNo: %v", err)
+			continue
+		}
+
+		if yesOrNo.Answer {
+			log.Printf("%d. relevant file: %s\n", len(filteredFiles), f.Path)
+			filteredFiles = append(filteredFiles, f)
+		}
+	}
+	return filteredFiles, nil
+}
+
 // GenerateChangesPlanWithRetry generates ChangesPlan with validation and retry attempts
-func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query, prompt string, maxAttempts int) (*ChangesPlan, error) {
+func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string, maxAttempts int, files []file.File) (*ChangesPlan, error) {
+
+	// identify files to change
+	files, err := p.removeUnrelevantFiles(ctx, query, files)
+	if err != nil {
+		return nil, fmt.Errorf("failed to remove irrelevant files: %w", err)
+	}
+
+	prompt, err := p.GenerateGoalPrompt(ctx, query, files)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
+	}
 
 	changesPlan, err := p.GenerateChangesPlan(ctx, prompt)
 	if err != nil {
