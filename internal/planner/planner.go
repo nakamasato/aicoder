@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/invopop/jsonschema"
 	"github.com/nakamasato/aicoder/ent"
@@ -198,32 +199,54 @@ func (p *Planner) GenerateGoalPrompt(ctx context.Context, goal string, files []f
 
 // removeUnrelevantFiles removes irrelevant files from the list of files using LLM.
 func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files []file.File) ([]file.File, error) {
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	filteredFiles := make([]file.File, 0, len(files))
+	errChan := make(chan error, len(files))
 
-	var filteredFiles []file.File
 	for _, f := range files {
-		// Use LLM to determine if the file is relevant to the query
-		content, err := p.llmClient.GenerateCompletion(ctx,
-			[]openai.ChatCompletionMessageParamUnion{
-				openai.SystemMessage("You are a helpful assistant that determines if a file is relevant to a given query."),
-				openai.UserMessage(fmt.Sprintf("Query: %s\nFile Content: %s", query, f.Content)),
-			},
-			YesOrNoSchemaParam)
+		wg.Add(1)
+		go func(f file.File) {
+			defer wg.Done()
+			// Use LLM to determine if the file is relevant to the query
+			content, err := p.llmClient.GenerateCompletion(ctx,
+				[]openai.ChatCompletionMessageParamUnion{
+					openai.SystemMessage("You are a helpful assistant that determines if a file is relevant to a given query."),
+					openai.UserMessage(fmt.Sprintf("Query: %s\nFile Content: %s", query, f.Content)),
+				},
+				YesOrNoSchemaParam)
+			if err != nil {
+				log.Printf("failed to determine file relevance: %v", err)
+				errChan <- err
+				return
+			}
+
+			var yesOrNo YesOrNo
+			if err = json.Unmarshal([]byte(content), &yesOrNo); err != nil {
+				log.Printf("failed to unmarshal content to YesOrNo: %v", err)
+				errChan <- err
+				return
+			}
+
+			if yesOrNo.Answer {
+				mu.Lock()
+				log.Printf("%d. relevant file: %s\n", len(filteredFiles), f.Path)
+				filteredFiles = append(filteredFiles, f)
+				mu.Unlock()
+			}
+		}(f)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	// Collect errors if needed
+	for err := range errChan {
 		if err != nil {
-			log.Printf("failed to determine file relevance: %v", err)
-			continue
-		}
-
-		var yesOrNo YesOrNo
-		if err = json.Unmarshal([]byte(content), &yesOrNo); err != nil {
-			log.Printf("failed to unmarshal content to YesOrNo: %v", err)
-			continue
-		}
-
-		if yesOrNo.Answer {
-			log.Printf("%d. relevant file: %s\n", len(filteredFiles), f.Path)
-			filteredFiles = append(filteredFiles, f)
+			return nil, err
 		}
 	}
+
 	return filteredFiles, nil
 }
 
