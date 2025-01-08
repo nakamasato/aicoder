@@ -23,25 +23,36 @@ import (
 )
 
 type service struct {
-	config         *config.AICoderConfig
-	structure      *RepoStructure
-	llmClient      llm.Client
-	entClient      *ent.Client
-	vectorstore    vectorstore.VectorStore
+	config      *config.AICoderConfig
+	structure   *RepoStructure
+	llmClient   llm.Client
+	entClient   *ent.Client
+	vectorstore vectorstore.VectorStore
 }
 
 func NewService(cfg *config.AICoderConfig, structure *RepoStructure, entClient *ent.Client, llmClient llm.Client, store vectorstore.VectorStore) *service {
 	return &service{
-		config:         cfg,
-		structure:      structure,
-		llmClient:      llmClient,
-		entClient:      entClient,
-		vectorstore:    store,
+		config:      cfg,
+		structure:   structure,
+		llmClient:   llmClient,
+		entClient:   entClient,
+		vectorstore: store,
 	}
 }
 
 func (s *service) Load(ctx context.Context) error {
-	// var mu sync.Mutex
+
+	// clean up non-existing files
+	var filePaths []string
+	for fileinfo := range s.structure.Root.FileInfoGenerator() {
+		filePaths = append(filePaths, fileinfo.Path)
+	}
+	s.entClient.Document.Delete().Where(
+		document.RepositoryEQ(s.config.Repository),
+		document.ContextEQ(s.config.CurrentContext),
+		document.FilepathNotIn(filePaths...),
+	).ExecX(ctx)
+
 	var wg sync.WaitGroup
 	var errChan = make(chan error, s.structure.Root.Size)
 	loadCfg := s.config.GetCurrentLoadConfig()
