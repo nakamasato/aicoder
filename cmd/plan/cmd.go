@@ -70,14 +70,15 @@ func runPlan(cmd *cobra.Command, args []string) {
 	}
 
 	// Load file content
-	filepaths := res.FilePaths()
 	var files file.Files
-	for _, path := range filepaths {
-		content, err := loader.LoadFileContent(path)
+	log.Printf("Found %d files\n", len(*res.Documents))
+	for i, doc := range *res.Documents {
+		log.Printf("%d: %s (score: %.2f)\n", i, doc.Document.Filepath, doc.Score)
+		content, err := loader.LoadFileContent(doc.Document.Filepath)
 		if err != nil {
-			log.Fatalf("failed to load file content: %v", err)
+			log.Fatalf("failed to load file content. you might need to refresh loader by `aicoder load -r`: %v", err)
 		}
-		files = append(files, &file.File{Path: path, Content: content})
+		files = append(files, &file.File{Path: doc.Document.Filepath, Content: content})
 	}
 	plnr := planner.NewPlanner(llmClient, entClient)
 	prompt, err := plnr.GenerateGoalPrompt(ctx, goal, config.Repository, files)

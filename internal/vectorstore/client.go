@@ -48,14 +48,6 @@ func (r *SearchResult) String() string {
 	return b.String()
 }
 
-func (r *SearchResult) FilePaths() []string {
-	var paths []string
-	for _, doc := range *r.Documents {
-		paths = append(paths, doc.Document.Filepath)
-	}
-	return paths
-}
-
 func New(entClient *ent.Client, llmClient llm.Client) VectorStore {
 	return &vectorstore{entClient: entClient, llmClient: llmClient}
 }

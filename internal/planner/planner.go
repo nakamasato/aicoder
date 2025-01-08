@@ -180,13 +180,6 @@ func GenerateSchema[T any]() interface{} {
 
 // generateGoalPrompt creates a prompt for OpenAI based on the goal and repository data.
 func (p *Planner) GenerateGoalPrompt(ctx context.Context, goal, repo string, files file.Files) (string, error) {
-
-	if isValid, err := p.validateGoal(ctx, goal); err != nil {
-		return "", fmt.Errorf("failed to validate goal: %w", err)
-	} else if !isValid {
-		return "", fmt.Errorf("goal needs to explicitly specify the file to change.")
-	}
-
 	// Fetch relevant documents or summaries from the database
 	docs, err := p.entClient.Document.
 		Query().
