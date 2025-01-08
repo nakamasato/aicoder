@@ -7,13 +7,113 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/nakamasato/aicoder/config"
+	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/ent/document"
+	"github.com/nakamasato/aicoder/internal/llm"
+	"github.com/nakamasato/aicoder/internal/vectorstore"
+	"github.com/openai/openai-go"
 )
+
+type service struct {
+	config         *config.AICoderConfig
+	structure      *RepoStructure
+	llmClient      llm.Client
+	entClient      *ent.Client
+	vectorstore    vectorstore.VectorStore
+}
+
+func NewService(cfg *config.AICoderConfig, structure *RepoStructure, entClient *ent.Client, llmClient llm.Client, store vectorstore.VectorStore) *service {
+	return &service{
+		config:         cfg,
+		structure:      structure,
+		llmClient:      llmClient,
+		entClient:      entClient,
+		vectorstore:    store,
+	}
+}
+
+func (s *service) Load(ctx context.Context) error {
+	// var mu sync.Mutex
+	var wg sync.WaitGroup
+	var errChan = make(chan error, s.structure.Root.Size)
+	loadCfg := s.config.GetCurrentLoadConfig()
+	log.Printf("found %d files", s.structure.Root.Size)
+	for fileinfo := range s.structure.Root.FileInfoGenerator() {
+		wg.Add(1)
+		go func(fileInfo FileInfo) {
+			defer wg.Done()
+			if fileinfo.IsDir {
+				return
+			}
+
+			if loadCfg.IsExcluded(fileinfo.Path) && !loadCfg.IsIncluded(fileinfo.Path) {
+				return
+			}
+
+			buf, err := os.ReadFile(fileinfo.Path)
+			if err != nil {
+				errChan <- fmt.Errorf("failed to open file %s: %v", fileinfo.Path, err)
+				return
+			}
+
+			doc, err := s.entClient.Document.Query().Where(document.RepositoryEQ(s.config.Repository), document.FilepathEQ(fileinfo.Path), document.ContextEQ(s.config.CurrentContext)).First(ctx)
+			if err == nil && doc.UpdatedAt.After(fileinfo.ModifiedAt) {
+				fmt.Printf("Document %s is up-to-date\n", fileinfo.Path)
+				return
+			}
+
+			if err != nil && !ent.IsNotFound(err) {
+				errChan <- fmt.Errorf("failed to query document %s: %v", fileinfo.Path, err)
+				return
+			}
+
+			if string(buf) == "" {
+				fmt.Printf("File is empty: %s\n", fileinfo.Path)
+				return
+			}
+
+			summary, err := s.llmClient.GenerateCompletionSimple(ctx, []openai.ChatCompletionMessageParamUnion{openai.UserMessage(fmt.Sprintf(llm.SUMMARIZE_FILE_CONTENT_PROMPT, string(buf)))})
+			if err != nil {
+				errChan <- fmt.Errorf("failed to summarize content: %v", err)
+				return
+			}
+			if len(summary) == 0 {
+				fmt.Printf("Summary is empty: %s\ncontent:%s", fileinfo.Path, string(buf))
+				return
+			}
+			vsDoc := &vectorstore.Document{
+				Repository:  s.config.Repository,
+				Context:     s.config.CurrentContext,
+				Filepath:    fileinfo.Path,
+				Description: summary,
+			}
+
+			err = s.vectorstore.AddDocument(ctx, vsDoc)
+			if err != nil {
+				errChan <- fmt.Errorf("Failed to add vectorstore document %s: %v", fileinfo.Path, err)
+				return
+			}
+			fmt.Printf("upserted document %s\n", fileinfo.Path)
+		}(fileinfo)
+	}
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+		}
+	}
+	return nil
+}
 
 type FileInfo struct {
 	Name        string     `json:"name"`

@@ -180,13 +180,6 @@ func GenerateSchema[T any]() interface{} {
 
 // generateGoalPrompt creates a prompt for OpenAI based on the goal and repository data.
 func (p *Planner) GenerateGoalPrompt(ctx context.Context, goal, repo string, files file.Files) (string, error) {
-
-	if isValid, err := p.validateGoal(ctx, goal); err != nil {
-		return "", fmt.Errorf("failed to validate goal: %w", err)
-	} else if !isValid {
-		return "", fmt.Errorf("goal needs to explicitly specify the file to change.")
-	}
-
 	// Fetch relevant documents or summaries from the database
 	docs, err := p.entClient.Document.
 		Query().
@@ -337,32 +330,6 @@ func (p *Planner) GenerateChangeFilePlan(ctx context.Context, prompts ...openai.
 	}
 	fmt.Printf("Parsed Answer: %s", changeFile)
 	return &changeFile, nil
-}
-
-func (p *Planner) validateGoal(ctx context.Context, goal string) (bool, error) {
-
-	schemaParam := openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("answer"),
-		Description: openai.F("Answer to the yes or no question"),
-		Schema:      openai.F(YesOrNoSchema),
-		Strict:      openai.Bool(true),
-	}
-	messages := []openai.ChatCompletionMessageParamUnion{
-		openai.SystemMessage("You are a helpful validator that is tasked to validate the given goal."),
-		openai.UserMessage(fmt.Sprintf(VALIDATE_GOAL_PROMPT, goal)),
-	}
-
-	content, err := p.llmClient.GenerateCompletion(ctx, messages, schemaParam)
-	if err != nil {
-		return false, fmt.Errorf("failed to create chat completion: %w", err)
-	}
-
-	var answer YesOrNo
-	if err := json.Unmarshal([]byte(content), &answer); err != nil {
-		return false, fmt.Errorf("failed to unmarshal answer: %w", err)
-	}
-
-	return answer.Answer, nil
 }
 
 func LoadPlanFile[T any](planFile string) (*T, error) {

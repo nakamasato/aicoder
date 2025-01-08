@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-01-07T11:43:57.022695+09:00",
+  "generated_at": "2025-01-09T05:43:39.277324+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -11,6 +11,22 @@
         "is_dir": false,
         "blob_hash": "0a6f4700088eef2fe557a27af614e23927383770",
         "modified_at": "2025-01-07T10:59:47.722656928+09:00",
+        "size": 1
+      },
+      {
+        "name": ".env.example",
+        "path": ".env.example",
+        "is_dir": false,
+        "blob_hash": "e570b8b55999053e360c4e80f83f14881b17966f",
+        "modified_at": "2025-01-07T12:48:19.216215427+09:00",
+        "size": 1
+      },
+      {
+        "name": ".envrc",
+        "path": ".envrc",
+        "is_dir": false,
+        "blob_hash": "76f03ce1f38520136365615138b1c45037be78c8",
+        "modified_at": "2025-01-07T12:48:19.216611724+09:00",
         "size": 1
       },
       {
@@ -35,8 +51,8 @@
                 "name": "go.yaml",
                 "path": ".github/workflows/go.yaml",
                 "is_dir": false,
-                "blob_hash": "396ad81a2f64976640a14b02955801ddc90bcbe9",
-                "modified_at": "2024-12-30T21:02:27.019735488+09:00",
+                "blob_hash": "aa94be9a660129596556b19a0178e97617e902d2",
+                "modified_at": "2025-01-07T12:48:19.217457568+09:00",
                 "size": 1
               },
               {
@@ -91,8 +107,8 @@
         "name": "README.md",
         "path": "README.md",
         "is_dir": false,
-        "blob_hash": "d76fdfe0be5a2750bd0418b2cb19fabf36822294",
-        "modified_at": "2025-01-07T10:59:47.723149597+09:00",
+        "blob_hash": "87cd61def22e42c00c4c79ac0c2f0096c75c470c",
+        "modified_at": "2025-01-07T12:48:19.21955326+09:00",
         "size": 1
       },
       {
@@ -225,8 +241,8 @@
                 "name": "cmd.go",
                 "path": "cmd/load/cmd.go",
                 "is_dir": false,
-                "blob_hash": "3bb13556b2ab70b969ffff9403fdfefa14be27cf",
-                "modified_at": "2025-01-07T10:59:47.725654359+09:00",
+                "blob_hash": "6a90b63b205ffa11a3fc8cb29497ad7c96fc274e",
+                "modified_at": "2025-01-09T05:43:04.081966743+09:00",
                 "size": 1
               }
             ],
@@ -242,8 +258,8 @@
                 "name": "cmd.go",
                 "path": "cmd/plan/cmd.go",
                 "is_dir": false,
-                "blob_hash": "4149892b70f42d3c62aec1798d004bb78caf490a",
-                "modified_at": "2025-01-07T11:39:26.977858892+09:00",
+                "blob_hash": "a9e76f2ec1571cc63f3e9c72449fbc596d5d581d",
+                "modified_at": "2025-01-09T05:24:50.475055252+09:00",
                 "size": 1
               }
             ],
@@ -267,8 +283,8 @@
                 "name": "cmd.go",
                 "path": "cmd/search/cmd.go",
                 "is_dir": false,
-                "blob_hash": "3668d29c23fbbfa1ed88ddb4d120863d6e707def",
-                "modified_at": "2025-01-07T10:59:47.727634368+09:00",
+                "blob_hash": "11172102479a082b11c8fb8df19a77462b68a5a2",
+                "modified_at": "2025-01-07T12:48:19.22237117+09:00",
                 "size": 1
               }
             ],
@@ -368,24 +384,8 @@
                 "name": "client.go",
                 "path": "internal/llm/client.go",
                 "is_dir": false,
-                "blob_hash": "403f8394875cb9fc4e386f38fd6f86716723b0c9",
-                "modified_at": "2025-01-07T11:39:26.978062893+09:00",
-                "size": 1
-              },
-              {
-                "name": "embedding.go",
-                "path": "internal/llm/embedding.go",
-                "is_dir": false,
-                "blob_hash": "1b2c133216588a0b764cf920b1d8293ed4f9fa39",
-                "modified_at": "2024-12-31T15:54:38.846109024+09:00",
-                "size": 1
-              },
-              {
-                "name": "summarize.go",
-                "path": "internal/llm/summarize.go",
-                "is_dir": false,
-                "blob_hash": "7dcfe09ce85cbdeb4633033308052c22713ed2f6",
-                "modified_at": "2025-01-05T06:40:16.084948435+09:00",
+                "blob_hash": "804e58216374ed86e8bfcaa512e70fe626411c3a",
+                "modified_at": "2025-01-07T12:48:19.223099179+09:00",
                 "size": 1
               },
               {
@@ -398,7 +398,7 @@
               }
             ],
             "modified_at": "0001-01-01T00:00:00Z",
-            "size": 4
+            "size": 2
           },
           {
             "name": "loader",
@@ -410,7 +410,7 @@
                 "path": "internal/loader/loader.go",
                 "is_dir": false,
                 "blob_hash": "8bb12241923e52971f00667a938e4ad1de58f9f1",
-                "modified_at": "2025-01-07T10:59:47.733807397+09:00",
+                "modified_at": "2025-01-09T05:41:45.982658015+09:00",
                 "size": 1
               },
               {
@@ -451,8 +451,8 @@
                 "name": "planner.go",
                 "path": "internal/planner/planner.go",
                 "is_dir": false,
-                "blob_hash": "5ed2db19c14df026bca4674966a82fc666779445",
-                "modified_at": "2025-01-07T11:42:24.590757131+09:00",
+                "blob_hash": "98c42bb302a91f0d95e2d1b3acd8cb9117bd62eb",
+                "modified_at": "2025-01-09T05:27:35.520056801+09:00",
                 "size": 1
               },
               {
@@ -493,17 +493,25 @@
                 "name": "client.go",
                 "path": "internal/vectorstore/client.go",
                 "is_dir": false,
-                "blob_hash": "3a4a108573282c7194141867b0855a67c0deb6d9",
-                "modified_at": "2025-01-07T10:59:47.734202274+09:00",
+                "blob_hash": "da1a9f134cd95e6a3b2979b94351e4270ecfe660",
+                "modified_at": "2025-01-09T05:17:31.648480745+09:00",
+                "size": 1
+              },
+              {
+                "name": "client_test.go",
+                "path": "internal/vectorstore/client_test.go",
+                "is_dir": false,
+                "blob_hash": "27733987014b69cb7d55842846248c1a200bc60b",
+                "modified_at": "2025-01-07T12:48:19.225019952+09:00",
                 "size": 1
               }
             ],
             "modified_at": "0001-01-01T00:00:00Z",
-            "size": 1
+            "size": 2
           }
         ],
         "modified_at": "0001-01-01T00:00:00Z",
-        "size": 14
+        "size": 13
       },
       {
         "name": "main.go",
@@ -549,6 +557,6 @@
       }
     ],
     "modified_at": "0001-01-01T00:00:00Z",
-    "size": 43
+    "size": 44
   }
 }

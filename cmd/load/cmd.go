@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"entgo.io/ent/dialect"
@@ -18,7 +17,6 @@ import (
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
-	"github.com/openai/openai-go"
 	"github.com/spf13/cobra"
 )
 
@@ -124,76 +122,9 @@ func runLoad(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// var mu sync.Mutex
-	var wg sync.WaitGroup
-	var errChan = make(chan error, currentRepo.Root.Size)
-	log.Printf("found %d files", currentRepo.Root.Size)
-	for fileinfo := range currentRepo.Root.FileInfoGenerator() {
-		wg.Add(1)
-		go func(fileInfo loader.FileInfo) {
-			defer wg.Done()
-			if fileinfo.IsDir {
-				return
-			}
-
-			loadCfg := config.GetCurrentLoadConfig()
-			if loadCfg.IsExcluded(fileinfo.Path) && !loadCfg.IsIncluded(fileinfo.Path) {
-				return
-			}
-
-			buf, err := os.ReadFile(fileinfo.Path)
-			if err != nil {
-				errChan <- fmt.Errorf("failed to open file %s: %v", fileinfo.Path, err)
-				return
-			}
-
-			doc, err := entClient.Document.Query().Where(document.RepositoryEQ(config.Repository), document.FilepathEQ(fileinfo.Path), document.ContextEQ(config.CurrentContext)).First(ctx)
-			if err == nil && doc.UpdatedAt.After(fileinfo.ModifiedAt) {
-				fmt.Printf("Document %s is up-to-date\n", fileinfo.Path)
-				return
-			}
-
-			if err != nil && !ent.IsNotFound(err) {
-				errChan <- fmt.Errorf("failed to query document %s: %v", fileinfo.Path, err)
-				return
-			}
-
-			if string(buf) == "" {
-				fmt.Printf("File is empty: %s\n", fileinfo.Path)
-				return
-			}
-
-			summary, err := llmClient.GenerateCompletionSimple(ctx, []openai.ChatCompletionMessageParamUnion{openai.UserMessage(fmt.Sprintf(llm.SUMMARIZE_FILE_CONTENT_PROMPT, string(buf)))})
-			if err != nil {
-				errChan <- fmt.Errorf("failed to summarize content: %v", err)
-				return
-			}
-			if len(summary) == 0 {
-				fmt.Printf("Summary is empty: %s\ncontent:%s", fileinfo.Path, string(buf))
-				return
-			}
-			vsDoc := &vectorstore.Document{
-				Repository:  config.Repository,
-				Context:     config.CurrentContext,
-				Filepath:    fileinfo.Path,
-				Description: summary,
-			}
-
-			err = store.AddDocument(ctx, vsDoc)
-			if err != nil {
-				errChan <- fmt.Errorf("Failed to add vectorstore document %s: %v", fileinfo.Path, err)
-				return
-			}
-			fmt.Printf("upserted document %s\n", fileinfo.Path)
-		}(fileinfo)
-	}
-	wg.Wait()
-	close(errChan)
-
-	for err := range errChan {
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-		}
+	svc := loader.NewService(&config, &currentRepo, entClient, llmClient, store)
+	if err := svc.Load(ctx); err != nil {
+		log.Fatalf("failed to load repository structure: %v", err)
 	}
 
 	fmt.Printf("Repository structure has been written to %s (%s)\n", outputFile, time.Since(startTs))
