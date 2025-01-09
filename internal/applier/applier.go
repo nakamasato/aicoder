@@ -28,25 +28,31 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 		g.Go(func() error {
 			targetPath := change.Path
 			if dryrun {
-				// Generate temporary file path
-				targetPath = change.Path + ".tmp"
-			}
-			// Apply change to temp file
-			err := file.UpdateFuncGo(change.Path, change.FunctionName, change.NewFunctionContent)
-			if err != nil {
-				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
-			}
-
-			if dryrun {
-				cmd := exec.Command("diff", "-u", change.Path, targetPath)
-				output, err := cmd.CombinedOutput()
+				originalContent, err := os.ReadFile(change.Path)
 				if err != nil {
-					log.Println("There is diff")
+					return fmt.Errorf("failed to read original file (%s): %w", change.Path, err)
+				}
+				// Apply change in memory
+				modifiedContent, err := file.UpdateFuncInMemory(originalContent, change.FunctionName, change.NewFunctionContent)
+				if err != nil {
+					return fmt.Errorf("failed to apply change in memory: %w", err)
 				}
 
+				// Generate diff
+				diff, err := generateDiff(originalContent, modifiedContent)
+				if err != nil {
+					return fmt.Errorf("failed to generate diff: %w", err)
+				}
 				mu.Lock()
-				diffs = append(diffs, string(output))
+				diffs = append(diffs, diff)
 				mu.Unlock()
+			} else {
+				// Apply change to temp file
+				err := file.UpdateFuncGo(targetPath, change.FunctionName, change.NewFunctionContent)
+				if err != nil {
+					return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
+				}
+
 			}
 
 			return nil
@@ -79,6 +85,43 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 	}
 
 	return nil
+}
+
+// generateDiff generates a unified diff between the original and modified content.
+func generateDiff(original, modified []byte) (string, error) {
+	// Create temporary files for original and modified content
+	originalTempFile, err := os.CreateTemp("", "original-*.tmp")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file for original content: %w", err)
+	}
+	defer os.Remove(originalTempFile.Name()) // Clean up
+
+	modifiedTempFile, err := os.CreateTemp("", "modified-*.tmp")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file for modified content: %w", err)
+	}
+	defer os.Remove(modifiedTempFile.Name()) // Clean up
+
+	// Write contents to the temporary files
+	if _, err := originalTempFile.Write(original); err != nil {
+		return "", fmt.Errorf("failed to write original content to temp file: %w", err)
+	}
+	if _, err := modifiedTempFile.Write(modified); err != nil {
+		return "", fmt.Errorf("failed to write modified content to temp file: %w", err)
+	}
+
+	// Close the files to flush the content
+	originalTempFile.Close()
+	modifiedTempFile.Close()
+
+	// Use diff command on the temporary files
+	cmd := exec.Command("diff", "-u", originalTempFile.Name(), modifiedTempFile.Name())
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		log.Println("There is diff")
+	}
+	return string(output), nil
 }
 
 // func applyChange(change planner.Change, targetPath string) (originalContent, modifiedContent []byte, err error) {

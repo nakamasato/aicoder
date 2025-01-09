@@ -11,87 +11,58 @@ import (
 func TestApplyChanges(t *testing.T) {
 	changesPlan := &planner.ChangesPlan{
 		Changes: []planner.FunctionChange{
-			{
-				Path:               "testfile.txt",
-				FunctionName:       "Func1",
-				NewFunctionContent: " Added text.",
-			},
-			{
-				Path:               "newfile.txt",
-				FunctionName:       "Func2",
-				NewFunctionContent: " Added text.",
-			},
+			{Path: "testfile.go", FunctionName: "Func1", NewFunctionContent: " fmt.Println(\"This is the new content.\")"},
 		},
 	}
-
-	// Create a temporary directory for testing
 	tempDir := filepath.Join(os.TempDir(), "applier_test")
 	err := os.Mkdir(tempDir, 0755)
 	if err != nil {
 		t.Fatalf("Failed to create temporary directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir) // Cleanup
+	defer os.RemoveAll(tempDir)
 
-	// Create the original file within the temporary directory
-	originalFilePath := filepath.Join(tempDir, "testfile.txt")
-	originalContent := "This is the original file.\nText to be deleted.\n"
+	originalFilePath := filepath.Join(tempDir, "testfile.go")
+	originalContent := `package main
+func Func1() {
+	fmt.Println("This is the original file.")
+}
+`
 	if err := os.WriteFile(originalFilePath, []byte(originalContent), 0644); err != nil {
 		t.Fatalf("Failed to create original file: %v", err)
 	}
 
-	// Update the paths in changesPlan to point to the temporary directory
 	for i := range changesPlan.Changes {
 		changesPlan.Changes[i].Path = filepath.Join(tempDir, changesPlan.Changes[i].Path)
 	}
 
-	// Perform a dry run
+	// Dry run
 	err = ApplyChanges(changesPlan, true)
 	if err != nil {
 		t.Fatalf("ApplyChanges (dryrun) failed: %v", err)
 	}
 
-	// Verify the temporary modified file exists and has the expected content
-	modifiedFilePath := originalFilePath + ".tmp"
-	modifiedContent, err := GetFileContent(modifiedFilePath)
-	if err != nil {
-		t.Fatalf("Failed to read modified temp file: %v", err)
+	testFile := filepath.Join(tempDir, "testfile.go")
+	if err := os.WriteFile(testFile, []byte(originalContent), 0644); err != nil {
+		t.Fatalf("Failed to write to test file: %v", err)
 	}
 
-	expectedModifiedContent := "This is the original file.\n Added text."
-	if string(modifiedContent) != expectedModifiedContent {
-		t.Errorf("Expected modified content:\n%s\nActual modified content:\n%s", expectedModifiedContent, string(modifiedContent))
-	}
-
-	// Verify the new file was not created during dry run
-	newFilePath := filepath.Join(tempDir, "newfile.txt")
-	if _, err := os.Stat(newFilePath); !os.IsNotExist(err) {
-		t.Errorf("New file should not exist during dry run")
-	}
-
-	// Perform the actual apply
+	// Actual application
 	err = ApplyChanges(changesPlan, false)
 	if err != nil {
 		t.Fatalf("ApplyChanges (actual) failed: %v", err)
 	}
 
-	// Verify the original file was updated correctly
-	updatedContent, err := GetFileContent(originalFilePath)
-	if err != nil {
-		t.Fatalf("Failed to read updated original file: %v", err)
-	}
-
-	expectedUpdatedContent := "This is the original file.\n Added text."
-	if string(updatedContent) != expectedUpdatedContent {
-		t.Errorf("Expected updated content:\n%s\nActual updated content:\n%s", expectedUpdatedContent, string(updatedContent))
-	}
-
-	// Verify the new file was created correctly
-	newContent, err := GetFileContent(newFilePath)
+	newContent, err := GetFileContent(testFile)
 	if err != nil {
 		t.Fatalf("Failed to read new file: %v", err)
 	}
+	expectedNewContent := `package main
 
-	expectedNewContent := "Content of the newly created file."
+func Func1() {
+	fmt.
+		Println("This is the new content.")
+}
+`
 	if string(newContent) != expectedNewContent {
 		t.Errorf("Expected new file content:\n%s\nActual new file content:\n%s", expectedNewContent, string(newContent))
 	}

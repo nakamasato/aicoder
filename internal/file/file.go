@@ -2,6 +2,7 @@ package file
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -11,7 +12,6 @@ type File struct {
 	Path    string
 	Content string
 }
-
 
 // GetFunctionLines returns the start and end line numbers of a function in a file.
 // Naive implementation for Golang or Java. TODO: improve the mechanism to get lines.
@@ -58,4 +58,42 @@ func GetBlockBaseFunctionLines(filePath string, functionName string) (int, int, 
 		return 0, 0, fmt.Errorf("function %s not found in %s", functionName, filePath)
 	}
 	return startLine, endLine, nil
+}
+
+// UpdateFuncInMemory updates a specific function's content in memory.
+func UpdateFuncInMemory(originalContent []byte, functionName, newFunctionContent string) ([]byte, error) {
+	originalStr := string(originalContent)
+	startMarker := fmt.Sprintf("func %s(", functionName)
+
+	startIndex := strings.Index(originalStr, startMarker)
+	if startIndex == -1 {
+		return nil, fmt.Errorf("function %s not found", functionName)
+	}
+
+	// Find the end of the function by counting braces
+	openBraces := 0
+	endIndex := -1
+	for i := startIndex; i < len(originalStr); i++ {
+		if originalStr[i] == '{' {
+			openBraces++
+		} else if originalStr[i] == '}' {
+			openBraces--
+			if openBraces == 0 {
+				endIndex = i + 1
+				break
+			}
+		}
+	}
+
+	if endIndex == -1 {
+		return nil, fmt.Errorf("could not determine the end of function %s", functionName)
+	}
+
+	// Replace the function content
+	var buffer bytes.Buffer
+	buffer.WriteString(originalStr[:startIndex])
+	buffer.WriteString(newFunctionContent)
+	buffer.WriteString(originalStr[endIndex:])
+
+	return buffer.Bytes(), nil
 }
