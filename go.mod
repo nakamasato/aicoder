@@ -6,6 +6,7 @@ require (
 	entgo.io/ent v0.13.1
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.13.0
+	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/invopop/jsonschema v0.12.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/lib/pq v1.10.9
@@ -38,7 +39,6 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/hcl/v2 v2.13.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
