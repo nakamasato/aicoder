@@ -77,6 +77,21 @@ Output:
 ------------------------
 `
 
+const GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO = `Please provide the new content of the function %s in the file %s
+## Current content
+
+`+"```"+`
+%s
+`+"```"+`
+
+Note that please do not include the function signature in the new content.
+
+Output Example:
+`+"```"+`
+fmt.Println("Hello, World!")
+`+"```"+`
+`
+
 const PLANNER_LINE_NUM_PROMPT = `Please provide the start and end line number of the target location.
 
 ## Target location

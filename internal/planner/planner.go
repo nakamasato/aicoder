@@ -234,20 +234,7 @@ func (p *Planner) GenerateFunctionChangePlan(ctx context.Context, path string, f
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-			openai.UserMessage(fmt.Sprintf(`Please provide the new content of the function %s in the file %s
-## Current content
-
-`+"```"+`
-%s
-`+"```"+`
-
-Note that please do not include the function signature in the new content.
-
-Output Example:
-`+"```"+`
-fmt.Println("Hello, World!")
-`+"```"+`
-`, fn.Name, path, fn.Content)),
+			openai.UserMessage(fmt.Sprintf(GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, fn.Name, path, fn.Content)),
 		},
 		ChangeFileSchemaParam)
 	if err != nil {
@@ -302,6 +289,8 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
 	}
+
+	// Generate ChangesPlan
 	changesPlan := &ChangesPlan{}
 	for i, step := range plan.Steps {
 		log.Printf("Step %d: %s\n", i+1, step)
@@ -343,15 +332,27 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 					}
 				}
 			} else if filepath.Ext(block.Path) == ".hcl" || filepath.Ext(block.Path) == ".tf" {
-				blocks, _, err := file.ParseHCL(block.Path)
+				blocks, attrs, err := file.ParseHCL(block.Path)
 				if err != nil {
 					log.Printf("failed to parse hcl file: %v", err)
 					continue
 				}
+
 				for _, b := range blocks {
 					if b.Type == block.TargetType {
-						startLine = b.StartLine
-						endLine = b.EndLine
+						fmt.Printf("Block:%v\n", b)
+						changesPlan.Changes = append(changesPlan.Changes, FunctionChange{
+							Path:               block.Path,
+							FunctionName:       block.TargetName,
+							NewFunctionContent: "TODO",
+						})
+						break
+					}
+				}
+
+				for _, a := range attrs {
+					if a.Name == block.TargetName {
+						fmt.Printf("Attribute:%v\n", a)
 						break
 					}
 				}

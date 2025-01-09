@@ -12,23 +12,19 @@ import (
 
 // Block represents an HCL block with start and end line information.
 type Block struct {
-	Type      string
-	Labels    []string
-	StartLine int
-	EndLine   int
+	Type   string
+	Labels []string
 }
 
 // Attribute represents an HCL attribute with start and end line information.
 type Attribute struct {
-	Name      string
-	StartLine int
-	EndLine   int
-	Value     string
+	Name  string
+	Value string
 }
 
 // ParseHCL parses the specified HCL file and returns the blocks and attributes.
 func ParseHCL(path string) ([]Block, []Attribute, error) {
-	if filepath.Ext(path) != ".hcl" {
+	if filepath.Ext(path) != ".hcl" && filepath.Ext(path) != ".tf" {
 		return nil, nil, fmt.Errorf("file is not an hcl file: %s", path)
 	}
 

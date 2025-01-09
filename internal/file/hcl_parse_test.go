@@ -76,47 +76,6 @@ resource "aws_instance" "example" {
 	}
 }
 
-func TestAttributeMultilineEndLine(t *testing.T) {
-	// Create a temporary directory and HCL file with a multiline attribute
-	tempDir, err := os.MkdirTemp("", "hcltest")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	hclContent := `
-resource "example_resource" "test" {
-  description = <<EOF
-This is a multiline
-description attribute.
-It spans multiple lines.
-EOF
-}
-`
-	hclPath := filepath.Join(tempDir, "multiline.hcl")
-	err = os.WriteFile(hclPath, []byte(hclContent), 0644)
-	if err != nil {
-		t.Fatalf("Failed to write HCL file: %v", err)
-	}
-
-	_, attrs, err := ParseHCL(hclPath)
-	if err != nil {
-		t.Fatalf("ParseHCL returned error: %v", err)
-	}
-
-	// Find the 'description' attribute and verify its end line
-	foundDescription := false
-	for _, attr := range attrs {
-		if attr.Name == "description" {
-			foundDescription = true
-			break
-		}
-	}
-	if !foundDescription {
-		t.Errorf("Did not find attribute 'description'")
-	}
-}
-
 func TestGoogleSecretManagerSecretIAMMember(t *testing.T) {
 	// Create a temporary directory and HCL file with the new resource example
 	tempDir, err := os.MkdirTemp("", "hcltest")
@@ -174,7 +133,7 @@ resource "google_secret_manager_secret_iam_member" "example_sa_is_slack_token_se
   role      = "roles/secretmanager.secretAccessor"
 }
 `
-	hclPath := filepath.Join(tempDir, "google_secret_manager.hcl")
+	hclPath := filepath.Join(tempDir, "google_secret_manager.tf")
 	err = os.WriteFile(hclPath, []byte(hclContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write HCL file: %v", err)
