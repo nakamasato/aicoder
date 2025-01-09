@@ -40,7 +40,12 @@ func TestParseGo(t *testing.T) {
 
 	// Check functions
 	expectedFunctions := []Function{
-		{Name: "main", StartLine: 6, EndLine: 8},
+		{
+			Name:      "main",
+			Content:   "\n\t\tfunc main() {\n\t\t\tfmt.Println(\"Hello, World!\")\n\t\t}\n",
+			StartLine: 6,
+			EndLine:   8,
+		},
 	}
 	if len(functions) != len(expectedFunctions) {
 		t.Fatalf("Expected %d functions, got %d", len(expectedFunctions), len(functions))
@@ -53,8 +58,8 @@ func TestParseGo(t *testing.T) {
 
 	// Check variables
 	expectedVariables := []Var{
-		{Name: "x", StartLine: 10, EndLine: 10},
-		{Name: "y", StartLine: 11, EndLine: 11},
+		{Name: "x", Content: "\n\t\tvar x int\n", StartLine: 10, EndLine: 10},
+		{Name: "y", Content: "\n\t\tvar y = 2\n", StartLine: 11, EndLine: 11},
 	}
 	if len(variables) != len(expectedVariables) {
 		t.Fatalf("Expected %d variables, got %d", len(expectedVariables), len(variables))
