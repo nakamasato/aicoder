@@ -124,6 +124,12 @@ type Change struct {
 	LineNum     int    `json:"line" jsonschema_description:"The start line number to replace conetent in the block. Please specify 0 if you want to add new content."`
 }
 
+type FunctionChange struct {
+	Path               string `json:"path" jsonschema_description:"Path to the file to be changed"`
+	FunctionName       string `json:"function" jsonschema_description:"Function name to be changed"`
+	NewFunctionContent string `json:"new_content" jsonschema_description:"The new content of the function."`
+}
+
 type TargetBlocks struct {
 	Changes []Block `json:"changes" jsonschema_description:"List of candidate blocks to be modified to achieve the goal"`
 }
@@ -282,6 +288,47 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 	return filteredFiles, nil
 }
 
+func (p *Planner) GenerateFunctionChangePlan(ctx context.Context, path string, fn file.Function) (*FunctionChange, error) {
+	content, err := p.llmClient.GenerateCompletion(ctx,
+		[]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
+			openai.UserMessage(fmt.Sprintf(`Please provide the new content of the function %s in the file %s
+## Current content
+
+`+"```"+`
+%s
+`+"```"+`
+
+Note that please do not include the function signature in the new content.
+
+Output Example:
+`+"```"+`
+fmt.Println("Hello, World!")
+`+"```"+`
+`, fn.Name, path, fn.Content)),
+		},
+		ChangeFileSchemaParam)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
+	}
+
+	var change ChangeFilePlan
+	err = json.Unmarshal([]byte(content), &change)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
+	}
+
+	plan := &FunctionChange{
+		Path: path,
+		FunctionName: fn.Name,
+		NewFunctionContent: change.NewContent,
+	}
+
+	fmt.Printf("Plan:\n---\n%s\n%s\n%s\n", plan.Path, plan.FunctionName, plan.NewFunctionContent)
+
+	return plan, nil
+}
+
 // GenerateChangesPlanWithRetry generates ChangesPlan with validation and retry attempts
 func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string, maxAttempts int, files []file.File) (*ChangesPlan, error) {
 
@@ -319,6 +366,10 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 				if fn.Name == block.TargetName {
 					startLine = fn.StartLine
 					endLine = fn.EndLine
+					_, err := p.GenerateFunctionChangePlan(ctx, block.Path, fn)
+					if err != nil {
+						return nil, fmt.Errorf("failed to generate plan: %w", err)
+					}
 					break
 				}
 			}
@@ -345,19 +396,6 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 		log.Printf("Block:%v LineNum: %d:%d\n", block, startLine, endLine)
 	}
 
-	return &ChangesPlan{}, nil
-
-	// // get blocks
-	// blocks, err := p.getBlocks(ctx, prompt_block)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get blocks: %w", err)
-	// }
-
-	// changesPlan, err := p.GenerateChangesPlan(ctx, prompt_block)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to generate plan: %w", err)
-	// }
-
 	// for attempt := 0; attempt < maxAttempts; attempt++ {
 	// 	if err = changesPlan.Validate(); err == nil {
 	// 		log.Println("Plan is valid")
@@ -374,6 +412,7 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 	// }
 
 	// return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
+	return &ChangesPlan{}, nil
 }
 
 func (p *Planner) getBlocks(ctx context.Context, prompt string) (*TargetBlocks, error) {
