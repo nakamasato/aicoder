@@ -120,7 +120,22 @@ type Change struct {
 	Add         string `json:"add" jsonschema_description:"Content to be added to the file"`
 	Delete      string `json:"delete" jsonschema_description:"Content to be deleted from the file. When this is specified, the line number must be provided. The content to be deleted must match the content in the file at the specified line number."`
 	Explanation string `json:"explanation" jsonschema_description:"Explanation for the change including why this change is needed and what is achieved by this change, etc."`
-	LineNum     int    `json:"line" jsonschema_description:"Line number to insert the content. Line number starts from 1. To create a new file, set the line number to 0"`
+	LineNum     int    `json:"line" jsonschema_description:"The start line number to replace conetent in the block. Please specify 0 if you want to add new content."`
+}
+
+type TargetBlocks struct {
+	Changes []Block `json:"changes" jsonschema_description:"List of candidate blocks to be modified to achieve the goal"`
+}
+
+type Block struct {
+	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
+	TargetType string `json:"target_type" jsonschema_description:"Type of the target block. e.g. class, function, struct, variable"`
+	TargetName string `json:"target_name" jsonschema_description:"Name of the target block. e.g. Command, runPlan, Client"`
+}
+
+type LineNum struct {
+	StartLine int `json:"start_line" jsonschema_description:"Start line number of the target block"`
+	EndLine   int `json:"end_line" jsonschema_description:"End line number of the target block"`
 }
 
 // ChangeFilePlan is used to replace the entire content of the specified file with the modified content.
@@ -142,6 +157,8 @@ type CodeValidation struct {
 
 var (
 	ChangesPlanSchema    = GenerateSchema[ChangesPlan]()
+	TargetBlocksSchema   = GenerateSchema[TargetBlocks]()
+	LinenumSchema        = GenerateSchema[LineNum]()
 	YesOrNoSchema        = GenerateSchema[YesOrNo]()
 	ChangeFileSchema     = GenerateSchema[ChangeFilePlan]()
 	CodeValidationSchema = GenerateSchema[CodeValidation]()
@@ -157,6 +174,20 @@ var (
 		Name:        openai.F("changes"),
 		Description: openai.F("List of changes to be made to meet the requirements"),
 		Schema:      openai.F(ChangesPlanSchema),
+		Strict:      openai.Bool(true),
+	}
+
+	TargetBlocksSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("block_changes"),
+		Description: openai.F("List of changes to be made to achieve the goal"),
+		Schema:      openai.F(TargetBlocksSchema),
+		Strict:      openai.Bool(true),
+	}
+
+	LinenumSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("line_num"),
+		Description: openai.F("The start and end line number of the target location"),
+		Schema:      openai.F(LinenumSchema),
 		Strict:      openai.Bool(true),
 	}
 
@@ -185,14 +216,14 @@ func GenerateSchema[T any]() interface{} {
 	return schema
 }
 
-// generateGoalPrompt creates a prompt for OpenAI based on the goal and repository data.
-func (p *Planner) GenerateGoalPrompt(ctx context.Context, goal string, files []file.File) (string, error) {
+// GeneratePromptExtractBlock creates a prompt to extract the block of code from the files.
+func (p *Planner) GeneratePromptExtractBlock(ctx context.Context, goal string, files []file.File) (string, error) {
 	// Create a comprehensive prompt
 	var builder strings.Builder
 	for _, f := range files {
 		builder.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---", f.Path, f.Content))
 	}
-	prompt := fmt.Sprintf(PLANNER_GOAL_PROMPT, builder.String(), goal)
+	prompt := fmt.Sprintf(PLANNER_EXTRACT_BLOCK_PROMPT, builder.String(), goal)
 
 	return prompt, nil
 }
@@ -259,32 +290,88 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 		return nil, fmt.Errorf("failed to remove irrelevant files: %w", err)
 	}
 
-	prompt, err := p.GenerateGoalPrompt(ctx, query, files)
+	prompt_block, err := p.GeneratePromptExtractBlock(ctx, query, files)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
 	}
 
-	changesPlan, err := p.GenerateChangesPlan(ctx, prompt)
+	// get blocks
+	blocks, err := p.getBlocks(ctx, prompt_block)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate plan: %w", err)
+		return nil, fmt.Errorf("failed to get blocks: %w", err)
+	}
+	for i, block := range blocks.Changes {
+		log.Printf("Block: %d:%v\n", i, block)
 	}
 
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		if err = changesPlan.Validate(); err == nil {
-			log.Println("Plan is valid")
-			return changesPlan, nil
-		}
-
-		log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
-		prompt = fmt.Sprintf(REPLAN_PROMPT, query, changesPlan, err)
-		changesPlan, err = p.GenerateChangesPlan(ctx, prompt)
+	// get line num
+	for _, block := range blocks.Changes {
+		startLine, endLine, err := file.GetBlockBaseFunctionLines(block.Path, block.TargetName)
 		if err != nil {
-			log.Printf("Failed to generate plan: %v", err)
+			log.Printf("failed to get lines for %s:%s:%s: %v", block.Path, block.TargetType, block.TargetName, err)
 			continue
 		}
+		log.Printf("Block:%v LineNum: %d:%d\n", block, startLine, endLine)
 	}
 
-	return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
+	return &ChangesPlan{}, nil
+
+	// // get blocks
+	// blocks, err := p.getBlocks(ctx, prompt_block)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get blocks: %w", err)
+	// }
+
+	// changesPlan, err := p.GenerateChangesPlan(ctx, prompt_block)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to generate plan: %w", err)
+	// }
+
+	// for attempt := 0; attempt < maxAttempts; attempt++ {
+	// 	if err = changesPlan.Validate(); err == nil {
+	// 		log.Println("Plan is valid")
+	// 		return changesPlan, nil
+	// 	}
+
+	// 	log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
+	// 	prompt_block = fmt.Sprintf(REPLAN_PROMPT, query, changesPlan, err)
+	// 	changesPlan, err = p.GenerateChangesPlan(ctx, prompt_block)
+	// 	if err != nil {
+	// 		log.Printf("Failed to generate plan: %v", err)
+	// 		continue
+	// 	}
+	// }
+
+	// return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
+}
+
+func (p *Planner) getBlocks(ctx context.Context, prompt string) (*TargetBlocks, error) {
+
+	content, err := p.llmClient.GenerateCompletion(ctx,
+		[]openai.ChatCompletionMessageParamUnion{
+			openai.UserMessage(prompt),
+		},
+		TargetBlocksSchemaParam)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
+	}
+
+	responseJSON, err := json.MarshalIndent(content, "", "  ")
+	if err != nil {
+		log.Printf("Error marshalling chat response: %v", err)
+	} else {
+		log.Printf("Chat completion response: %s", responseJSON)
+	}
+
+	var blks TargetBlocks
+	err = json.Unmarshal([]byte(content), &blks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
+	}
+
+	log.Printf("Plan: %v\n", blks.Changes)
+
+	return &blks, nil
 }
 
 // GenerateChangesPlan creates a ChangesPlan based on the prompt.

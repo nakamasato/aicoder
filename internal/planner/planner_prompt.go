@@ -1,6 +1,6 @@
 package planner
 
-const PLANNER_GOAL_PROMPT = `You are a helpful assistant that generates detailed action plans based on provided project information.
+const PLANNER_EXTRACT_BLOCK_PROMPT = `You are a helpful assistant that extract blocks to change to achieve the goal.
 -----------------------
 Relevant files:
 %s
@@ -8,11 +8,123 @@ Relevant files:
 ------------------------
 My goal is: %s
 
-Based on the above information, please provide a detailed plan with actionable steps to achieve this goal.
-Please specify the existing file to change or create to achieve the goal.
-For existing file, specify the line number (starting with 1) to change or delete.
+Please provide the complete set of locations as either a class name, a function name, a struct name, or a variable name.
 
-Multiple changes cannot be made for the same file. If you need multiple changes on the file. please update the target lines by adding and deleteing the content in the target lines.
+### Examples:
+
+Code:
+
+` + "```\n" + `
+package planner
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+	"strings"
+	"sync"
+
+	"github.com/invopop/jsonschema"
+	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/internal/file"
+	"github.com/nakamasato/aicoder/internal/llm"
+	"github.com/openai/openai-go"
+)
+
+type Planner struct {
+	llmClient llm.Client
+	entClient *ent.Client
+}
+
+func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
+	return &Planner{
+		llmClient: llmClient,
+		entClient: entClient,
+	}
+}
+` + "```\n" + `
+
+Output:
+
+{\"path\":\"internal/planner/planner.go\",\"target_type\":\"function\",\"target_name\":\"NewPlanner\"}
+
+------------------------
+`
+
+const PLANNER_LINE_NUM_PROMPT = `Please provide the start and end line number of the target location.
+
+## Target location
+
+target_type: %s
+target_name: %s
+
+## File Content
+
+` + "```\n" + `
+%s
+` + "```\n" + `
+
+## Examples
+
+target_type: function
+target_name: NewPlanner
+
+Code:
+
+` + "```\n" + `
+package planner
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"os"
+	"strings"
+	"sync"
+
+	"github.com/invopop/jsonschema"
+	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/internal/file"
+	"github.com/nakamasato/aicoder/internal/llm"
+	"github.com/openai/openai-go"
+)
+
+type Planner struct {
+	llmClient llm.Client
+	entClient *ent.Client
+}
+
+func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
+	return &Planner{
+		llmClient: llmClient,
+		entClient: entClient,
+	}
+}
+` + "```\n" + `
+
+Output:
+
+{\"start_line\":25,\"end_line\":30}
+
+Reason:
+---
+1 package planner
+2
+3 import (
+...
+...
+25 func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
+26 	return &Planner{
+27 		llmClient: llmClient,
+28		entClient: entClient,
+29	}
+30 }
+---
 `
 
 const VALIDATE_GOAL_PROMPT = `Please validate the given goal.
