@@ -1,5 +1,5 @@
 {
-  "generated_at": "2025-01-09T08:01:26.325913+09:00",
+  "generated_at": "2025-01-09T20:20:25.429538+09:00",
   "root": {
     "name": ".",
     "path": "",
@@ -126,7 +126,7 @@
                 "path": "cmd/apply/cmd.go",
                 "is_dir": false,
                 "blob_hash": "da45a0779f4213df4eb5d9fa0dac8f33ad631897",
-                "modified_at": "2025-01-05T06:40:16.075933818+09:00",
+                "modified_at": "2025-01-09T19:16:21.254252437+09:00",
                 "size": 1
               }
             ],
@@ -217,7 +217,7 @@
                 "path": "cmd/debug/cmd_parse.go",
                 "is_dir": false,
                 "blob_hash": "07bebde8c2252e4d71fbc882601fa23860d28465",
-                "modified_at": "2025-01-04T20:28:30.949161545+09:00",
+                "modified_at": "2025-01-09T18:24:32.728817898+09:00",
                 "size": 1
               },
               {
@@ -258,8 +258,8 @@
                 "name": "cmd.go",
                 "path": "cmd/plan/cmd.go",
                 "is_dir": false,
-                "blob_hash": "773de0e736b7c2b65a4fc1a0d24809a900ee37fe",
-                "modified_at": "2025-01-09T06:17:14.866967212+09:00",
+                "blob_hash": "1fa235a0d8d2f07472b7fc3d97e583fad01aaa28",
+                "modified_at": "2025-01-09T19:27:20.502205822+09:00",
                 "size": 1
               }
             ],
@@ -284,7 +284,7 @@
                 "path": "cmd/search/cmd.go",
                 "is_dir": false,
                 "blob_hash": "11172102479a082b11c8fb8df19a77462b68a5a2",
-                "modified_at": "2025-01-07T12:48:19.22237117+09:00",
+                "modified_at": "2025-01-09T19:16:21.255387638+09:00",
                 "size": 1
               }
             ],
@@ -342,16 +342,16 @@
                 "name": "applier.go",
                 "path": "internal/applier/applier.go",
                 "is_dir": false,
-                "blob_hash": "e850ca82c3b02d1b4bea53be4157833455746202",
-                "modified_at": "2025-01-05T06:40:16.078025118+09:00",
+                "blob_hash": "55114af8129e389a119271b9805ce97a0145e014",
+                "modified_at": "2025-01-09T19:16:21.256142452+09:00",
                 "size": 1
               },
               {
                 "name": "applier_test.go",
                 "path": "internal/applier/applier_test.go",
                 "is_dir": false,
-                "blob_hash": "9d7cf4a6d50ba85846bc6b8155eb95329270ec08",
-                "modified_at": "2025-01-05T06:40:16.079965458+09:00",
+                "blob_hash": "ffc23ef4954b523bf60019b1a7d065b9dfc4eb88",
+                "modified_at": "2025-01-09T19:10:13.298813729+09:00",
                 "size": 1
               }
             ],
@@ -367,13 +367,77 @@
                 "name": "file.go",
                 "path": "internal/file/file.go",
                 "is_dir": false,
-                "blob_hash": "573538213934a54316d09a1e896136618e94a872",
-                "modified_at": "2025-01-09T06:10:25.831120857+09:00",
+                "blob_hash": "99e3f01cdb172b4672a7a7a44541158bca6e602b",
+                "modified_at": "2025-01-09T18:48:52.509193677+09:00",
+                "size": 1
+              },
+              {
+                "name": "parse_go.go",
+                "path": "internal/file/parse_go.go",
+                "is_dir": false,
+                "blob_hash": "204bedffc81ca80cf414473aa1d285f90855c9a6",
+                "modified_at": "2025-01-09T17:36:53.286016308+09:00",
+                "size": 1
+              },
+              {
+                "name": "parse_go_test.go",
+                "path": "internal/file/parse_go_test.go",
+                "is_dir": false,
+                "blob_hash": "80b3a6906486fb0ea4456df2e1a80894fef4e75b",
+                "modified_at": "2025-01-09T17:37:47.039608418+09:00",
+                "size": 1
+              },
+              {
+                "name": "parse_hcl.go",
+                "path": "internal/file/parse_hcl.go",
+                "is_dir": false,
+                "blob_hash": "5ea3e7b4b005862db03f4f0d96d28745ceba9a05",
+                "modified_at": "2025-01-09T15:41:47.261750588+09:00",
+                "size": 1
+              },
+              {
+                "name": "parse_hcl_test.go",
+                "path": "internal/file/parse_hcl_test.go",
+                "is_dir": false,
+                "blob_hash": "0c7ad92b278c8ea2a62ad81f349ed1c3d40d34bc",
+                "modified_at": "2025-01-09T15:35:44.61958586+09:00",
+                "size": 1
+              },
+              {
+                "name": "parse_python.go",
+                "path": "internal/file/parse_python.go",
+                "is_dir": false,
+                "blob_hash": "17ab39c3546690be923f725688d56e889bea9853",
+                "modified_at": "2025-01-09T14:54:44.531407779+09:00",
+                "size": 1
+              },
+              {
+                "name": "parse_python_test.go",
+                "path": "internal/file/parse_python_test.go",
+                "is_dir": false,
+                "blob_hash": "61f2ef1c7a2b89e19f73599fdaf37b2d0bb8fcc6",
+                "modified_at": "2025-01-09T15:00:44.500988544+09:00",
+                "size": 1
+              },
+              {
+                "name": "update_go.go",
+                "path": "internal/file/update_go.go",
+                "is_dir": false,
+                "blob_hash": "0656eec6e4e903fd383992625e6eda5ffedba419",
+                "modified_at": "2025-01-09T17:40:10.041035182+09:00",
+                "size": 1
+              },
+              {
+                "name": "update_go_test.go",
+                "path": "internal/file/update_go_test.go",
+                "is_dir": false,
+                "blob_hash": "2faa9d666ea8075f20f7973df4ada1f2b5a1d841",
+                "modified_at": "2025-01-09T17:40:03.945979213+09:00",
                 "size": 1
               }
             ],
             "modified_at": "0001-01-01T00:00:00Z",
-            "size": 1
+            "size": 9
           },
           {
             "name": "llm",
@@ -418,7 +482,7 @@
                 "path": "internal/loader/loader_test.go",
                 "is_dir": false,
                 "blob_hash": "527e666ba506962103722f862d09883eeefd2d6f",
-                "modified_at": "2025-01-07T10:09:44.871595632+09:00",
+                "modified_at": "2025-01-09T19:16:21.256959269+09:00",
                 "size": 1
               }
             ],
@@ -451,16 +515,16 @@
                 "name": "planner.go",
                 "path": "internal/planner/planner.go",
                 "is_dir": false,
-                "blob_hash": "ff734e315437b40080271e1c890c9bbf380f5029",
-                "modified_at": "2025-01-09T07:59:55.176310732+09:00",
+                "blob_hash": "b37398a564cbc5bbfd0354deefa200c4532d0612",
+                "modified_at": "2025-01-09T20:18:15.831126971+09:00",
                 "size": 1
               },
               {
                 "name": "planner_prompt.go",
                 "path": "internal/planner/planner_prompt.go",
                 "is_dir": false,
-                "blob_hash": "171c8fb9786dadfa838f1c3bf731d4e7af99adc7",
-                "modified_at": "2025-01-09T06:58:29.110938158+09:00",
+                "blob_hash": "edbb7643ef5e54527f460c8023453dc6ceea197a",
+                "modified_at": "2025-01-09T19:44:35.482704798+09:00",
                 "size": 1
               }
             ],
@@ -511,7 +575,7 @@
           }
         ],
         "modified_at": "0001-01-01T00:00:00Z",
-        "size": 13
+        "size": 21
       },
       {
         "name": "main.go",
@@ -557,6 +621,6 @@
       }
     ],
     "modified_at": "0001-01-01T00:00:00Z",
-    "size": 44
+    "size": 52
   }
 }

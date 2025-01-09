@@ -342,7 +342,7 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 						break
 					}
 				}
-			} else if filepath.Ext(block.Path) == ".hcl" {
+			} else if filepath.Ext(block.Path) == ".hcl" || filepath.Ext(block.Path) == ".tf" {
 				blocks, _, err := file.ParseHCL(block.Path)
 				if err != nil {
 					log.Printf("failed to parse hcl file: %v", err)

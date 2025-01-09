@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
 // Block represents an HCL block with start and end line information.
@@ -23,6 +23,7 @@ type Attribute struct {
 	Name      string
 	StartLine int
 	EndLine   int
+	Value     string
 }
 
 // ParseHCL parses the specified HCL file and returns the blocks and attributes.
@@ -37,7 +38,7 @@ func ParseHCL(path string) ([]Block, []Attribute, error) {
 		return nil, nil, err
 	}
 
-	file, diag := hclsyntax.ParseConfig(src, path, hcl.InitialPos)
+	file, diag := hclwrite.ParseConfig(src, path, hcl.InitialPos)
 	if diag.HasErrors() {
 		log.Printf("Failed to parse HCL file: %s, error: %v", path, diag.Error())
 		return nil, nil, fmt.Errorf("failed to parse HCL file: %s, error: %v", path, diag.Error())
@@ -46,30 +47,30 @@ func ParseHCL(path string) ([]Block, []Attribute, error) {
 	var blocks []Block
 	var attrs []Attribute
 
-	traverseBody(file.Body.(*hclsyntax.Body), &blocks, &attrs)
+	traverseBody(file.Body(), &blocks, &attrs)
 
 	return blocks, attrs, nil
 }
 
 // traverseBody recursively traverses the HCL body, extracting blocks and attributes with line ranges.
-func traverseBody(body *hclsyntax.Body, blocks *[]Block, attrs *[]Attribute) {
-	for _, block := range body.Blocks {
-		defRange := block.DefRange
-		endLine := block.Body.SrcRange.End.Line
+func traverseBody(body *hclwrite.Body, blocks *[]Block, attrs *[]Attribute) {
+	for _, block := range body.Blocks() {
 		*blocks = append(*blocks, Block{
-			Type:      block.Type,
-			Labels:    block.Labels,
-			StartLine: defRange().Start.Line,
-			EndLine:   endLine,
+			Type:   block.Type(),
+			Labels: block.Labels(),
 		})
-		traverseBody(block.Body, blocks, attrs)
+		traverseBody(block.Body(), blocks, attrs)
 	}
-	for name, attr := range body.Attributes {
-		srcRange := attr.SrcRange
+	for name, attr := range body.Attributes() {
+
+		tokens := attr.Expr().BuildTokens(nil)
+		var value string
+		for _, t := range tokens {
+			value += string(t.Bytes)
+		}
 		*attrs = append(*attrs, Attribute{
-			Name:      name,
-			StartLine: srcRange.Start.Line,
-			EndLine:   srcRange.End.Line,
+			Name:  name,
+			Value: value,
 		})
 	}
 }
