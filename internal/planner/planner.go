@@ -33,7 +33,7 @@ func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
 // This strategy changes a file partially by specifying the content to be added or deleted at a specific line.
 // This migtht not work well empirically, seemingly because the line number is not properly predicted.
 type ChangesPlan struct {
-	Changes []FunctionChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
+	Changes []BlockChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
 }
 
 // NecessaryChangesPlan is a list of changes to be made to a file.
@@ -60,10 +60,9 @@ type Change struct {
 	LineNum     int    `json:"line" jsonschema_description:"The start line number to replace conetent in the block. Please specify 0 if you want to add new content."`
 }
 
-type FunctionChange struct {
-	Path               string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	FunctionName       string `json:"function" jsonschema_description:"Function name to be changed"`
-	NewFunctionContent string `json:"new_content" jsonschema_description:"The new content of the function."`
+type BlockChange struct {
+	Block      Block  `json:"block" jsonschema_description:"The target block to be changed"`
+	NewContent string `json:"new_content" jsonschema_description:"The new content of the block."`
 }
 
 type TargetBlocks struct {
@@ -230,11 +229,11 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 	return filteredFiles, nil
 }
 
-func (p *Planner) GenerateFunctionChangePlan(ctx context.Context, path string, fn file.Function) (*FunctionChange, error) {
+func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate string, block Block, blockContent string) (*BlockChange, error) {
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-			openai.UserMessage(fmt.Sprintf(GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, fn.Name, path, fn.Content)),
+			openai.UserMessage(fmt.Sprintf(promptTemplate, block.TargetName, block.Path, blockContent)),
 		},
 		ChangeFileSchemaParam)
 	if err != nil {
@@ -247,13 +246,12 @@ func (p *Planner) GenerateFunctionChangePlan(ctx context.Context, path string, f
 		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
 	}
 
-	plan := &FunctionChange{
-		Path:               path,
-		FunctionName:       fn.Name,
-		NewFunctionContent: change.NewContent,
+	plan := &BlockChange{
+		Block:      block,
+		NewContent: change.NewContent,
 	}
 
-	fmt.Printf("Plan:\n---\n%s\n%s\n%s\n", plan.Path, plan.FunctionName, plan.NewFunctionContent)
+	fmt.Printf("Plan:\n---\n%s\n%s\n%s\n", block.Path, block.TargetName, plan.NewContent)
 
 	return plan, nil
 }
@@ -314,6 +312,7 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 			// TODO: create Planner interface and implement planner for each Language
 			var startLine, endLine int
 			if filepath.Ext(block.Path) == ".go" {
+				// Use function as a unit of block for go
 				functions, _, err := file.ParseGo(block.Path)
 				if err != nil {
 					log.Printf("failed to parse go file: %v", err)
@@ -323,10 +322,12 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 					if fn.Name == block.TargetName {
 						startLine = fn.StartLine
 						endLine = fn.EndLine
-						fnChange, err := p.GenerateFunctionChangePlan(ctx, block.Path, fn)
+						fnChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, block, fn.Content)
+
 						if err != nil {
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
 						}
+
 						changesPlan.Changes = append(changesPlan.Changes, *fnChange)
 						break
 					}
@@ -341,11 +342,6 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 				for _, b := range blocks {
 					if b.Type == block.TargetType {
 						fmt.Printf("Block:%v\n", b)
-						changesPlan.Changes = append(changesPlan.Changes, FunctionChange{
-							Path:               block.Path,
-							FunctionName:       block.TargetName,
-							NewFunctionContent: "TODO",
-						})
 						break
 					}
 				}

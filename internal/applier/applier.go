@@ -26,14 +26,14 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 		// Capture the current value of change to avoid closure issues
 		change := change
 		g.Go(func() error {
-			targetPath := change.Path
+			targetPath := change.Block.Path
 			if dryrun {
-				originalContent, err := os.ReadFile(change.Path)
+				originalContent, err := os.ReadFile(change.Block.Path)
 				if err != nil {
-					return fmt.Errorf("failed to read original file (%s): %w", change.Path, err)
+					return fmt.Errorf("failed to read original file (%s): %w", change.Block.Path, err)
 				}
 				// Apply change in memory
-				modifiedContent, err := file.UpdateFuncInMemory(originalContent, change.FunctionName, change.NewFunctionContent)
+				modifiedContent, err := file.UpdateFuncInMemory(originalContent, change.Block.TargetName, change.NewContent)
 				if err != nil {
 					return fmt.Errorf("failed to apply change in memory: %w", err)
 				}
@@ -48,7 +48,7 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 				mu.Unlock()
 			} else {
 				// Apply change to temp file
-				err := file.UpdateFuncGo(targetPath, change.FunctionName, change.NewFunctionContent)
+				err := file.UpdateFuncGo(targetPath, change.Block.TargetName, change.NewContent)
 				if err != nil {
 					return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
 				}

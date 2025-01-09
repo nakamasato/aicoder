@@ -10,8 +10,8 @@ import (
 
 func TestApplyChanges(t *testing.T) {
 	changesPlan := &planner.ChangesPlan{
-		Changes: []planner.FunctionChange{
-			{Path: "testfile.go", FunctionName: "Func1", NewFunctionContent: " fmt.Println(\"This is the new content.\")"},
+		Changes: []planner.BlockChange{
+			{Block: planner.Block{Path: "testfile.go", TargetName: "Func1"}, NewContent: " fmt.Println(\"This is the new content.\")"},
 		},
 	}
 	tempDir := filepath.Join(os.TempDir(), "applier_test")
@@ -32,7 +32,7 @@ func Func1() {
 	}
 
 	for i := range changesPlan.Changes {
-		changesPlan.Changes[i].Path = filepath.Join(tempDir, changesPlan.Changes[i].Path)
+		changesPlan.Changes[i].Block.Path = filepath.Join(tempDir, changesPlan.Changes[i].Block.Path)
 	}
 
 	// Dry run
