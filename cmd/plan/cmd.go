@@ -44,7 +44,7 @@ func Command() *cobra.Command {
 func runPlan(cmd *cobra.Command, args []string) {
 	ctx := cmd.Context()
 	config := config.GetConfig()
-	goal := strings.Join(args, " ")
+	query := strings.Join(args, " ")
 
 	// Initialize OpenAI client
 	if openaiAPIKey != "" {
@@ -64,7 +64,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 
 	store := vectorstore.New(entClient, llmClient)
 
-	res, err := store.Search(ctx, config.Repository, config.CurrentContext, goal, 10)
+	res, err := store.Search(ctx, config.Repository, config.CurrentContext, query, 10)
 	if err != nil {
 		log.Fatalf("failed to search: %v", err)
 	}
@@ -80,8 +80,10 @@ func runPlan(cmd *cobra.Command, args []string) {
 		}
 		files = append(files, file.File{Path: doc.Document.Filepath, Content: content})
 	}
+
+	// Generate plan based on the query and the files
 	plnr := planner.NewPlanner(llmClient, entClient)
-	p, err := plnr.GenerateChangesPlanWithRetry(ctx, goal, maxAttempts, files)
+	p, err := plnr.GenerateChangesPlanWithRetry(ctx, query, maxAttempts, files)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}

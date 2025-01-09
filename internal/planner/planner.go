@@ -36,6 +36,12 @@ type ChangesPlan struct {
 	Changes []FunctionChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
 }
 
+// NecessaryChangesPlan is a list of changes to be made to a file.
+// This is a more comprehensive plan before making ChangesPlan.
+type NecessaryChangesPlan struct {
+	Steps []string `json:"steps" jsonschema_description:"List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal."`
+}
+
 func (c ChangesPlan) String() string {
 	jsonData, err := json.Marshal(c)
 	if err != nil {
@@ -93,12 +99,13 @@ type CodeValidation struct {
 }
 
 var (
-	ChangesPlanSchema    = GenerateSchema[ChangesPlan]()
-	TargetBlocksSchema   = GenerateSchema[TargetBlocks]()
-	LinenumSchema        = GenerateSchema[LineNum]()
-	YesOrNoSchema        = GenerateSchema[YesOrNo]()
-	ChangeFileSchema     = GenerateSchema[ChangeFilePlan]()
-	CodeValidationSchema = GenerateSchema[CodeValidation]()
+	ChangesPlanSchema          = GenerateSchema[ChangesPlan]()
+	TargetBlocksSchema         = GenerateSchema[TargetBlocks]()
+	LinenumSchema              = GenerateSchema[LineNum]()
+	YesOrNoSchema              = GenerateSchema[YesOrNo]()
+	ChangeFileSchema           = GenerateSchema[ChangeFilePlan]()
+	CodeValidationSchema       = GenerateSchema[CodeValidation]()
+	NecessaryChangesPlanSchema = GenerateSchema[NecessaryChangesPlan]()
 
 	ChangeFileSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        openai.F("changes"),
@@ -141,6 +148,13 @@ var (
 		Schema:      openai.F(YesOrNoSchema),
 		Strict:      openai.Bool(true),
 	}
+
+	NecessaryChangesPlanSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("necessary_changes"),
+		Description: openai.F("List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal."),
+		Schema:      openai.F(NecessaryChangesPlanSchema),
+		Strict:      openai.Bool(true),
+	}
 )
 
 func GenerateSchema[T any]() interface{} {
@@ -153,16 +167,14 @@ func GenerateSchema[T any]() interface{} {
 	return schema
 }
 
-// GeneratePromptExtractBlock creates a prompt to extract the block of code from the files.
-func (p *Planner) GeneratePromptExtractBlock(ctx context.Context, goal string, files []file.File) (string, error) {
+// GeneratePromptWithFiles creates a prompt to extract the block of code from the files.
+func (p *Planner) GeneratePromptWithFiles(ctx context.Context, prompt, goal string, files []file.File) (string, error) {
 	// Create a comprehensive prompt
 	var builder strings.Builder
 	for _, f := range files {
 		builder.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---", f.Path, f.Content))
 	}
-	prompt := fmt.Sprintf(PLANNER_EXTRACT_BLOCK_PROMPT, builder.String(), goal)
-
-	return prompt, nil
+	return fmt.Sprintf(prompt, builder.String(), goal), nil
 }
 
 // removeUnrelevantFiles removes irrelevant files from the list of files using LLM.
@@ -268,81 +280,92 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 		return nil, fmt.Errorf("failed to remove irrelevant files: %w", err)
 	}
 
-	prompt_block, err := p.GeneratePromptExtractBlock(ctx, query, files)
+	// Make a Plan: which file to change and what to change
+	prompt, err := p.GeneratePromptWithFiles(ctx, NECESSARY_CHANGES_PLAN_PROMPT, query, files)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
 	}
-
-	// get blocks
-	blocks, err := p.getBlocks(ctx, prompt_block)
+	content, err := p.llmClient.GenerateCompletion(ctx,
+		[]openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
+			openai.UserMessage(prompt),
+		},
+		NecessaryChangesPlanSchemaParam,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get blocks: %w", err)
+		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
 	}
-	for i, block := range blocks.Changes {
-		log.Printf("Block: %d:%v\n", i, block)
+	var plan NecessaryChangesPlan
+	if err = json.Unmarshal([]byte(content), &plan); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal necessary changes plan: %w", err)
 	}
-
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
+	}
 	changesPlan := &ChangesPlan{}
-	for _, block := range blocks.Changes {
-		// TODO: create Planner interface and implement planner for each Language
-		var startLine, endLine int
-		if filepath.Ext(block.Path) == ".go" {
-			functions, _, err := file.ParseGo(block.Path)
-			if err != nil {
-				log.Printf("failed to parse go file: %v", err)
-				continue
-			}
-			for _, fn := range functions {
-				if fn.Name == block.TargetName {
-					startLine = fn.StartLine
-					endLine = fn.EndLine
-					fnChange, err := p.GenerateFunctionChangePlan(ctx, block.Path, fn)
-					if err != nil {
-						return nil, fmt.Errorf("failed to generate plan: %w", err)
-					}
-					changesPlan.Changes = append(changesPlan.Changes, *fnChange)
-					break
-				}
-			}
-		} else if filepath.Ext(block.Path) == ".hcl" {
-			blocks, _, err := file.ParseHCL(block.Path)
-			if err != nil {
-				log.Printf("failed to parse hcl file: %v", err)
-				continue
-			}
-			for _, b := range blocks {
-				if b.Type == block.TargetType {
-					startLine = b.StartLine
-					endLine = b.EndLine
-					break
-				}
-			}
-		} else {
-			startLine, endLine, err = file.GetBlockBaseFunctionLines(block.Path, block.TargetName)
-			if err != nil {
-				log.Printf("failed to get lines for %s:%s:%s: %v", block.Path, block.TargetType, block.TargetName, err)
-				continue
-			}
+	for i, step := range plan.Steps {
+		log.Printf("Step %d: %s\n", i+1, step)
+
+		// identify blocks to change
+		prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, query, files)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
 		}
-		log.Printf("Block:%v LineNum: %d:%d\n", block, startLine, endLine)
+
+		// get blocks
+		blocks, err := p.getBlocks(ctx, prompt_block)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get blocks: %w", err)
+		}
+		for i, block := range blocks.Changes {
+			log.Printf("Block: %d:%v\n", i, block)
+		}
+
+		for _, block := range blocks.Changes {
+			// TODO: create Planner interface and implement planner for each Language
+			var startLine, endLine int
+			if filepath.Ext(block.Path) == ".go" {
+				functions, _, err := file.ParseGo(block.Path)
+				if err != nil {
+					log.Printf("failed to parse go file: %v", err)
+					continue
+				}
+				for _, fn := range functions {
+					if fn.Name == block.TargetName {
+						startLine = fn.StartLine
+						endLine = fn.EndLine
+						fnChange, err := p.GenerateFunctionChangePlan(ctx, block.Path, fn)
+						if err != nil {
+							return nil, fmt.Errorf("failed to generate plan: %w", err)
+						}
+						changesPlan.Changes = append(changesPlan.Changes, *fnChange)
+						break
+					}
+				}
+			} else if filepath.Ext(block.Path) == ".hcl" {
+				blocks, _, err := file.ParseHCL(block.Path)
+				if err != nil {
+					log.Printf("failed to parse hcl file: %v", err)
+					continue
+				}
+				for _, b := range blocks {
+					if b.Type == block.TargetType {
+						startLine = b.StartLine
+						endLine = b.EndLine
+						break
+					}
+				}
+			} else {
+				startLine, endLine, err = file.GetBlockBaseFunctionLines(block.Path, block.TargetName)
+				if err != nil {
+					log.Printf("failed to get lines for %s:%s:%s: %v", block.Path, block.TargetType, block.TargetName, err)
+					continue
+				}
+			}
+			log.Printf("Block:%v LineNum: %d:%d\n", block, startLine, endLine)
+		}
 	}
 
-	// for attempt := 0; attempt < maxAttempts; attempt++ {
-	// 	if err = changesPlan.Validate(); err == nil {
-	// 		log.Println("Plan is valid")
-	// 		return changesPlan, nil
-	// 	}
-
-	// 	log.Printf("Invalid plan (attempt: %d): %v", attempt+1, err)
-	// 	prompt_block = fmt.Sprintf(REPLAN_PROMPT, query, changesPlan, err)
-	// 	changesPlan, err = p.GenerateChangesPlan(ctx, prompt_block)
-	// 	if err != nil {
-	// 		log.Printf("Failed to generate plan: %v", err)
-	// 		continue
-	// 	}
-	// }
-
-	// return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
 	return changesPlan, nil
 }
 

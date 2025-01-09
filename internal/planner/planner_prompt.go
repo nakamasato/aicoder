@@ -1,13 +1,36 @@
 package planner
 
-const PLANNER_EXTRACT_BLOCK_PROMPT = `You are a helpful assistant that extract blocks to change to achieve the goal.
+const NECESSARY_CHANGES_PLAN_PROMPT = `Please make a plan to achieve the goal.
+A plan consists of a series of steps to execute in order.
+
+-----------------------
+Goal: %s
+
 -----------------------
 Relevant files:
 %s
 
-------------------------
-My goal is: %s
+-----------------------
+Example:
 
+1. Need to update [Function] in [File] to support [Feature].
+2. Need to create [File] and implement [Function] to support [Feature].
+3. Call [Function] created in step 2 in [File].
+etc.
+
+Each step will be corresponding to one change in a function.
+`
+
+const PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT = `You are a helpful assistant that extract blocks to execute the given step.
+Please consider necessary changes to do the given step.
+-----------------------
+Step: %s
+
+-----------------------
+Files option:
+%s
+
+------------------------
 Please provide the complete set of locations as either a class name, a function name, a struct name, or a variable name.
 
 ### Examples:
