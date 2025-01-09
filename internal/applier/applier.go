@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
+	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"golang.org/x/sync/errgroup"
 )
@@ -31,7 +32,7 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 				targetPath = change.Path + ".tmp"
 			}
 			// Apply change to temp file
-			_, _, err := applyChange(change, targetPath)
+			err := file.UpdateFuncGo(change.Path, change.FunctionName, change.NewFunctionContent)
 			if err != nil {
 				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
 			}

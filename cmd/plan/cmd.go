@@ -89,9 +89,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	for _, change := range p.Changes {
 		fmt.Println("-----------------------------")
 		fmt.Printf("Change %s:\n", change.Path)
-		fmt.Printf("  Add: %s\n", change.Add)
-		fmt.Printf("  Delete: %s\n", change.Delete)
-		fmt.Printf("  Line: %d\n", change.LineNum)
+		fmt.Printf("  Add: %s\n", change.FunctionName)
 	}
 
 	// Save plan to file

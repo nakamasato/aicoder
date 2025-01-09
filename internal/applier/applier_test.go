@@ -10,17 +10,16 @@ import (
 
 func TestApplyChanges(t *testing.T) {
 	changesPlan := &planner.ChangesPlan{
-		Changes: []planner.Change{
+		Changes: []planner.FunctionChange{
 			{
-				Path:    "testfile.txt",
-				LineNum: 2,
-				Add:     " Added text.",
-				Delete:  "Text to be deleted.",
+				Path:               "testfile.txt",
+				FunctionName:       "Func1",
+				NewFunctionContent: " Added text.",
 			},
 			{
-				Path:    "newfile.txt",
-				LineNum: 0,
-				Add:     "Content of the newly created file.",
+				Path:               "newfile.txt",
+				FunctionName:       "Func2",
+				NewFunctionContent: " Added text.",
 			},
 		},
 	}

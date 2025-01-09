@@ -1,7 +1,6 @@
 package planner
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -30,80 +29,11 @@ func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
 	}
 }
 
-// ChangesPlan is a list of changes each of which consists of PATH, ADD, DELETE, LINE and EXPLANATION.
+// ChangesPlan is a list of changes each of which consists of Path, FunctionName and NewFunctionContent.
 // This strategy changes a file partially by specifying the content to be added or deleted at a specific line.
 // This migtht not work well empirically, seemingly because the line number is not properly predicted.
 type ChangesPlan struct {
-	Changes []Change `json:"changes" jsonschema_description:"List of changes to be made to achieve the goal"`
-}
-
-func (c ChangesPlan) Validate() error {
-	errorsMap := make(map[string][]error)
-	changesPerFile := make(map[string]int)
-	var err error
-	for _, change := range c.Changes {
-		changesPerFile[change.Path]++
-		if change.Path == "" {
-			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("path is required for all changes"))
-		}
-		if change.Add == "" && change.Delete == "" {
-			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("either add or delete content is required for all changes"))
-		}
-		if change.LineNum < 0 {
-			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("line number must be greater than or equal to 0"))
-		}
-		_, err := os.Stat(change.Path)
-		if os.IsNotExist(err) && change.LineNum != 0 {
-			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("file does not exist at path: %s", change.Path))
-		}
-		if err == nil && change.LineNum == 0 {
-			errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("file already exists at path: %s, need to specify the line num.", change.Path))
-		}
-		if change.Delete != "" {
-			file, err := os.Open(change.Path)
-			if err != nil {
-				errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("failed to open file: %v", err))
-				continue
-			}
-			defer file.Close()
-
-			scanner := bufio.NewScanner(file)
-			currentLine := 1
-			found := false
-			for scanner.Scan() {
-				if currentLine == change.LineNum {
-					if scanner.Text() != change.Delete {
-						errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("content to delete does not match at line %d", change.LineNum))
-					} else {
-						found = true
-					}
-					break
-				}
-				currentLine++
-			}
-
-			if !found {
-				errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("line number %d not found in file", change.LineNum))
-			}
-
-			if err := scanner.Err(); err != nil {
-				errorsMap[change.Path] = append(errorsMap[change.Path], fmt.Errorf("error reading file: %v", err))
-			}
-		}
-	}
-	for path, count := range changesPerFile {
-		if count > 1 {
-			errorsMap[path] = append(errorsMap[path], fmt.Errorf("multiple changes for the same file"))
-		}
-	}
-	if len(errorsMap) > 0 {
-		var errorMessages []string
-		for path, errors := range errorsMap {
-			errorMessages = append(errorMessages, fmt.Sprintf("path: %s, errors: %v", path, errors))
-		}
-		err = fmt.Errorf("validation failed: %v", errorMessages)
-	}
-	return err
+	Changes []FunctionChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
 }
 
 func (c ChangesPlan) String() string {
@@ -319,8 +249,8 @@ fmt.Println("Hello, World!")
 	}
 
 	plan := &FunctionChange{
-		Path: path,
-		FunctionName: fn.Name,
+		Path:               path,
+		FunctionName:       fn.Name,
 		NewFunctionContent: change.NewContent,
 	}
 
@@ -352,7 +282,7 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 		log.Printf("Block: %d:%v\n", i, block)
 	}
 
-	// get line num
+	changesPlan := &ChangesPlan{}
 	for _, block := range blocks.Changes {
 		// TODO: create Planner interface and implement planner for each Language
 		var startLine, endLine int
@@ -366,10 +296,11 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 				if fn.Name == block.TargetName {
 					startLine = fn.StartLine
 					endLine = fn.EndLine
-					_, err := p.GenerateFunctionChangePlan(ctx, block.Path, fn)
+					fnChange, err := p.GenerateFunctionChangePlan(ctx, block.Path, fn)
 					if err != nil {
 						return nil, fmt.Errorf("failed to generate plan: %w", err)
 					}
+					changesPlan.Changes = append(changesPlan.Changes, *fnChange)
 					break
 				}
 			}
@@ -412,7 +343,7 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 	// }
 
 	// return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
-	return &ChangesPlan{}, nil
+	return changesPlan, nil
 }
 
 func (p *Planner) getBlocks(ctx context.Context, prompt string) (*TargetBlocks, error) {
