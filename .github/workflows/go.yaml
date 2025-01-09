@@ -45,7 +45,12 @@ jobs:
         run: go run main.go db migrate
 
       - name: Run tests
-        run: make test
+        run: go test -coverprofile="coverage.txt" -covermode=atomic ./...
+
+      - name: codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   golangci-lint:
     runs-on: ubuntu-latest
