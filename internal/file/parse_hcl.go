@@ -10,17 +10,19 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
-// Block represents an HCL block.
+// Block represents an HCL block with start and end line information.
 type Block struct {
-	Type   string
-	Labels []string
-	Line   int
+	Type      string
+	Labels    []string
+	StartLine int
+	EndLine   int
 }
 
-// Attribute represents an HCL attribute.
+// Attribute represents an HCL attribute with start and end line information.
 type Attribute struct {
-	Name string
-	Line int
+	Name      string
+	StartLine int
+	EndLine   int
 }
 
 // ParseHCL parses the specified HCL file and returns the blocks and attributes.
@@ -49,22 +51,25 @@ func ParseHCL(path string) ([]Block, []Attribute, error) {
 	return blocks, attrs, nil
 }
 
-// traverseBody recursively traverses the HCL body, extracting blocks and attributes.
+// traverseBody recursively traverses the HCL body, extracting blocks and attributes with line ranges.
 func traverseBody(body *hclsyntax.Body, blocks *[]Block, attrs *[]Attribute) {
 	for _, block := range body.Blocks {
-		pos := block.DefRange().Start.Line
+		defRange := block.DefRange
+		endLine := block.Body.SrcRange.End.Line
 		*blocks = append(*blocks, Block{
-			Type:   block.Type,
-			Labels: block.Labels,
-			Line:   pos,
+			Type:      block.Type,
+			Labels:    block.Labels,
+			StartLine: defRange().Start.Line,
+			EndLine:   endLine,
 		})
 		traverseBody(block.Body, blocks, attrs)
 	}
 	for name, attr := range body.Attributes {
-		pos := attr.SrcRange.Start.Line
+		srcRange := attr.SrcRange
 		*attrs = append(*attrs, Attribute{
-			Name: name,
-			Line: pos,
+			Name:      name,
+			StartLine: srcRange.Start.Line,
+			EndLine:   srcRange.End.Line,
 		})
 	}
 }

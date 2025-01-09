@@ -12,15 +12,6 @@ type File struct {
 	Content string
 }
 
-type Function struct {
-	Name string
-	Line int
-}
-
-type Var struct {
-	Name string
-	Line int
-}
 
 // GetFunctionLines returns the start and end line numbers of a function in a file.
 // Naive implementation for Golang or Java. TODO: improve the mechanism to get lines.

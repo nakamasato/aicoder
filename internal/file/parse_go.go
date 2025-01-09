@@ -9,7 +9,19 @@ import (
 	"path/filepath"
 )
 
-// ParseGo parses a go file and returns the functions in the file.
+type Function struct {
+	Name      string
+	StartLine int
+	EndLine   int
+}
+
+type Var struct {
+	Name      string
+	StartLine int
+	EndLine   int
+}
+
+// ParseGo parses a go file and returns the functions and variables with their line ranges.
 func ParseGo(path string) ([]Function, []Var, error) {
 
 	fs := token.NewFileSet()
@@ -29,10 +41,12 @@ func ParseGo(path string) ([]Function, []Var, error) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		// funcs
 		if fn, ok := n.(*ast.FuncDecl); ok {
-			pos := fs.Position(fn.Pos())
+			startPos := fs.Position(fn.Pos())
+			endPos := fs.Position(fn.End())
 			functions = append(functions, Function{
-				Name: fn.Name.Name,
-				Line: pos.Line,
+				Name:      fn.Name.Name,
+				StartLine: startPos.Line,
+				EndLine:   endPos.Line,
 			})
 		}
 		// vars
@@ -40,10 +54,12 @@ func ParseGo(path string) ([]Function, []Var, error) {
 			for _, spec := range genDecl.Specs {
 				if valueSpec, ok := spec.(*ast.ValueSpec); ok {
 					for _, name := range valueSpec.Names {
-						pos := fs.Position(name.Pos())
+						startPos := fs.Position(name.Pos())
+						endPos := fs.Position(name.End())
 						variables = append(variables, Var{
-							Name: name.Name,
-							Line: pos.Line,
+							Name:      name.Name,
+							StartLine: startPos.Line,
+							EndLine:   endPos.Line,
 						})
 					}
 				}

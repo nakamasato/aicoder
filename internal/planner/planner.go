@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -306,10 +307,40 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 
 	// get line num
 	for _, block := range blocks.Changes {
-		startLine, endLine, err := file.GetBlockBaseFunctionLines(block.Path, block.TargetName)
-		if err != nil {
-			log.Printf("failed to get lines for %s:%s:%s: %v", block.Path, block.TargetType, block.TargetName, err)
-			continue
+		// TODO: create Planner interface and implement planner for each Language
+		var startLine, endLine int
+		if filepath.Ext(block.Path) == ".go" {
+			functions, _, err := file.ParseGo(block.Path)
+			if err != nil {
+				log.Printf("failed to parse go file: %v", err)
+				continue
+			}
+			for _, fn := range functions {
+				if fn.Name == block.TargetName {
+					startLine = fn.StartLine
+					endLine = fn.EndLine
+					break
+				}
+			}
+		} else if filepath.Ext(block.Path) == ".hcl" {
+			blocks, _, err := file.ParseHCL(block.Path)
+			if err != nil {
+				log.Printf("failed to parse hcl file: %v", err)
+				continue
+			}
+			for _, b := range blocks {
+				if b.Type == block.TargetType {
+					startLine = b.StartLine
+					endLine = b.EndLine
+					break
+				}
+			}
+		} else {
+			startLine, endLine, err = file.GetBlockBaseFunctionLines(block.Path, block.TargetName)
+			if err != nil {
+				log.Printf("failed to get lines for %s:%s:%s: %v", block.Path, block.TargetType, block.TargetName, err)
+				continue
+			}
 		}
 		log.Printf("Block:%v LineNum: %d:%d\n", block, startLine, endLine)
 	}

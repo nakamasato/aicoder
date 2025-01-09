@@ -1,4 +1,3 @@
-// parse_go_test.go
 package file
 
 import (
@@ -41,27 +40,27 @@ func TestParseGo(t *testing.T) {
 
 	// Check functions
 	expectedFunctions := []Function{
-		{Name: "main", Line: 6},
+		{Name: "main", StartLine: 6, EndLine: 8},
 	}
 	if len(functions) != len(expectedFunctions) {
 		t.Fatalf("Expected %d functions, got %d", len(expectedFunctions), len(functions))
 	}
 	for i, fn := range functions {
-		if fn.Name != expectedFunctions[i].Name || fn.Line != expectedFunctions[i].Line {
+		if fn.Name != expectedFunctions[i].Name || fn.StartLine != expectedFunctions[i].StartLine || fn.EndLine != expectedFunctions[i].EndLine {
 			t.Errorf("Expected function %v, got %v", expectedFunctions[i], fn)
 		}
 	}
 
 	// Check variables
 	expectedVariables := []Var{
-		{Name: "x", Line: 10},
-		{Name: "y", Line: 11},
+		{Name: "x", StartLine: 10, EndLine: 10},
+		{Name: "y", StartLine: 11, EndLine: 11},
 	}
 	if len(variables) != len(expectedVariables) {
 		t.Fatalf("Expected %d variables, got %d", len(expectedVariables), len(variables))
 	}
 	for i, v := range variables {
-		if v.Name != expectedVariables[i].Name || v.Line != expectedVariables[i].Line {
+		if v.Name != expectedVariables[i].Name || v.StartLine != expectedVariables[i].StartLine || v.EndLine != expectedVariables[i].EndLine {
 			t.Errorf("Expected variable %v, got %v", expectedVariables[i], v)
 		}
 	}
