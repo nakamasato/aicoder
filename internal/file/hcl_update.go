@@ -4,23 +4,27 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 )
 
-// updateAttributes updates specific attributes in the first resource block found
-func UpdateAttributes(f *hclwrite.File, attrs map[string]string) {
+// updateAttributes updates specific attributes in the specified resource block
+func UpdateAttributes(f *hclwrite.File, resourceName string, attrs map[string]string) {
 	body := f.Body()
 	blocks := body.Blocks()
 
 	for _, block := range blocks {
 		if block.Type() == "resource" {
-			for attrName, attrValue := range attrs {
-				if block.Body().GetAttribute(attrName) != nil {
-					block.Body().SetAttributeValue(attrName, cty.StringVal(attrValue))
+			labels := block.Labels()
+			if len(labels) > 1 && labels[1] == resourceName {
+				for attrName, attrValue := range attrs {
+					if block.Body().GetAttribute(attrName) != nil {
+						block.Body().SetAttributeValue(attrName, cty.StringVal(attrValue))
+					}
 				}
+				break // Assuming you only want to update the first matching block
 			}
-			break // Assuming you only want to update the first matching block
 		}
 	}
 }
@@ -68,4 +72,17 @@ func UpdateBlock(f *hclwrite.File, resourceName string, newContent string) {
 			}
 		}
 	}
+}
+
+// AddBlock adds a new block to the HCL file.
+func AddBlock(f *hclwrite.File, blockType string, labels []string, blockContent string) {
+	block := hclwrite.NewBlock(blockType, labels)
+	body := block.Body()
+	body.AppendUnstructuredTokens(hclwrite.Tokens{
+		&hclwrite.Token{
+			Type:  hclsyntax.TokenIdent,
+			Bytes: []byte(blockContent),
+		},
+	})
+	f.Body().AppendBlock(block)
 }
