@@ -74,6 +74,7 @@ type Block struct {
 	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
 	TargetType string `json:"target_type" jsonschema_description:"Type of the target block. e.g. class, function, struct, variable"`
 	TargetName string `json:"target_name" jsonschema_description:"Name of the target block. e.g. Command, runPlan, Client"`
+	Content    string `json:"content" jsonschema_description:"The content of the block"`
 }
 
 type LineNum struct {
@@ -166,12 +167,22 @@ func GenerateSchema[T any]() interface{} {
 	return schema
 }
 
-// GeneratePromptWithFiles creates a prompt to extract the block of code from the files.
-func (p *Planner) GeneratePromptWithFiles(ctx context.Context, prompt, goal string, files []file.File) (string, error) {
+// GeneratePromptWithFiles creates a prompt to extract blocks of the given files to modify
+func (p *Planner) GeneratePromptWithFiles(ctx context.Context, prompt, goal string, files []file.File, fileBlocks map[string][]Block) (string, error) {
 	// Create a comprehensive prompt
 	var builder strings.Builder
 	for _, f := range files {
-		builder.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---", f.Path, f.Content))
+		var blockStr string
+		blocks, ok := fileBlocks[f.Path]
+		if !ok {
+			blockStr = "No blocks found"
+		} else {
+			for _, b := range blocks {
+				blockStr += fmt.Sprintf("\n- %s: %s", b.TargetType, b.TargetName)
+			}
+		}
+
+		builder.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---\n--- blocks ---\n%s", f.Path, f.Content, blockStr))
 	}
 	return fmt.Sprintf(prompt, builder.String(), goal), nil
 }
@@ -258,8 +269,8 @@ func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate st
 	return plan, nil
 }
 
-// GenerateChangesPlanWithRetry generates ChangesPlan with validation and retry attempts
-func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string, maxAttempts int, files []file.File) (*ChangesPlan, error) {
+// GenerateChangesPlan2 generates ChangesPlan for Go language.
+func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAttempts int, files []file.File) (*ChangesPlan, error) {
 
 	// identify files to change
 	files, err := p.removeUnrelevantFiles(ctx, query, files)
@@ -267,8 +278,35 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 		return nil, fmt.Errorf("failed to remove irrelevant files: %w", err)
 	}
 
+	// identify blocks to change
+	fileBlocks := map[string][]Block{}
+	for i, f := range files {
+		log.Printf("File %d: %s\n", i+1, f.Path)
+		if filepath.Ext(f.Path) == ".go" {
+			functions, _, err := file.ParseGo(f.Path)
+			if err != nil {
+				log.Printf("failed to parse go file: %v", err)
+				continue
+			}
+			for _, fn := range functions {
+				log.Printf("Function: %s\n", fn.Name)
+				fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: "function", TargetName: fn.Name, Content: fn.Content})
+			}
+		} else if filepath.Ext(f.Path) == ".hcl" || filepath.Ext(f.Path) == ".tf" {
+			blocks, _, err := file.ParseHCL(f.Path)
+			if err != nil {
+				log.Printf("failed to parse hcl file: %v", err)
+				continue
+			}
+			for _, b := range blocks {
+				log.Printf("Block: Type:%s, Labels:%s\n", b.Type, strings.Join(b.Labels, ","))
+				fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: b.Type, TargetName: strings.Join(b.Labels, ","), Content: b.Content})
+			}
+		}
+	}
+
 	// Make a Plan: which file to change and what to change
-	prompt, err := p.GeneratePromptWithFiles(ctx, NECESSARY_CHANGES_PLAN_PROMPT, query, files)
+	prompt, err := p.GeneratePromptWithFiles(ctx, NECESSARY_CHANGES_PLAN_PROMPT, query, files, fileBlocks)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
 	}
@@ -296,7 +334,7 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 		log.Printf("Step %d: %s\n", i+1, step)
 
 		// identify blocks to change
-		prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, query, files)
+		prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, query, files, fileBlocks)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
 		}
@@ -310,43 +348,33 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 			log.Printf("Block: %d:%v\n", i, block)
 		}
 
-		for _, block := range blocks.Changes {
+		for _, blkToChange := range blocks.Changes {
 			// TODO: create Planner interface and implement planner for each Language
 			var startLine, endLine int
-			if filepath.Ext(block.Path) == ".go" {
+			if filepath.Ext(blkToChange.Path) == ".go" {
 				// Use function as a unit of block for go
-				functions, _, err := file.ParseGo(block.Path)
-				if err != nil {
-					log.Printf("failed to parse go file: %v", err)
-					continue
-				}
-				for _, fn := range functions {
-					if fn.Name == block.TargetName {
-						startLine = fn.StartLine
-						endLine = fn.EndLine
-						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, block, fn.Content)
+				blocks := fileBlocks[blkToChange.Path]
+				for _, blk := range blocks {
+					if blk.TargetName == blkToChange.TargetName && blk.TargetType == blkToChange.TargetType {
+						fmt.Printf("Block:%v\n", blk)
+						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, blkToChange, blk.Content)
 						if err != nil {
+							log.Panicln("failed to generate plan: %w", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
 						}
-
 						changesPlan.Changes = append(changesPlan.Changes, *blkChange)
 						break
 					}
 				}
-			} else if filepath.Ext(block.Path) == ".hcl" || filepath.Ext(block.Path) == ".tf" {
+			} else if filepath.Ext(blkToChange.Path) == ".hcl" || filepath.Ext(blkToChange.Path) == ".tf" {
 				// Use block as a unit of block for hcl
-				blocks, _, err := file.ParseHCL(block.Path)
-				if err != nil {
-					log.Printf("failed to parse hcl file: %v", err)
-					continue
-				}
-				fmt.Printf("Block.TargetType:%s, Block.TargetName:%s\n", block.TargetType, block.TargetName)
+				blocks := fileBlocks[blkToChange.Path]
+				fmt.Printf("Block.TargetType:%s, Block.TargetName:%s\n", blkToChange.TargetType, blkToChange.TargetName)
 
-				for _, b := range blocks {
-					if b.Type == block.TargetType { // variable, resource, module, etc.
-						fmt.Printf("Block:%v\n", b)
-
-						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, block, b.Content)
+				for _, blk := range blocks {
+					if blk.TargetName == blkToChange.TargetName && blk.TargetType == blkToChange.TargetType { // variable, resource, module, etc.
+						fmt.Printf("Block:%v\n", blk)
+						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, blkToChange, blk.Content)
 						if err != nil {
 							log.Panicln("failed to generate plan: %w", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
@@ -358,13 +386,13 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 				}
 				// TODO: enable to change attr in hcl
 			} else {
-				startLine, endLine, err = file.GetBlockBaseFunctionLines(block.Path, block.TargetName)
+				startLine, endLine, err = file.GetBlockBaseFunctionLines(blkToChange.Path, blkToChange.TargetName)
 				if err != nil {
-					log.Printf("failed to get lines for %s:%s:%s: %v", block.Path, block.TargetType, block.TargetName, err)
+					log.Printf("failed to get lines for %s:%s:%s: %v", blkToChange.Path, blkToChange.TargetType, blkToChange.TargetName, err)
 					continue
 				}
 			}
-			log.Printf("Block:%v LineNum: %d:%d\n", block, startLine, endLine)
+			log.Printf("Block:%v LineNum: %d:%d\n", blkToChange, startLine, endLine)
 		}
 	}
 
