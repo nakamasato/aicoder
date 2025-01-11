@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -30,12 +31,17 @@ resource "google_compute_instance" "example_instance" {
   machine_type = "n1-standard-1"
   zone         = "us-central1-a"
 }
-
-
 `)
 
+	// 一時ファイルに書き出し
+	tmpfile, err := os.CreateTemp("", "example-*.tf")
+	if err != nil {
+		log.Fatalf("failed to create temp file: %s", err)
+	}
+	defer os.Remove(tmpfile.Name()) // プログラム終了時にファイルを削除
+
 	// HCL ファイルをパース
-	f, diags := hclwrite.ParseConfig(tfContent, "example.tf", hcl.InitialPos)
+	f, diags := hclwrite.ParseConfig(tfContent, tmpfile.Name(), hcl.InitialPos)
 	if diags.HasErrors() {
 		log.Fatalf("failed to parse HCL: %s", diags.Error())
 	}
@@ -66,6 +72,11 @@ role      = "roles/secretmanager.admin"
 
 	// 変更後の内容を取得
 	modifiedContent := f.Bytes()
+
+	// Save the modified content to a file
+	if err := os.WriteFile(tmpfile.Name(), modifiedContent, 0644); err != nil {
+		log.Fatalf("failed to write updated file: %s", err)
+	}
 
 	// Diffを生成
 	dmp := diffmatchpatch.New()

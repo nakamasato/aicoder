@@ -74,7 +74,7 @@ func UpdateBlock(f *hclwrite.File, blockType, resourceName string, newContent st
 	blocks := body.Blocks()
 
 	for i, block := range blocks {
-		log.Println(i, " blockType: ", blockType, " resourceName: ", resourceName, " block.Type: ", block.Type())
+		log.Println(i, " blockType: ", blockType, ", resourceName: ", resourceName, ", block.Type: ", block.Type(), ", block.Labels: ", strings.Join(block.Labels(), ","))
 		if block.Type() == blockType && strings.Join(block.Labels(), ",") == resourceName {
 			log.Println("found matched block for ", resourceName)
 			// Parse the new content into a temporary HCL file

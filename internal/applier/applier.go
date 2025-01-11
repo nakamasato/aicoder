@@ -63,6 +63,9 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to update block (%s): %w", targetPath, err)
 			}
+			if err := os.WriteFile(targetPath, f.Bytes(), 0644); err != nil {
+				return fmt.Errorf("failed to write updated file: %w", err)
+			}
 		} else {
 			return fmt.Errorf("unsupported file type: %s", change.Block.Path)
 		}
