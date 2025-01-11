@@ -77,7 +77,7 @@ Output:
 ------------------------
 `
 
-const GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO = `Please provide the new content of the function %s in the file %s
+const GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO = `Please provide the new content of the Go function '%s' in the file '%s'
 ## Current content
 
 `+"```"+`
@@ -90,6 +90,35 @@ Output Example:
 `+"```"+`
 fmt.Println("Hello, World!")
 `+"```"+`
+`
+
+const GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL = `Please provide the new content of the HCL block %s in the file %s
+
+## Current content
+
+`+"```"+`
+%s
+`+"```"+`
+
+Example:
+
+To replace the content of a block like this
+
+`+"```"+`
+resource "google_storage_bucket" "example_bucket" {
+  name     = "example-bucket"
+  location = "US"
+}
+`+"```"+`
+
+Output should be like this:
+
+`+"```"+`
+name     = "new-example-bucket"
+location = "EU"
+`+"```"+`
+
+Just provide the content of the block, not including the block name and lables.
 `
 
 const PLANNER_LINE_NUM_PROMPT = `Please provide the start and end line number of the target location.

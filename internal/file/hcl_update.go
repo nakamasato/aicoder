@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
@@ -50,8 +51,24 @@ func UpdateResourceNames(f *hclwrite.File, newNames map[string]string) {
 	}
 }
 
+func GetBlockContent(f *hclwrite.File, resourceName string) (string, error) {
+	body := f.Body()
+	blocks := body.Blocks()
+
+	for _, block := range blocks {
+		if block.Type() == "resource" {
+			labels := block.Labels()
+			if len(labels) > 1 && labels[1] == resourceName {
+				tokens := block.Body().BuildTokens(nil)
+				return string(hclwrite.Format(tokens.Bytes())), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("resource block not found: %s", resourceName)
+}
+
 // updateBlock replaces the entire content of the specified resource block with new content
-func UpdateBlock(f *hclwrite.File, resourceName string, newContent string) {
+func UpdateBlock(f *hclwrite.File, resourceName string, newContent string) error {
 	body := f.Body()
 	blocks := body.Blocks()
 
@@ -68,10 +85,11 @@ func UpdateBlock(f *hclwrite.File, resourceName string, newContent string) {
 				// Clear the existing block body and append new tokens
 				block.Body().Clear()
 				block.Body().AppendUnstructuredTokens(tempFile.Body().BuildTokens(nil))
-				break // Assuming you only want to update the first matching block
+				return nil
 			}
 		}
 	}
+	return fmt.Errorf("resource block not found: %s", resourceName)
 }
 
 // AddBlock adds a new block to the HCL file.

@@ -12,8 +12,9 @@ import (
 
 // Block represents an HCL block with start and end line information.
 type Block struct {
-	Type   string
-	Labels []string
+	Type    string
+	Content string
+	Labels  []string
 }
 
 // Attribute represents an HCL attribute with start and end line information.
@@ -51,9 +52,11 @@ func ParseHCL(path string) ([]Block, []Attribute, error) {
 // traverseBody recursively traverses the HCL body, extracting blocks and attributes with line ranges.
 func traverseBody(body *hclwrite.Body, blocks *[]Block, attrs *[]Attribute) {
 	for _, block := range body.Blocks() {
+		tokens := block.Body().BuildTokens(nil)
 		*blocks = append(*blocks, Block{
-			Type:   block.Type(),
-			Labels: block.Labels(),
+			Type:    block.Type(),
+			Content: string(hclwrite.Format(tokens.Bytes())),
+			Labels:  block.Labels(),
 		})
 		traverseBody(block.Body(), blocks, attrs)
 	}

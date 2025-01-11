@@ -58,10 +58,11 @@ resource "google_compute_instance" "unchanged_instance" {
 	f, diags := hclwrite.ParseConfig(originalContent, "example.tf", hcl.InitialPos)
 	assert.False(t, diags.HasErrors(), "failed to parse HCL")
 
-	UpdateBlock(f, "example_bucket", `
+	err := UpdateBlock(f, "example_bucket", `
 name     = "new-example-bucket"
 location = "EU"
 `)
+  assert.Nil(t, err)
 
 	expectedContent := `resource "google_storage_bucket" "example_bucket" {
   name     = "new-example-bucket"
@@ -133,4 +134,41 @@ resource "google_storage_bucket" "unchanged_bucket" {
 }
 `
 	assert.Equal(t, expectedContent, string(f.Bytes()))
+}
+
+func TestGetBlockContent(t *testing.T) {
+	// Create a new HCL file with a resource block
+	hclContent := []byte(`
+resource "example" "test" {
+  name = "test-resource"
+}
+`)
+	file, diags := hclwrite.ParseConfig(hclContent, "example.tf", hcl.InitialPos)
+	if diags.HasErrors() {
+		t.Fatalf("failed to parse HCL: %s", diags.Error())
+	}
+
+	// Test case: Resource block exists
+	resourceName := "test"
+	expectedContent := `
+name = "test-resource"
+`
+	content, err := GetBlockContent(file, resourceName)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if content != expectedContent {
+		t.Errorf("expected content %q, got %q", expectedContent, content)
+	}
+
+	// Test case: Resource block does not exist
+	nonExistentResourceName := "nonexistent"
+	_, err = GetBlockContent(file, nonExistentResourceName)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+	expectedError := "resource block not found: nonexistent"
+	if err.Error() != expectedError {
+		t.Errorf("expected error %q, got %q", expectedError, err.Error())
+	}
 }

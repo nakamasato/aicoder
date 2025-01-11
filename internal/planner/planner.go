@@ -29,9 +29,10 @@ func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
 	}
 }
 
-// ChangesPlan is a list of changes each of which consists of Path, FunctionName and NewFunctionContent.
-// This strategy changes a file partially by specifying the content to be added or deleted at a specific line.
-// This migtht not work well empirically, seemingly because the line number is not properly predicted.
+// ChangesPlan is a list of changes each of which consists of BlockChange.
+// This strategy changes a file partially by specifying the new content in each block.
+// Block is different in each language. For example, in Go, a block is a function. In HCL, a block is a resource.
+// This will replace ChangeFilePlan.
 type ChangesPlan struct {
 	Changes []BlockChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
 }
@@ -83,8 +84,7 @@ type LineNum struct {
 // ChangeFilePlan is used to replace the entire content of the specified file with the modified content.
 // This might work bettter than ChangesPlan.
 type ChangeFilePlan struct {
-	Path string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	// OldContent string `json:"old_content" jsonschema_description:"Original content of the file"`
+	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
 	NewContent string `json:"new_content" jsonschema_description:"The new content of the file."`
 }
 
@@ -229,6 +229,8 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 	return filteredFiles, nil
 }
 
+// GenerateBlockChangePlan generates a plan to change a block of code.
+// Use an appropriate prompt template for each language.
 func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate string, block Block, blockContent string) (*BlockChange, error) {
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
@@ -322,36 +324,39 @@ func (p *Planner) GenerateChangesPlanWithRetry(ctx context.Context, query string
 					if fn.Name == block.TargetName {
 						startLine = fn.StartLine
 						endLine = fn.EndLine
-						fnChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, block, fn.Content)
-
+						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, block, fn.Content)
 						if err != nil {
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
 						}
 
-						changesPlan.Changes = append(changesPlan.Changes, *fnChange)
+						changesPlan.Changes = append(changesPlan.Changes, *blkChange)
 						break
 					}
 				}
 			} else if filepath.Ext(block.Path) == ".hcl" || filepath.Ext(block.Path) == ".tf" {
-				blocks, attrs, err := file.ParseHCL(block.Path)
+				// Use block as a unit of block for hcl
+				blocks, _, err := file.ParseHCL(block.Path)
 				if err != nil {
 					log.Printf("failed to parse hcl file: %v", err)
 					continue
 				}
+				fmt.Printf("Block.TargetType:%s, Block.TargetName:%s\n", block.TargetType, block.TargetName)
 
 				for _, b := range blocks {
-					if b.Type == block.TargetType {
+					if b.Type == block.TargetType { // variable, resource, module, etc.
 						fmt.Printf("Block:%v\n", b)
-						break
-					}
-				}
 
-				for _, a := range attrs {
-					if a.Name == block.TargetName {
-						fmt.Printf("Attribute:%v\n", a)
+						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, block, b.Content)
+						if err != nil {
+							log.Panicln("failed to generate plan: %w", err)
+							return nil, fmt.Errorf("failed to generate plan: %w", err)
+						}
+						log.Println("NewContent:", blkChange.NewContent)
+						changesPlan.Changes = append(changesPlan.Changes, *blkChange)
 						break
 					}
 				}
+				// TODO: enable to change attr in hcl
 			} else {
 				startLine, endLine, err = file.GetBlockBaseFunctionLines(block.Path, block.TargetName)
 				if err != nil {
