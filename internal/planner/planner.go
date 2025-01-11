@@ -72,7 +72,7 @@ type TargetBlocks struct {
 
 type Block struct {
 	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	TargetType string `json:"target_type" jsonschema_description:"Type of the target block. e.g. class, function, struct, variable"`
+	TargetType string `json:"target_type" jsonschema_description:"Type of the target block. e.g. class, function, struct, variable, module, etc"`
 	TargetName string `json:"target_name" jsonschema_description:"Name of the target block. e.g. Command, runPlan, Client"`
 	Content    string `json:"content" jsonschema_description:"The content of the block"`
 }

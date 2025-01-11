@@ -59,9 +59,9 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			if diag.HasErrors() {
 				return fmt.Errorf("failed to parse HCL file: %s, error: %v", targetPath, diag.Error())
 			}
-			err = file.UpdateBlock(f, change.Block.TargetName, change.NewContent)
+			err = file.UpdateBlock(f, change.Block.TargetType, change.Block.TargetName, change.NewContent) // targetname is strings.Join(block.Labels(), ",")
 			if err != nil {
-				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
+				return fmt.Errorf("failed to update block (%s): %w", targetPath, err)
 			}
 		} else {
 			return fmt.Errorf("unsupported file type: %s", change.Block.Path)

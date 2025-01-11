@@ -58,7 +58,7 @@ resource "google_compute_instance" "unchanged_instance" {
 	f, diags := hclwrite.ParseConfig(originalContent, "example.tf", hcl.InitialPos)
 	assert.False(t, diags.HasErrors(), "failed to parse HCL")
 
-	err := UpdateBlock(f, "example_bucket", `
+	err := UpdateBlock(f, "resource", "google_storage_bucket,example_bucket", `
 name     = "new-example-bucket"
 location = "EU"
 `)
@@ -73,6 +73,40 @@ resource "google_compute_instance" "unchanged_instance" {
   name         = "unchanged-instance"
   machine_type = "n1-standard-1"
   zone         = "us-central1-a"
+}
+`
+	assert.Equal(t, expectedContent, string(f.Bytes()))
+}
+
+func TestUpdateBlockModule(t *testing.T) {
+	originalContent := []byte(`module "test" {
+  source  = "./mod/test"
+  members = [
+    "user1",
+    "user2",
+  ]
+}
+`)
+	f, diags := hclwrite.ParseConfig(originalContent, "example.tf", hcl.InitialPos)
+	assert.False(t, diags.HasErrors(), "failed to parse HCL")
+
+	err := UpdateBlock(f, "module", "test", `
+  source  = "./mod/test"
+  members = [
+    "user1",
+    "user2",
+    "user3",
+  ]
+`)
+  assert.Nil(t, err)
+
+	expectedContent := `module "test" {
+  source = "./mod/test"
+  members = [
+    "user1",
+    "user2",
+    "user3",
+  ]
 }
 `
 	assert.Equal(t, expectedContent, string(f.Bytes()))

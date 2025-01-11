@@ -3,6 +3,7 @@ package file
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -68,25 +69,24 @@ func GetBlockContent(f *hclwrite.File, resourceName string) (string, error) {
 }
 
 // updateBlock replaces the entire content of the specified resource block with new content
-func UpdateBlock(f *hclwrite.File, resourceName string, newContent string) error {
+func UpdateBlock(f *hclwrite.File, blockType, resourceName string, newContent string) error {
 	body := f.Body()
 	blocks := body.Blocks()
 
-	for _, block := range blocks {
-		if block.Type() == "resource" {
-			labels := block.Labels()
-			if len(labels) > 1 && labels[1] == resourceName {
-				// Parse the new content into a temporary HCL file
-				tempFile, diags := hclwrite.ParseConfig([]byte(newContent), "", hcl.InitialPos)
-				if diags.HasErrors() {
-					log.Fatalf("failed to parse new block content: %s", diags.Error())
-				}
-
-				// Clear the existing block body and append new tokens
-				block.Body().Clear()
-				block.Body().AppendUnstructuredTokens(tempFile.Body().BuildTokens(nil))
-				return nil
+	for i, block := range blocks {
+		log.Println(i, " blockType: ", blockType, " resourceName: ", resourceName, " block.Type: ", block.Type())
+		if block.Type() == blockType && strings.Join(block.Labels(), ",") == resourceName {
+			log.Println("found matched block for ", resourceName)
+			// Parse the new content into a temporary HCL file
+			tempFile, diags := hclwrite.ParseConfig([]byte(newContent), "", hcl.InitialPos)
+			if diags.HasErrors() {
+				log.Fatalf("failed to parse new block content: %s", diags.Error())
 			}
+
+			// Clear the existing block body and append new tokens
+			block.Body().Clear()
+			block.Body().AppendUnstructuredTokens(tempFile.Body().BuildTokens(nil))
+			return nil
 		}
 	}
 	return fmt.Errorf("resource block not found: %s", resourceName)
