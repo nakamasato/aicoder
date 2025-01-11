@@ -6,62 +6,66 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/fatih/color"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/planner"
-	"golang.org/x/sync/errgroup"
 )
 
 // ApplyChanges applies changes based on the provided changesPlan.
 // If dryrun is true, it displays the diffs without modifying the actual files.
 func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
-	var g errgroup.Group
-	var mu sync.Mutex
 	var diffs []string
 
 	for _, change := range changesPlan.Changes {
 		// Capture the current value of change to avoid closure issues
 		change := change
-		g.Go(func() error {
-			targetPath := change.Block.Path
-			if dryrun {
-				originalContent, err := os.ReadFile(change.Block.Path)
-				if err != nil {
-					return fmt.Errorf("failed to read original file (%s): %w", change.Block.Path, err)
-				}
-				// Apply change in memory
-				modifiedContent, err := file.UpdateFuncInMemory(originalContent, change.Block.TargetName, change.NewContent)
-				if err != nil {
-					return fmt.Errorf("failed to apply change in memory: %w", err)
-				}
-
-				// Generate diff
-				diff, err := generateDiff(originalContent, modifiedContent)
-				if err != nil {
-					return fmt.Errorf("failed to generate diff: %w", err)
-				}
-				mu.Lock()
-				diffs = append(diffs, diff)
-				mu.Unlock()
-			} else {
-				// Apply change to temp file
-				err := file.UpdateFuncGo(targetPath, change.Block.TargetName, change.NewContent)
-				if err != nil {
-					return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
-				}
-
+		targetPath := change.Block.Path
+		if dryrun {
+			originalContent, err := os.ReadFile(change.Block.Path)
+			if err != nil {
+				return fmt.Errorf("failed to read original file (%s): %w", change.Block.Path, err)
+			}
+			// Apply change in memory
+			modifiedContent, err := file.UpdateFuncInMemory(originalContent, change.Block.TargetName, change.NewContent)
+			if err != nil {
+				return fmt.Errorf("failed to apply change in memory: %w", err)
 			}
 
-			return nil
-		})
-	}
-
-	// Wait for all goroutines to finish
-	if err := g.Wait(); err != nil {
-		return err
+			// Generate diff
+			diff, err := generateDiff(originalContent, modifiedContent)
+			if err != nil {
+				return fmt.Errorf("failed to generate diff: %w", err)
+			}
+			diffs = append(diffs, diff)
+		} else if filepath.Ext(change.Block.Path) == ".go" {
+			// Apply change to temp file
+			err := file.UpdateFuncGo(targetPath, change.Block.TargetName, change.NewContent)
+			if err != nil {
+				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
+			}
+		} else if filepath.Ext(change.Block.Path) == ".hcl" || filepath.Ext(change.Block.Path) == ".tf" {
+			// Apply change to HCL file
+			// TODO: improve hcl_parse.go and hcl_update.go
+			src, err := os.ReadFile(targetPath)
+			if err != nil {
+				return fmt.Errorf("failed to read original file (%s): %w", targetPath, err)
+			}
+			f, diag := hclwrite.ParseConfig(src, targetPath, hcl.InitialPos)
+			if diag.HasErrors() {
+				return fmt.Errorf("failed to parse HCL file: %s, error: %v", targetPath, diag.Error())
+			}
+			err = file.UpdateBlock(f, change.Block.TargetName, change.NewContent)
+			if err != nil {
+				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
+			}
+		} else {
+			return fmt.Errorf("unsupported file type: %s", change.Block.Path)
+		}
 	}
 
 	if dryrun {
