@@ -312,6 +312,9 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
 	}
 
+	// TODO: Sophisticate plan steps
+	// If there are multiple steps for one file, we need to merge them into one step.
+
 	// Generate ChangesPlan
 	changesPlan := &ChangesPlan{}
 	for i, step := range plan.Steps {
@@ -365,7 +368,7 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 				// TODO: enable to change attr in hcl
 			} else if blkToChange.TargetType == "file" {
 				for _, blk := range fileBlocks[blkToChange.Path] {
-					blkChange, err := p.GenerateBlockChangePlan(ctx, "prompt", blkToChange, blk.Content)
+					blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE, blkToChange, blk.Content)
 					if err != nil {
 						log.Fatalf("failed to generate plan: %v", err)
 					}

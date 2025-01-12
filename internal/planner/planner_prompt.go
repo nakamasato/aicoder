@@ -151,6 +151,18 @@ Rules:
 - If there's no need to change the content, please provide the current content.
 `
 
+const GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE = `Please provide the new content of the entire file %s
+
+## Current content
+
+`+"```"+`
+%s
+`+"```"+`
+
+Rules:
+- Provide the new content of the entire file.
+`
+
 const REPLAN_PROMPT = `You are a helpful assistant that generates detailed action plans based on provided project information.
 The plan you've just made failed the validation.
 Please provide a new plan based on the provided feedback.
