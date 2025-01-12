@@ -44,7 +44,7 @@ func Command() *cobra.Command {
 func runPlan(cmd *cobra.Command, args []string) {
 	ctx := cmd.Context()
 	config := config.GetConfig()
-	goal := strings.Join(args, " ")
+	query := strings.Join(args, " ")
 
 	// Initialize OpenAI client
 	if openaiAPIKey != "" {
@@ -64,13 +64,13 @@ func runPlan(cmd *cobra.Command, args []string) {
 
 	store := vectorstore.New(entClient, llmClient)
 
-	res, err := store.Search(ctx, config.Repository, config.CurrentContext, goal, 10)
+	res, err := store.Search(ctx, config.Repository, config.CurrentContext, query, 10)
 	if err != nil {
 		log.Fatalf("failed to search: %v", err)
 	}
 
 	// Load file content
-	var files file.Files
+	var files []file.File
 	log.Printf("Found %d files\n", len(*res.Documents))
 	for i, doc := range *res.Documents {
 		log.Printf("%d: %s (score: %.2f)\n", i, doc.Document.Filepath, doc.Score)
@@ -78,24 +78,20 @@ func runPlan(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalf("failed to load file content. you might need to refresh loader by `aicoder load -r`: %v", err)
 		}
-		files = append(files, &file.File{Path: doc.Document.Filepath, Content: content})
+		files = append(files, file.File{Path: doc.Document.Filepath, Content: content})
 	}
+
+	// Generate plan based on the query and the files
 	plnr := planner.NewPlanner(llmClient, entClient)
-	prompt, err := plnr.GenerateGoalPrompt(ctx, goal, config.Repository, files)
-	if err != nil {
-		log.Fatalf("failed to generate goal prompt: %v", err)
-	}
-	p, err := plnr.GenerateChangesPlanWithRetry(ctx, goal, prompt, maxAttempts)
+	p, err := plnr.GenerateChangesPlan2(ctx, query, maxAttempts, files)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
 
 	for _, change := range p.Changes {
 		fmt.Println("-----------------------------")
-		fmt.Printf("Change %s:\n", change.Path)
-		fmt.Printf("  Add: %s\n", change.Add)
-		fmt.Printf("  Delete: %s\n", change.Delete)
-		fmt.Printf("  Line: %d\n", change.LineNum)
+		fmt.Printf("Change %s:\n", change.Block.Path)
+		fmt.Printf("  Add: %s\n", change.Block.TargetName)
 	}
 
 	// Save plan to file
