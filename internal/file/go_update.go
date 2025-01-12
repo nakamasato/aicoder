@@ -33,8 +33,10 @@ func ExtractFuncBodyStatements(source, funcName string) ([]ast.Stmt, error) {
 	return nil, fmt.Errorf("function %q not found", funcName)
 }
 
-// UpdateFuncGo updates the specified function in a Go file with new content.
-func UpdateFuncGo(path, function, content string) error {
+// UpdateFuncGo updates the specified function in a Go file with new content and comment.
+// The function is identified by its name and the file is updated in place.
+// The function comment is updated if specified. Set comment to an empty string to keep the existing comment.
+func UpdateFuncGo(path, function, content, comment string) error {
 	// Read the original file content
 	_, err := os.ReadFile(path)
 	if err != nil {
@@ -48,10 +50,41 @@ func UpdateFuncGo(path, function, content string) error {
 		return fmt.Errorf("failed to parse Go file: %w", err)
 	}
 
-	// Flag to check if the function was found
+	// Update the function body and comment
+	functionFound := UpdateFuncBody(node, function, content)
+	if !functionFound {
+		return fmt.Errorf("function %s not found in file %s", function, path)
+	}
+
+	// Update the function comment if specified
+	if comment != "" {
+		UpdateFuncComment(node, function, comment)
+	}
+
+	// Generate the updated code
+	var buf bytes.Buffer
+	if err := printer.Fprint(&buf, fs, node); err != nil {
+		return fmt.Errorf("failed to generate updated Go code: %w", err)
+	}
+
+	// Format the updated code
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to format updated Go code: %w", err)
+	}
+
+	// Write the updated code back to the file
+	if err := os.WriteFile(path, formatted, 0644); err != nil {
+		return fmt.Errorf("failed to write updated Go file: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateFuncBody updates the body of the specified function in the AST.
+func UpdateFuncBody(node *ast.File, function, content string) bool {
 	functionFound := false
 
-	// Visit the AST to find the function and replace its content
 	ast.Inspect(node, func(n ast.Node) bool {
 		fn, ok := n.(*ast.FuncDecl)
 		if !ok || fn.Name.Name != function {
@@ -78,36 +111,26 @@ func UpdateFuncGo(path, function, content string) error {
 		return false // Stop traversal after finding the function
 	})
 
-	// ast.Inspect(node, func(n ast.Node) bool {
-	// 	if fn, ok := n.(*ast.FuncDecl); ok {
-	// 		if fn.Name.Name == function {
-	// 			fn.Body.List = newContentList
-	// 			functionFound = true
-	// 		}
-	// 	}
-	// 	return true
-	// })
+	return functionFound
+}
 
-	if !functionFound {
-		return fmt.Errorf("function %s not found in file %s", function, path)
-	}
+// UpdateFuncComment updates the comment of the specified function in the AST.
+func UpdateFuncComment(node *ast.File, function, comment string) {
+	ast.Inspect(node, func(n ast.Node) bool {
+		fn, ok := n.(*ast.FuncDecl)
+		if !ok || fn.Name.Name != function {
+			return true // Continue traversal
+		}
 
-	// Generate the updated code
-	var buf bytes.Buffer
-	if err := printer.Fprint(&buf, fs, node); err != nil {
-		return fmt.Errorf("failed to generate updated Go code: %w", err)
-	}
+		// Update the comment above the function
+		fn.Doc = &ast.CommentGroup{
+			List: []*ast.Comment{
+				{
+					Text: fmt.Sprintf("// %s", comment),
+				},
+			},
+		}
 
-	// Format the updated code
-	formatted, err := format.Source(buf.Bytes())
-	if err != nil {
-		return fmt.Errorf("failed to format updated Go code: %w", err)
-	}
-
-	// Write the updated code back to the file
-	if err := os.WriteFile(path, formatted, 0644); err != nil {
-		return fmt.Errorf("failed to write updated Go file: %w", err)
-	}
-
-	return nil
+		return false // Stop traversal after finding the function
+	})
 }

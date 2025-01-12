@@ -44,7 +44,7 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			diffs = append(diffs, diff)
 		} else if filepath.Ext(change.Block.Path) == ".go" {
 			// Apply change to temp file
-			err := file.UpdateFuncGo(targetPath, change.Block.TargetName, change.NewContent)
+			err := file.UpdateFuncGo(targetPath, change.Block.TargetName, change.NewContent, "")
 			if err != nil {
 				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
 			}
