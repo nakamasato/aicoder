@@ -52,26 +52,24 @@ func (c ChangesPlan) String() string {
 	return string(jsonData)
 }
 
+// BlockChange is a change to a block of code.
 type BlockChange struct {
 	Block      Block  `json:"block" jsonschema_description:"The target block to be changed"`
 	NewContent string `json:"new_content" jsonschema_description:"The new content of the block. Leave it empty to keep the current content and just update comment."`
 	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
+// TargetBlocks is a list of candidate blocks to be modified to achieve the goal.
 type TargetBlocks struct {
 	Changes []Block `json:"changes" jsonschema_description:"List of candidate blocks to be modified to achieve the goal"`
 }
 
+// Block represents a block of code to be changed.
 type Block struct {
 	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	TargetType string `json:"target_type" jsonschema_description:"Type of the target block. e.g. class, function, struct, variable, module, etc"`
-	TargetName string `json:"target_name" jsonschema_description:"Name of the target block. e.g. Command, runPlan, Client"`
+	TargetType string `json:"target_type" jsonschema_description:"Type of the target block. e.g. file, class, function, struct, variable, module, etc"`
+	TargetName string `json:"target_name" jsonschema_description:"Name of the target block. Please set file path when TargetType is 'file'. e.g. Command, runPlan, Client"`
 	Content    string `json:"content" jsonschema_description:"The content of the block"`
-}
-
-type LineNum struct {
-	StartLine int `json:"start_line" jsonschema_description:"Start line number of the target block"`
-	EndLine   int `json:"end_line" jsonschema_description:"End line number of the target block"`
 }
 
 // ChangeFilePlan is used to replace the entire content of the specified file with the modified content.
@@ -94,7 +92,6 @@ type CodeValidation struct {
 var (
 	ChangesPlanSchema          = GenerateSchema[ChangesPlan]()
 	TargetBlocksSchema         = GenerateSchema[TargetBlocks]()
-	LinenumSchema              = GenerateSchema[LineNum]()
 	YesOrNoSchema              = GenerateSchema[YesOrNo]()
 	ChangeFileSchema           = GenerateSchema[ChangeFilePlan]()
 	CodeValidationSchema       = GenerateSchema[CodeValidation]()
@@ -118,13 +115,6 @@ var (
 		Name:        openai.F("block_changes"),
 		Description: openai.F("List of changes to be made to achieve the goal"),
 		Schema:      openai.F(TargetBlocksSchema),
-		Strict:      openai.Bool(true),
-	}
-
-	LinenumSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("line_num"),
-		Description: openai.F("The start and end line number of the target location"),
-		Schema:      openai.F(LinenumSchema),
 		Strict:      openai.Bool(true),
 	}
 
@@ -294,6 +284,8 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 				fmt.Printf("Block: Type:%s, Labels:%s\n", b.Type, strings.Join(b.Labels, ","))
 				fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: b.Type, TargetName: strings.Join(b.Labels, ","), Content: b.Content})
 			}
+		} else { // file: block is the entire file
+			fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: "file", TargetName: f.Path, Content: f.Content})
 		}
 	}
 
@@ -348,7 +340,7 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 						fmt.Printf("Step %d: Matched Block Go path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
 						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, blkToChange, blk.Content)
 						if err != nil {
-							log.Panicln("failed to generate plan: %w", err)
+							log.Fatalf("failed to generate plan: %v", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
 						}
 						changesPlan.Changes = append(changesPlan.Changes, *blkChange)
@@ -363,7 +355,7 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 						fmt.Printf("Step %d: Matched Block HCL path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
 						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, blkToChange, blk.Content)
 						if err != nil {
-							log.Panicln("failed to generate plan: %w", err)
+							log.Fatalf("failed to generate plan: %v", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
 						}
 						changesPlan.Changes = append(changesPlan.Changes, *blkChange)
@@ -371,9 +363,16 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 					}
 				}
 				// TODO: enable to change attr in hcl
+			} else if blkToChange.TargetType == "file" {
+				for _, blk := range fileBlocks[blkToChange.Path] {
+					blkChange, err := p.GenerateBlockChangePlan(ctx, "prompt", blkToChange, blk.Content)
+					if err != nil {
+						log.Fatalf("failed to generate plan: %v", err)
+					}
+					changesPlan.Changes = append(changesPlan.Changes, *blkChange)
+				}
 			} else {
-				log.Printf("Step %d: unsupported file type %s\n", i+1, blkToChange.Path)
-				continue
+				fmt.Printf("Step %d: Unsupported file type: %s\n", i+1, blkToChange.Path)
 			}
 			fmt.Printf("Step %d: Block path:%s type:%s name:%s\n", i+1, blkToChange.Path, blkToChange.TargetType, blkToChange.TargetName)
 		}
