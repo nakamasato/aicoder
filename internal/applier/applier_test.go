@@ -11,7 +11,7 @@ import (
 func TestApplyChangesGo(t *testing.T) {
 	changesPlan := &planner.ChangesPlan{
 		Changes: []planner.BlockChange{
-			{Block: planner.Block{Path: "testfile.go", TargetName: "Func1"}, NewContent: " fmt.Println(\"This is the new content.\")"},
+			{Block: planner.Block{Path: "testfile.go", TargetName: "Func1", TargetType: "function"}, NewContent: " fmt.Println(\"This is the new content.\")", NewComment: "This is a new comment."},
 		},
 	}
 	tempDir := filepath.Join(os.TempDir(), "applier_test")
@@ -58,6 +58,7 @@ func Func1() {
 	}
 	expectedNewContent := `package main
 
+// This is a new comment.
 func Func1() {
 	fmt.
 		Println("This is the new content.")

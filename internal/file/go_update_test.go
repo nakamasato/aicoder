@@ -3,6 +3,7 @@ package file
 import (
 	"go/ast"
 	"go/format"
+	"go/parser"
 	"go/token"
 	"os"
 	"strings"
@@ -16,6 +17,7 @@ package main
 
 import "fmt"
 
+// greet receives a name and prints a greeting message.
 func greet(name string) {
 	fmt.Printf("Hello, %s!\n", name)
 }
@@ -37,7 +39,7 @@ func greet(name string) {
 		t.Fatalf("Failed to close temporary file: %v", err)
 	}
 
-	err = UpdateFuncGo(tmpFile.Name(), "greet", newContent)
+	err = UpdateFuncGo(tmpFile.Name(), "greet", newContent, "greet function greet with welcome message")
 	if err != nil {
 		t.Fatalf("UpdateFuncGo returned an error: %v", err)
 	}
@@ -54,6 +56,7 @@ func greet(name string) {
 
         import "fmt"
 
+		// greet function greet with welcome message
         func greet(name string) {
         	fmt.Printf("Hi, %s! Welcome back.\n",
 
@@ -150,6 +153,78 @@ func TestExtractFuncBodyStatements(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestUpdateFuncBody(t *testing.T) {
+	source := `
+package main
+
+func greet(name string) {
+	fmt.Printf("Hello, %s!\n", name)
+}
+`
+	newContent := `
+fmt.Printf("Hi, %s! Welcome back.\n", name)
+`
+
+	expectedContent := `package main
+
+func greet(name string) {
+	fmt.
+		Printf("Hi, %s! Welcome back.\n",
+			name)
+}`
+
+	fset := token.NewFileSet()
+	node, err := parser.ParseFile(fset, "", source, parser.AllErrors)
+	if err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	functionFound := UpdateFuncBody(node, "greet", newContent)
+	if !functionFound {
+		t.Fatalf("Function greet not found")
+	}
+
+	var buf strings.Builder
+	if err := format.Node(&buf, fset, node); err != nil {
+		t.Fatalf("Failed to format updated node: %v", err)
+	}
+
+	updatedContent := buf.String()
+	if !strings.Contains(updatedContent, expectedContent) {
+		t.Errorf("Updated function body does not contain expected content.\nExpected:\n%s\nGot:\n%s", expectedContent, updatedContent)
+	}
+}
+
+func TestUpdateFuncComment(t *testing.T) {
+	source := `
+package main
+
+// greet receives a name and prints a greeting message.
+func greet(name string) {
+	fmt.Printf("Hello, %s!\n", name)
+}
+`
+	expectedComment := "greet function greet with welcome message"
+
+	fset := token.NewFileSet()
+	node, err := parser.ParseFile(fset, "", source, parser.AllErrors)
+	if err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	UpdateFuncComment(node, "greet", expectedComment)
+
+	var buf strings.Builder
+	if err := format.Node(&buf, fset, node); err != nil {
+		t.Fatalf("Failed to format updated node: %v", err)
+	}
+
+	updatedContent := buf.String()
+	if !strings.Contains(updatedContent, "// "+expectedComment) {
+		t.Errorf("Updated function comment does not contain expected comment.\nExpected:\n%s\nGot:\n%s", expectedComment, updatedContent)
 	}
 }
 

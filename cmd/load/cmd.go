@@ -80,7 +80,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 	defer entClient.Close()
 
 	if refresh {
-		log.Printf("Refreshing all documents for repository: %s", config.Repository)
+		fmt.Printf("Refreshing all documents for repository: %s", config.Repository)
 		if _, err := entClient.Document.Delete().Where(document.RepositoryEQ(config.Repository)).Exec(ctx); err != nil {
 			log.Fatalf("failed to delete existing documents: %v", err)
 		}

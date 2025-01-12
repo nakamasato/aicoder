@@ -71,9 +71,9 @@ func runPlan(cmd *cobra.Command, args []string) {
 
 	// Load file content
 	var files []file.File
-	log.Printf("Found %d files\n", len(*res.Documents))
+	fmt.Printf("Found %d files\n", len(*res.Documents))
 	for i, doc := range *res.Documents {
-		log.Printf("%d: %s (score: %.2f)\n", i, doc.Document.Filepath, doc.Score)
+		fmt.Printf("%d: %s (score: %.2f)\n", i, doc.Document.Filepath, doc.Score)
 		content, err := loader.LoadFileContent(doc.Document.Filepath)
 		if err != nil {
 			log.Fatalf("failed to load file content. you might need to refresh loader by `aicoder load -r`: %v", err)
@@ -89,9 +89,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	}
 
 	for _, change := range p.Changes {
-		fmt.Println("-----------------------------")
-		fmt.Printf("Change %s:\n", change.Block.Path)
-		fmt.Printf("  Add: %s\n", change.Block.TargetName)
+		fmt.Printf("Change %s (type:%s, name:%s)\n", change.Block.Path, change.Block.TargetType, change.Block.TargetName)
 	}
 
 	// Save plan to file
