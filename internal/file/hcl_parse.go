@@ -2,7 +2,6 @@ package file
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -31,13 +30,13 @@ func ParseHCL(path string) ([]Block, []Attribute, error) {
 
 	src, err := os.ReadFile(path)
 	if err != nil {
-		log.Printf("Failed to read file: %s, error: %v", path, err)
+		fmt.Printf("Failed to read file: %s, error: %v", path, err)
 		return nil, nil, err
 	}
 
 	file, diag := hclwrite.ParseConfig(src, path, hcl.InitialPos)
 	if diag.HasErrors() {
-		log.Printf("Failed to parse HCL file: %s, error: %v", path, diag.Error())
+		fmt.Printf("Failed to parse HCL file: %s, error: %v", path, diag.Error())
 		return nil, nil, fmt.Errorf("failed to parse HCL file: %s, error: %v", path, diag.Error())
 	}
 

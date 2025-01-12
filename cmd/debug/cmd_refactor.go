@@ -89,7 +89,7 @@ func runRefactor(cmd *cobra.Command, args []string) {
 	// if err := planner.SavePlan[planner.ChangeFilePlan](*changeFilePlan, outputFile); err != nil {
 	// 	log.Fatalf("failed to save plan: %v", err)
 	// }
-	// log.Printf("Successfully saved to %s", outputFile)
+	// fmt.Printf("Successfully saved to %s", outputFile)
 	if err = applier.ApplyChangeFilePlan(changeFilePlan, changeFilePlan.Path); err != nil {
 		log.Fatalf("failed to apply plan: %v", err)
 	}

@@ -46,7 +46,7 @@ type NecessaryChangesPlan struct {
 func (c ChangesPlan) String() string {
 	jsonData, err := json.Marshal(c)
 	if err != nil {
-		log.Printf("Error marshalling ChangesPlan to JSON: %v", err)
+		fmt.Printf("Error marshalling ChangesPlan to JSON: %v", err)
 		return ""
 	}
 	return string(jsonData)
@@ -206,21 +206,21 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 				},
 				YesOrNoSchemaParam)
 			if err != nil {
-				log.Printf("failed to determine file relevance: %v", err)
+				fmt.Printf("failed to determine file relevance: %v", err)
 				errChan <- err
 				return
 			}
 
 			var yesOrNo YesOrNo
 			if err = json.Unmarshal([]byte(content), &yesOrNo); err != nil {
-				log.Printf("failed to unmarshal content to YesOrNo: %v", err)
+				fmt.Printf("failed to unmarshal content to YesOrNo: %v", err)
 				errChan <- err
 				return
 			}
 
 			if yesOrNo.Answer {
 				mu.Lock()
-				log.Printf("%d. relevant file: %s\n", len(filteredFiles), f.Path)
+				fmt.Printf("%d. relevant file: %s\n", len(filteredFiles), f.Path)
 				filteredFiles = append(filteredFiles, f)
 				mu.Unlock()
 			}
@@ -264,8 +264,6 @@ func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate st
 		NewContent: change.NewContent,
 	}
 
-	fmt.Printf("Plan:\n---\n%s\n%s\n%s\n", block.Path, block.TargetName, plan.NewContent)
-
 	return plan, nil
 }
 
@@ -281,25 +279,25 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 	// identify blocks to change
 	fileBlocks := map[string][]Block{}
 	for i, f := range files {
-		log.Printf("File %d: %s\n", i+1, f.Path)
+		fmt.Printf("File %d: %s\n", i+1, f.Path)
 		if filepath.Ext(f.Path) == ".go" {
 			functions, _, err := file.ParseGo(f.Path)
 			if err != nil {
-				log.Printf("failed to parse go file: %v", err)
+				fmt.Printf("failed to parse go file: %v", err)
 				continue
 			}
 			for _, fn := range functions {
-				log.Printf("Function: %s\n", fn.Name)
+				fmt.Printf("Function: %s\n", fn.Name)
 				fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: "function", TargetName: fn.Name, Content: fn.Content})
 			}
 		} else if filepath.Ext(f.Path) == ".hcl" || filepath.Ext(f.Path) == ".tf" {
 			blocks, _, err := file.ParseHCL(f.Path)
 			if err != nil {
-				log.Printf("failed to parse hcl file: %v", err)
+				fmt.Printf("failed to parse hcl file: %v", err)
 				continue
 			}
 			for _, b := range blocks {
-				log.Printf("Block: Type:%s, Labels:%s\n", b.Type, strings.Join(b.Labels, ","))
+				fmt.Printf("Block: Type:%s, Labels:%s\n", b.Type, strings.Join(b.Labels, ","))
 				fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: b.Type, TargetName: strings.Join(b.Labels, ","), Content: b.Content})
 			}
 		}
@@ -331,7 +329,7 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 	// Generate ChangesPlan
 	changesPlan := &ChangesPlan{}
 	for i, step := range plan.Steps {
-		log.Printf("Step %d: %s\n", i+1, step)
+		fmt.Printf("Step %d: %s\n", i+1, step)
 
 		// identify blocks to change
 		prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, query, files, fileBlocks)
@@ -344,19 +342,16 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 		if err != nil {
 			return nil, fmt.Errorf("failed to get blocks: %w", err)
 		}
-		for i, block := range blocks.Changes {
-			log.Printf("Block: %d:%v\n", i, block)
-		}
+		fmt.Printf("Step %d: Got %d blocks\n", i+1, len(blocks.Changes))
 
 		for _, blkToChange := range blocks.Changes {
 			// TODO: create Planner interface and implement planner for each Language
-			var startLine, endLine int
 			if filepath.Ext(blkToChange.Path) == ".go" {
 				// Use function as a unit of block for go
 				blocks := fileBlocks[blkToChange.Path]
 				for _, blk := range blocks {
 					if blk.TargetName == blkToChange.TargetName && blk.TargetType == blkToChange.TargetType {
-						fmt.Printf("Block:%v\n", blk)
+						fmt.Printf("Step %d: Matched Block Go path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
 						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, blkToChange, blk.Content)
 						if err != nil {
 							log.Panicln("failed to generate plan: %w", err)
@@ -369,30 +364,24 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 			} else if filepath.Ext(blkToChange.Path) == ".hcl" || filepath.Ext(blkToChange.Path) == ".tf" {
 				// Use block as a unit of block for hcl
 				blocks := fileBlocks[blkToChange.Path]
-				fmt.Printf("Block.TargetType:%s, Block.TargetName:%s\n", blkToChange.TargetType, blkToChange.TargetName)
-
 				for _, blk := range blocks {
 					if blk.TargetName == blkToChange.TargetName && blk.TargetType == blkToChange.TargetType { // variable, resource, module, etc.
-						fmt.Printf("Block:%v\n", blk)
+						fmt.Printf("Step %d: Matched Block HCL path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
 						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, blkToChange, blk.Content)
 						if err != nil {
 							log.Panicln("failed to generate plan: %w", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
 						}
-						log.Println("NewContent:", blkChange.NewContent)
 						changesPlan.Changes = append(changesPlan.Changes, *blkChange)
 						break
 					}
 				}
 				// TODO: enable to change attr in hcl
 			} else {
-				startLine, endLine, err = file.GetBlockBaseFunctionLines(blkToChange.Path, blkToChange.TargetName)
-				if err != nil {
-					log.Printf("failed to get lines for %s:%s:%s: %v", blkToChange.Path, blkToChange.TargetType, blkToChange.TargetName, err)
-					continue
-				}
+				log.Printf("Step %d: unsupported file type\n", i+1)
+				continue
 			}
-			log.Printf("Block:%v LineNum: %d:%d\n", blkToChange, startLine, endLine)
+			fmt.Printf("Step %d: Block path:%s type:%s name:%s\n", i+1, blkToChange.Path, blkToChange.TargetType, blkToChange.TargetName)
 		}
 	}
 
@@ -410,20 +399,11 @@ func (p *Planner) getBlocks(ctx context.Context, prompt string) (*TargetBlocks, 
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
 	}
 
-	responseJSON, err := json.MarshalIndent(content, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling chat response: %v", err)
-	} else {
-		log.Printf("Chat completion response: %s", responseJSON)
-	}
-
 	var blks TargetBlocks
 	err = json.Unmarshal([]byte(content), &blks)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
 	}
-
-	log.Printf("Plan: %v\n", blks.Changes)
 
 	return &blks, nil
 }
@@ -442,20 +422,13 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, prompt string) (*Chan
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
 	}
 
-	responseJSON, err := json.MarshalIndent(content, "", "  ")
-	if err != nil {
-		log.Printf("Error marshalling chat response: %v", err)
-	} else {
-		log.Printf("Chat completion response: %s", responseJSON)
-	}
-
 	var changesPlan ChangesPlan
 	err = json.Unmarshal([]byte(content), &changesPlan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
 	}
 
-	fmt.Printf("Plan: %s\n", changesPlan.String())
+	fmt.Printf("Plan: %d\n", len(changesPlan.Changes))
 
 	return &changesPlan, nil
 }
@@ -478,7 +451,7 @@ func (p *Planner) GenerateChangeFilePlanWithRetry(ctx context.Context, prompt, q
 			ctx, messages, CodeValidationSchemaParam)
 
 		if err != nil {
-			log.Printf("failed to execute Chat.Completion: %v", err)
+			fmt.Printf("failed to execute Chat.Completion: %v", err)
 			continue
 		}
 
@@ -489,9 +462,9 @@ func (p *Planner) GenerateChangeFilePlanWithRetry(ctx context.Context, prompt, q
 		if validation.IsValid {
 			return changesPlan, nil
 		}
-		log.Printf("syntax validation failed. %d invalid syntaxes", len(validation.InvalidSyntaxes))
+		fmt.Printf("syntax validation failed. %d invalid syntaxes", len(validation.InvalidSyntaxes))
 		for i, s := range validation.InvalidSyntaxes {
-			log.Printf("%d. %s", i+1, s)
+			fmt.Printf("%d. %s", i+1, s)
 		}
 
 		// regenerate

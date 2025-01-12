@@ -71,7 +71,7 @@ func InitConfig(configFile string) {
 	_, err := os.Stat(configFile)
 	if err == nil {
 		// if file exists
-		log.Printf("loading config from %s", configFile)
+		fmt.Printf("loading config from %s", configFile)
 		configReader, err := os.Open(filepath.Clean(configFile))
 		if err != nil {
 			log.Fatalf("failed to open config file: %v", err)
@@ -129,7 +129,7 @@ func initConfig(reader io.Reader) {
 
 	// Read the config file
 	if err := viper.ReadConfig(reader); err != nil {
-		log.Printf("Error reading config from reader, %s", err)
+		fmt.Printf("Error reading config from reader, %s", err)
 	}
 
 	// Unmarshal the config into the struct
@@ -137,7 +137,7 @@ func initConfig(reader io.Reader) {
 		log.Fatalf("Failed to unmarshal config: %v", err)
 	}
 
-	log.Printf("loaded %s", cfg.Contexts)
+	fmt.Printf("loaded %s", cfg.Contexts)
 
 	// Manually set the OpenAI API Key from environment variable
 	cfg.OpenAIAPIKey = viper.GetString("openai_api_key")

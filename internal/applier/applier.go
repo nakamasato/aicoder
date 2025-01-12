@@ -86,7 +86,7 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			}
 
 			if err := scanner.Err(); err != nil {
-				log.Printf("Error reading diff output: %v", err)
+				fmt.Printf("Error reading diff output: %v", err)
 			}
 		}
 	}

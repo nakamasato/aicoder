@@ -3,7 +3,6 @@ package loader
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -56,7 +55,7 @@ func (s *service) Load(ctx context.Context) error {
 	var wg sync.WaitGroup
 	var errChan = make(chan error, s.structure.Root.Size)
 	loadCfg := s.config.GetCurrentLoadConfig()
-	log.Printf("found %d files", s.structure.Root.Size)
+	fmt.Printf("found %d files", s.structure.Root.Size)
 	for fileinfo := range s.structure.Root.FileInfoGenerator() {
 		wg.Add(1)
 		go func(fileInfo FileInfo) {
@@ -222,7 +221,7 @@ func getTreeFromBranch(gitRootPath, branch string) (*object.Tree, error) {
 // LoadRepoStructure loads the repository structure from the specified Git repository.
 // Using git is to exclude files that are not git tracked.
 func LoadRepoStructureFromHead(ctx context.Context, gitRootPath, targetPath string, include, exclude []string) (RepoStructure, error) {
-	log.Printf("Loading... gitRootPath:%s, targetPath:%s, include:%s, exclude:%s", gitRootPath, targetPath, strings.Join(include, ","), strings.Join(exclude, ","))
+	fmt.Printf("Loading... gitRootPath:%s, targetPath:%s, include:%s, exclude:%s", gitRootPath, targetPath, strings.Join(include, ","), strings.Join(exclude, ","))
 	tree, err := getTreeFromHead(gitRootPath)
 	if err != nil {
 		return RepoStructure{}, err
@@ -254,7 +253,7 @@ func LoadRepoStructure(ctx context.Context, gitRootPath string, tree *object.Tre
 	}
 
 	var err error
-	log.Printf("targetPath: %s", targetPath)
+	fmt.Printf("targetPath: %s", targetPath)
 	if targetPath != "" {
 		tree, err = tree.Tree(targetPath)
 		if err != nil {
@@ -292,12 +291,12 @@ func traverseTree(ctx context.Context, tree *object.Tree, gitRootPath, parentPat
 		}
 
 		if skip(filePath, exclude, include) {
-			log.Printf("Skipping %s\n", filePath)
+			fmt.Printf("Skipping %s\n", filePath)
 			continue
 		}
 
 		if entry.Mode == filemode.Dir {
-			// log.Printf("traversing dir:%s", entry.Name)
+			// fmt.Printf("traversing dir:%s", entry.Name)
 			subtree, err := tree.Tree(entry.Name)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get subtree for %s: %w", entry.Name, err)
@@ -314,14 +313,14 @@ func traverseTree(ctx context.Context, tree *object.Tree, gitRootPath, parentPat
 			fileInfo.BlobHash = entry.Hash.String()
 			info, err := fileInfoProvider.Stat(filepath.Join(gitRootPath, fileInfo.Path))
 			if err != nil {
-				log.Printf("Failed to stat file fileInfo.Path:%s, entry.Name:%s, err:%v", fileInfo.Path, entry.Name, err)
+				fmt.Printf("Failed to stat file fileInfo.Path:%s, entry.Name:%s, err:%v", fileInfo.Path, entry.Name, err)
 				continue
 			} else {
 				fileInfo.ModifiedAt = info.ModTime()
 				fileInfo.Size += 1
 			}
 		}
-		// log.Printf("fileInfo Path:%s, Size: %d", fileInfo.Path, fileInfo.Size)
+		// fmt.Printf("fileInfo Path:%s, Size: %d", fileInfo.Path, fileInfo.Size)
 		files = append(files, fileInfo)
 	}
 	return files, nil

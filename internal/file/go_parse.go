@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -33,7 +32,7 @@ func ParseGo(path string) ([]Function, []Var, error) {
 	// Read the file content
 	srcBytes, err := os.ReadFile(path)
 	if err != nil {
-		log.Printf("Failed to read file: %s, error: %v", path, err)
+		fmt.Printf("Failed to read file: %s, error: %v", path, err)
 		return functions, variables, err
 	}
 	src := string(srcBytes)
@@ -44,7 +43,7 @@ func ParseGo(path string) ([]Function, []Var, error) {
 
 	node, err := parser.ParseFile(fs, path, nil, parser.AllErrors)
 	if err != nil {
-		log.Printf("Failed to parse file: %s, error: %v", path, err)
+		fmt.Printf("Failed to parse file: %s, error: %v", path, err)
 		return functions, variables, err
 	}
 
