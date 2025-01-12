@@ -55,7 +55,7 @@ func (c ChangesPlan) String() string {
 type BlockChange struct {
 	Block      Block  `json:"block" jsonschema_description:"The target block to be changed"`
 	NewContent string `json:"new_content" jsonschema_description:"The new content of the block. Leave it empty to keep the current content and just update comment."`
-	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
+	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
 type TargetBlocks struct {
@@ -79,7 +79,7 @@ type LineNum struct {
 type ChangeFilePlan struct {
 	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
 	NewContent string `json:"new_content" jsonschema_description:"The new content of the target block. Leave it empty to keep the current content and just update comment."`
-	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the target block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
+	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the target block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
 type YesOrNo struct {
