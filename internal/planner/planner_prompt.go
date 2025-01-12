@@ -10,12 +10,34 @@ Goal: %s
 Relevant files:
 %s
 
------------------------
-Example:
+Examples:
+--------- Example 1 Start --------------
+Goal: Please add tanaka@gmail.com and john@gmail.com to the member as analytics members to data-user.
 
-1. Need to update [Function] in [File] to support [Feature].
-2. Need to create [File] and implement [Function] to support [Feature].
-3. Call [Function] created in step 2 in [File].
+Files:
+
+terraform/team/data_users.tf:
+
+` + "```\n" + `
+module "data-user" {
+  source  = "../modules/team"
+  members = [
+    // Manager
+    "sudo@gmail.com",
+	// Developer
+	"hiroshi@gmail.com",
+	"ken@gmail.com",
+	// Analytics
+	"shiho@gmail.com",
+ ]
+}
+` + "```\n" + `
+
+Steps:
+1. Add tanaka@gmail.com and john@gmail.com to the members list after shiho@gmail.com in the data-user module in the file terraform/team/data_users.tf.
+
+--------- Example 1 End --------------
+
 etc.
 
 Each step will be corresponding to one change in a function.
@@ -118,7 +140,12 @@ name     = "new-example-bucket"
 location = "EU"
 `+"```"+`
 
-Just provide the content of the block, not including the block name and lables.
+
+Rules:
+- Only provide the content of the block, not including the block name and lables.
+- Make sure new line is added at the beginning and end of the content.
+- Please do change unrelated content.
+- If there's no need to change the content, please provide the current content.
 `
 
 const PLANNER_LINE_NUM_PROMPT = `Please provide the start and end line number of the target location.
