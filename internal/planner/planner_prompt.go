@@ -1,7 +1,8 @@
 package planner
 
 const NECESSARY_CHANGES_PLAN_PROMPT = `Please make a plan to achieve the goal.
-A plan consists of a series of steps to execute in order.
+A plan consists of a series of steps to execute in order. Currently possible action is to replace content of a block in a file.
+You can make several steps (changing multiple blocks in multiple files if necessary) to achieve the goal.
 
 -----------------------
 Goal: %s
@@ -40,7 +41,7 @@ Steps:
 
 etc.
 
-Each step will be corresponding to one change in a function.
+Ideally each step will be corresponding to one change in a block.
 `
 
 const PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT = `You are a helpful assistant that extract blocks to execute the given step.
