@@ -52,18 +52,10 @@ func (c ChangesPlan) String() string {
 	return string(jsonData)
 }
 
-// Change is a single change to be made to a file.
-type Change struct {
-	Path        string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	Add         string `json:"add" jsonschema_description:"Content to be added to the file"`
-	Delete      string `json:"delete" jsonschema_description:"Content to be deleted from the file. When this is specified, the line number must be provided. The content to be deleted must match the content in the file at the specified line number."`
-	Explanation string `json:"explanation" jsonschema_description:"Explanation for the change including why this change is needed and what is achieved by this change, etc."`
-	LineNum     int    `json:"line" jsonschema_description:"The start line number to replace conetent in the block. Please specify 0 if you want to add new content."`
-}
-
 type BlockChange struct {
 	Block      Block  `json:"block" jsonschema_description:"The target block to be changed"`
-	NewContent string `json:"new_content" jsonschema_description:"The new content of the block."`
+	NewContent string `json:"new_content" jsonschema_description:"The new content of the block. Leave it empty to keep the current content and just update comment."`
+	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
 type TargetBlocks struct {
@@ -86,7 +78,8 @@ type LineNum struct {
 // This might work bettter than ChangesPlan.
 type ChangeFilePlan struct {
 	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	NewContent string `json:"new_content" jsonschema_description:"The new content of the file."`
+	NewContent string `json:"new_content" jsonschema_description:"The new content of the target block. Leave it empty to keep the current content and just update comment."`
+	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the target block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
 type YesOrNo struct {
@@ -262,6 +255,7 @@ func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate st
 	plan := &BlockChange{
 		Block:      block,
 		NewContent: change.NewContent,
+		NewComment: change.NewComment,
 	}
 
 	return plan, nil
@@ -378,7 +372,7 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 				}
 				// TODO: enable to change attr in hcl
 			} else {
-				log.Printf("Step %d: unsupported file type\n", i+1)
+				log.Printf("Step %d: unsupported file type %s\n", i+1, blkToChange.Path)
 				continue
 			}
 			fmt.Printf("Step %d: Block path:%s type:%s name:%s\n", i+1, blkToChange.Path, blkToChange.TargetType, blkToChange.TargetName)

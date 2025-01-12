@@ -69,7 +69,7 @@ func GetBlockContent(f *hclwrite.File, resourceName string) (string, error) {
 }
 
 // updateBlock replaces the entire content of the specified resource block with new content
-func UpdateBlock(f *hclwrite.File, blockType, resourceName string, newContent string) error {
+func UpdateBlock(f *hclwrite.File, blockType, resourceName string, newContent string, newComments []string) error {
 	body := f.Body()
 	blocks := body.Blocks()
 
@@ -86,6 +86,11 @@ func UpdateBlock(f *hclwrite.File, blockType, resourceName string, newContent st
 			// Clear the existing block body and append new tokens
 			block.Body().Clear()
 			block.Body().AppendUnstructuredTokens(tempFile.Body().BuildTokens(nil))
+
+			// Add new comments
+			if len(newComments) > 0 {
+				fmt.Println("newComments is not implemented yet for HCL.")
+			}
 			return nil
 		}
 	}

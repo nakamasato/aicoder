@@ -55,6 +55,8 @@ Files option:
 
 ------------------------
 Please provide the complete set of locations as either a class name, a function name, a struct name, or a variable name.
+Event if multiple files are provided, not necessarily all files need to be changed. Please only provide the blocks that need to be changed.
+
 
 ### Examples:
 

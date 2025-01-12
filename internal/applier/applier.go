@@ -44,9 +44,13 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			diffs = append(diffs, diff)
 		} else if filepath.Ext(change.Block.Path) == ".go" {
 			// Apply change to temp file
-			err := file.UpdateFuncGo(targetPath, change.Block.TargetName, change.NewContent, "")
-			if err != nil {
-				return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
+			if change.Block.TargetType == "function" {
+				err := file.UpdateFuncGo(targetPath, change.Block.TargetName, change.NewContent, change.NewComment)
+				if err != nil {
+					return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
+				}
+			} else {
+				return fmt.Errorf("unsupported target type: %s", change.Block.TargetType)
 			}
 		} else if filepath.Ext(change.Block.Path) == ".hcl" || filepath.Ext(change.Block.Path) == ".tf" {
 			// Apply change to HCL file
@@ -59,7 +63,7 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			if diag.HasErrors() {
 				return fmt.Errorf("failed to parse HCL file: %s, error: %v", targetPath, diag.Error())
 			}
-			err = file.UpdateBlock(f, change.Block.TargetType, change.Block.TargetName, change.NewContent) // targetname is strings.Join(block.Labels(), ",")
+			err = file.UpdateBlock(f, change.Block.TargetType, change.Block.TargetName, change.NewContent, nil) // targetname is strings.Join(block.Labels(), ",") and newComments is not implemented yet
 			if err != nil {
 				return fmt.Errorf("failed to update block (%s): %w", targetPath, err)
 			}

@@ -51,9 +51,10 @@ func UpdateFuncGo(path, function, content, comment string) error {
 	}
 
 	// Update the function body and comment
-	functionFound := UpdateFuncBody(node, function, content)
-	if !functionFound {
-		return fmt.Errorf("function %s not found in file %s", function, path)
+	if content != "" {
+		if functionFound := UpdateFuncBody(node, function, content); !functionFound {
+			return fmt.Errorf("function %s not found in file %s", function, path)
+		}
 	}
 
 	// Update the function comment if specified

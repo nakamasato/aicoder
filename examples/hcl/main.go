@@ -59,7 +59,7 @@ project   = "new_project_id"
 member    = "new_member"
 secret_id = "new_secret_id"
 role      = "roles/secretmanager.admin"
-`)
+`, nil)
 
 	// ブロックを追加
 	log.Println("--- AddBlock ---- example_network")
