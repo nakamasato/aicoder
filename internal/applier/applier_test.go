@@ -136,3 +136,34 @@ resource "google_storage_bucket" "example_bucket" {
 		t.Errorf("Expected new file content:\n%s\nActual new file content:\n%s", expectedNewContent, string(newContent))
 	}
 }
+
+func TestApplyChangeFilePlan(t *testing.T) {
+	// Setup: Create a temporary file
+	tempFile, err := os.CreateTemp("", "testfile-*.tmp")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name()) // Clean up
+
+	// Define a test change
+	change := &planner.BlockChange{
+		NewContent: "new content for the file",
+	}
+
+	// Execute the function
+	err = ApplyChangeFilePlan(change, tempFile.Name())
+	if err != nil {
+		t.Fatalf("ApplyChangeFilePlan failed: %v", err)
+	}
+
+	// Verify the file content
+	content, err := os.ReadFile(tempFile.Name())
+	if err != nil {
+		t.Fatalf("Failed to read temp file: %v", err)
+	}
+
+	expectedContent := "new content for the file"
+	if string(content) != expectedContent {
+		t.Errorf("Expected file content to be %q, but got %q", expectedContent, string(content))
+	}
+}
