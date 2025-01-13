@@ -75,12 +75,12 @@ func runRefactor(cmd *cobra.Command, args []string) {
 
 	files := []file.File{
 		{
-			Path:   filename,
+			Path:    filename,
 			Content: string(data),
 		},
 	}
 
-	changesPlan, err := plnr.GenerateChangesPlan2(ctx, query, 10, files)
+	changesPlan, err := plnr.GenerateChangesPlan(ctx, query, 10, files)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
