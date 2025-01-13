@@ -39,6 +39,33 @@ Steps:
 
 --------- Example 1 End --------------
 
+--------- Example 2 Start --------------
+
+Goal: Update readme by checking the current implementation.
+
+Files:
+
+README.md:
+
+` + "```\n" + `
+# Project Name
+
+This project is a sample project for the aicoder.
+
+...
+
+` + "```\n" + `
+
+
+Steps:
+
+1. Determine files that have core implementation details.
+2. Check the current implementation in the files.
+3. Check the current readme file.
+5. Update the readme file with the current implementation details.
+
+--------- Example 2 End --------------
+
 etc.
 
 Ideally each step will be corresponding to one change in a block.
@@ -151,85 +178,17 @@ Rules:
 - If there's no need to change the content, please provide the current content.
 `
 
-const PLANNER_LINE_NUM_PROMPT = `Please provide the start and end line number of the target location.
+const GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE = `Please provide the new content of the entire file %s
 
-## Target location
+## Current content
 
-target_type: %s
-target_name: %s
-
-## File Content
-
-` + "```\n" + `
+`+"```"+`
 %s
-` + "```\n" + `
+`+"```"+`
 
-## Examples
-
-target_type: function
-target_name: NewPlanner
-
-Code:
-
-` + "```\n" + `
-package planner
-
-import (
-	"bufio"
-	"context"
-	"encoding/json"
-	"fmt"
-	"log"
-	"os"
-	"strings"
-	"sync"
-
-	"github.com/invopop/jsonschema"
-	"github.com/nakamasato/aicoder/ent"
-	"github.com/nakamasato/aicoder/internal/file"
-	"github.com/nakamasato/aicoder/internal/llm"
-	"github.com/openai/openai-go"
-)
-
-type Planner struct {
-	llmClient llm.Client
-	entClient *ent.Client
-}
-
-func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
-	return &Planner{
-		llmClient: llmClient,
-		entClient: entClient,
-	}
-}
-` + "```\n" + `
-
-Output:
-
-{\"start_line\":25,\"end_line\":30}
-
-Reason:
----
-1 package planner
-2
-3 import (
-...
-...
-25 func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
-26 	return &Planner{
-27 		llmClient: llmClient,
-28		entClient: entClient,
-29	}
-30 }
----
+Rules:
+- Provide the new content of the entire file.
 `
-
-const VALIDATE_GOAL_PROMPT = `Please validate the given goal.
-
-Currently AICoder is still under development and only support goals that explicitly specficy a file to change or create.
-
------------------------
-Goal: %s`
 
 const REPLAN_PROMPT = `You are a helpful assistant that generates detailed action plans based on provided project information.
 The plan you've just made failed the validation.

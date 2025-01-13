@@ -10,6 +10,7 @@ import (
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/internal/applier"
+	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"github.com/spf13/cobra"
@@ -69,28 +70,29 @@ func runRefactor(cmd *cobra.Command, args []string) {
 	}
 
 	query := message
-	prompt := fmt.Sprintf("The code content:\n--- %s start ---\n%s\n---- %s end ----", filename, string(data), filename)
 
 	plnr := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
 
-	changeFilePlan, err := plnr.GenerateChangeFilePlanWithRetry(ctx, prompt, query, 10)
+	files := []file.File{
+		{
+			Path:    filename,
+			Content: string(data),
+		},
+	}
+
+	changesPlan, err := plnr.GenerateChangesPlan(ctx, query, 10, files)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
 
 	// Print plan
-	planJSON, err := json.MarshalIndent(changeFilePlan, "", "  ")
+	planJSON, err := json.MarshalIndent(changesPlan, "", "  ")
 	if err != nil {
 		log.Fatalf("failed to marshal plan: %v", err)
 	}
 	fmt.Println(string(planJSON))
 
-	// Save plan to file
-	// if err := planner.SavePlan[planner.ChangeFilePlan](*changeFilePlan, outputFile); err != nil {
-	// 	log.Fatalf("failed to save plan: %v", err)
-	// }
-	// fmt.Printf("Successfully saved to %s", outputFile)
-	if err = applier.ApplyChangeFilePlan(changeFilePlan, changeFilePlan.Path); err != nil {
+	if err = applier.ApplyChanges(changesPlan, false); err != nil {
 		log.Fatalf("failed to apply plan: %v", err)
 	}
 }

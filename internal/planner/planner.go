@@ -52,32 +52,28 @@ func (c ChangesPlan) String() string {
 	return string(jsonData)
 }
 
+// BlockChange is a change to a block of code.
 type BlockChange struct {
 	Block      Block  `json:"block" jsonschema_description:"The target block to be changed"`
 	NewContent string `json:"new_content" jsonschema_description:"The new content of the block. Leave it empty to keep the current content and just update comment."`
 	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
+// TargetBlocks is a list of candidate blocks to be modified to achieve the goal.
 type TargetBlocks struct {
 	Changes []Block `json:"changes" jsonschema_description:"List of candidate blocks to be modified to achieve the goal"`
 }
 
+// Block represents a block of code to be changed.
 type Block struct {
 	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
-	TargetType string `json:"target_type" jsonschema_description:"Type of the target block. e.g. class, function, struct, variable, module, etc"`
-	TargetName string `json:"target_name" jsonschema_description:"Name of the target block. e.g. Command, runPlan, Client"`
+	TargetType string `json:"target_type" jsonschema_description:"Type of the target block. e.g. file, class, function, struct, variable, module, etc"`
+	TargetName string `json:"target_name" jsonschema_description:"Name of the target block. Please set file path when TargetType is 'file'. e.g. Command, runPlan, Client"`
 	Content    string `json:"content" jsonschema_description:"The content of the block"`
 }
 
-type LineNum struct {
-	StartLine int `json:"start_line" jsonschema_description:"Start line number of the target block"`
-	EndLine   int `json:"end_line" jsonschema_description:"End line number of the target block"`
-}
-
-// ChangeFilePlan is used to replace the entire content of the specified file with the modified content.
-// This might work bettter than ChangesPlan.
-type ChangeFilePlan struct {
-	Path       string `json:"path" jsonschema_description:"Path to the file to be changed"`
+// ChangeDiff is diff of the block of code.
+type ChangeDiff struct {
 	NewContent string `json:"new_content" jsonschema_description:"The new content of the target block. Leave it empty to keep the current content and just update comment."`
 	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the target block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
@@ -86,31 +82,16 @@ type YesOrNo struct {
 	Answer bool `json:"answer" jsonschema_description:"Answer to the yes or no question"`
 }
 
-type CodeValidation struct {
-	IsValid         bool     `json:"is_valid" jsonschema_description:"true if the code syntax is valid."`
-	InvalidSyntaxes []string `json:"reason" jsonschema_description:"The explanation of invalid syntaxes. Please write where is wrong and how to fix."`
-}
-
 var (
-	ChangesPlanSchema          = GenerateSchema[ChangesPlan]()
 	TargetBlocksSchema         = GenerateSchema[TargetBlocks]()
-	LinenumSchema              = GenerateSchema[LineNum]()
 	YesOrNoSchema              = GenerateSchema[YesOrNo]()
-	ChangeFileSchema           = GenerateSchema[ChangeFilePlan]()
-	CodeValidationSchema       = GenerateSchema[CodeValidation]()
+	ChangeDiffSchema           = GenerateSchema[ChangeDiff]()
 	NecessaryChangesPlanSchema = GenerateSchema[NecessaryChangesPlan]()
 
-	ChangeFileSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+	ChangeDiffSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        openai.F("changes"),
 		Description: openai.F("List of changes to be made to achieve the goal"),
-		Schema:      openai.F(ChangeFileSchema),
-		Strict:      openai.Bool(true),
-	}
-
-	ChangesPlanSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("changes"),
-		Description: openai.F("List of changes to be made to meet the requirements"),
-		Schema:      openai.F(ChangesPlanSchema),
+		Schema:      openai.F(ChangeDiffSchema),
 		Strict:      openai.Bool(true),
 	}
 
@@ -118,20 +99,6 @@ var (
 		Name:        openai.F("block_changes"),
 		Description: openai.F("List of changes to be made to achieve the goal"),
 		Schema:      openai.F(TargetBlocksSchema),
-		Strict:      openai.Bool(true),
-	}
-
-	LinenumSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("line_num"),
-		Description: openai.F("The start and end line number of the target location"),
-		Schema:      openai.F(LinenumSchema),
-		Strict:      openai.Bool(true),
-	}
-
-	CodeValidationSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("syntax_validation"),
-		Description: openai.F("The result of judging Whether the syntax of the generated code is correct"),
-		Schema:      openai.F(CodeValidationSchema),
 		Strict:      openai.Bool(true),
 	}
 
@@ -160,6 +127,16 @@ func GenerateSchema[T any]() interface{} {
 	return schema
 }
 
+func makeFileBlocksString(fileBlocks map[string][]Block) string {
+	var builder strings.Builder
+	for _, blocks := range fileBlocks {
+		for _, b := range blocks {
+			builder.WriteString(fmt.Sprintf("\n- %s: %s", b.TargetType, b.TargetName))
+		}
+	}
+	return builder.String()
+}
+
 // GeneratePromptWithFiles creates a prompt to extract blocks of the given files to modify
 func (p *Planner) GeneratePromptWithFiles(ctx context.Context, prompt, goal string, files []file.File, fileBlocks map[string][]Block) (string, error) {
 	// Create a comprehensive prompt
@@ -177,6 +154,7 @@ func (p *Planner) GeneratePromptWithFiles(ctx context.Context, prompt, goal stri
 
 		builder.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---\n--- blocks ---\n%s", f.Path, f.Content, blockStr))
 	}
+
 	return fmt.Sprintf(prompt, builder.String(), goal), nil
 }
 
@@ -241,12 +219,12 @@ func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate st
 			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
 			openai.UserMessage(fmt.Sprintf(promptTemplate, block.TargetName, block.Path, blockContent)),
 		},
-		ChangeFileSchemaParam)
+		ChangeDiffSchemaParam)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
 	}
 
-	var change ChangeFilePlan
+	var change ChangeDiff
 	err = json.Unmarshal([]byte(content), &change)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
@@ -261,8 +239,8 @@ func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate st
 	return plan, nil
 }
 
-// GenerateChangesPlan2 generates ChangesPlan for Go language.
-func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAttempts int, files []file.File) (*ChangesPlan, error) {
+// GenerateChangesPlan generates ChangesPlan for Go language.
+func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAttempts int, files []file.File) (*ChangesPlan, error) {
 
 	// identify files to change
 	files, err := p.removeUnrelevantFiles(ctx, query, files)
@@ -294,14 +272,14 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 				fmt.Printf("Block: Type:%s, Labels:%s\n", b.Type, strings.Join(b.Labels, ","))
 				fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: b.Type, TargetName: strings.Join(b.Labels, ","), Content: b.Content})
 			}
+		} else { // file: block is the entire file
+			fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: "file", TargetName: f.Path, Content: f.Content})
 		}
 	}
 
 	// Make a Plan: which file to change and what to change
-	prompt, err := p.GeneratePromptWithFiles(ctx, NECESSARY_CHANGES_PLAN_PROMPT, query, files, fileBlocks)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
-	}
+	fileBlocksStr := makeFileBlocksString(fileBlocks)
+	prompt := fmt.Sprintf(NECESSARY_CHANGES_PLAN_PROMPT, fileBlocksStr, query)
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
@@ -316,8 +294,10 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 	if err = json.Unmarshal([]byte(content), &plan); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal necessary changes plan: %w", err)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
+
+	fmt.Println("Plan:")
+	for i, step := range plan.Steps {
+		fmt.Printf("Step %d: %s\n", i+1, step)
 	}
 
 	// Generate ChangesPlan
@@ -348,7 +328,7 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 						fmt.Printf("Step %d: Matched Block Go path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
 						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, blkToChange, blk.Content)
 						if err != nil {
-							log.Panicln("failed to generate plan: %w", err)
+							log.Fatalf("failed to generate plan: %v", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
 						}
 						changesPlan.Changes = append(changesPlan.Changes, *blkChange)
@@ -363,7 +343,7 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 						fmt.Printf("Step %d: Matched Block HCL path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
 						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, blkToChange, blk.Content)
 						if err != nil {
-							log.Panicln("failed to generate plan: %w", err)
+							log.Fatalf("failed to generate plan: %v", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
 						}
 						changesPlan.Changes = append(changesPlan.Changes, *blkChange)
@@ -371,9 +351,16 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 					}
 				}
 				// TODO: enable to change attr in hcl
+			} else if blkToChange.TargetType == "file" {
+				for _, blk := range fileBlocks[blkToChange.Path] {
+					blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE, blkToChange, blk.Content)
+					if err != nil {
+						log.Fatalf("failed to generate plan: %v", err)
+					}
+					changesPlan.Changes = append(changesPlan.Changes, *blkChange)
+				}
 			} else {
-				log.Printf("Step %d: unsupported file type %s\n", i+1, blkToChange.Path)
-				continue
+				fmt.Printf("Step %d: Unsupported file type: %s\n", i+1, blkToChange.Path)
 			}
 			fmt.Printf("Step %d: Block path:%s type:%s name:%s\n", i+1, blkToChange.Path, blkToChange.TargetType, blkToChange.TargetName)
 		}
@@ -400,104 +387,6 @@ func (p *Planner) getBlocks(ctx context.Context, prompt string) (*TargetBlocks, 
 	}
 
 	return &blks, nil
-}
-
-// GenerateChangesPlan creates a ChangesPlan based on the prompt.
-// If you need validate and replan, use GenerateChangesPlanWithRetry function instead.
-func (p *Planner) GenerateChangesPlan(ctx context.Context, prompt string) (*ChangesPlan, error) {
-
-	content, err := p.llmClient.GenerateCompletion(ctx,
-		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You are a helpful assistant that generates detailed action plans based on provided project information."),
-			openai.UserMessage(prompt),
-		},
-		ChangesPlanSchemaParam)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
-	}
-
-	var changesPlan ChangesPlan
-	err = json.Unmarshal([]byte(content), &changesPlan)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
-	}
-
-	fmt.Printf("Plan: %d\n", len(changesPlan.Changes))
-
-	return &changesPlan, nil
-}
-
-func (p *Planner) GenerateChangeFilePlanWithRetry(ctx context.Context, prompt, query string, maxAttempts int) (*ChangeFilePlan, error) {
-	changesPlan, err := p.GenerateChangeFilePlan(ctx, openai.UserMessage(query), openai.SystemMessage(prompt))
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate plan: %w", err)
-	}
-
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		// validation
-		messages := []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You're a code validator to check whether the generated code is correct syntax"),
-			openai.UserMessage(VALIDATE_FILE_PROMPT),
-			openai.SystemMessage(changesPlan.NewContent),
-		}
-
-		content, err := p.llmClient.GenerateCompletion(
-			ctx, messages, CodeValidationSchemaParam)
-
-		if err != nil {
-			fmt.Printf("failed to execute Chat.Completion: %v", err)
-			continue
-		}
-
-		var validation CodeValidation
-		if err = json.Unmarshal([]byte(content), &validation); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal content to CodeValidation: %v", err)
-		}
-		if validation.IsValid {
-			return changesPlan, nil
-		}
-		fmt.Printf("syntax validation failed. %d invalid syntaxes", len(validation.InvalidSyntaxes))
-		for i, s := range validation.InvalidSyntaxes {
-			fmt.Printf("%d. %s", i+1, s)
-		}
-
-		// regenerate
-		changesPlan, err = p.GenerateChangeFilePlan(ctx,
-			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-			openai.UserMessage(query),
-			openai.SystemMessage(prompt),
-			openai.SystemMessage(changesPlan.NewContent),
-			openai.SystemMessage(fmt.Sprintf("The syntax validation failed the reasons are the followings:\n%s", strings.Join(validation.InvalidSyntaxes, "\n"))),
-			openai.UserMessage("Please fix the syntax errors."),
-		)
-		if err != nil {
-			log.Fatalf("failed to generate ChangesFilePlan: %v", err)
-		}
-	}
-
-	return nil, fmt.Errorf("failed to generate a valid plan after %d attempts", maxAttempts)
-}
-
-// GenerateChangeFilePlan creates a ChangeFilePlan based on the prompt.
-func (p *Planner) GenerateChangeFilePlan(ctx context.Context, prompts ...openai.ChatCompletionMessageParamUnion) (*ChangeFilePlan, error) {
-
-	messages := []openai.ChatCompletionMessageParamUnion{
-		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-	}
-	messages = append(messages, prompts...)
-
-	content, err := p.llmClient.GenerateCompletion(ctx, messages, ChangeFileSchemaParam)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute Chat.Completion: %v", err)
-	}
-
-	fmt.Printf("Answer: %s\n---\n", content)
-	var changeFile ChangeFilePlan
-	if err = json.Unmarshal([]byte(content), &changeFile); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal content to ChanegFile: %v", err)
-	}
-	fmt.Printf("Parsed Answer: %s", changeFile)
-	return &changeFile, nil
 }
 
 func LoadPlanFile[T any](planFile string) (*T, error) {
