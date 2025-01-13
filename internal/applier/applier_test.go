@@ -167,3 +167,26 @@ func TestApplyChangeFilePlan(t *testing.T) {
 		t.Errorf("Expected file content to be %q, but got %q", expectedContent, string(content))
 	}
 }
+
+func TestApplyChanges_UnsupportedFileType(t *testing.T) {
+	// Create a mock ChangesPlan with an function target type
+	changesPlan := &planner.ChangesPlan{
+		Changes: []planner.BlockChange{
+			{
+				Block: planner.Block{
+					Path:       "unsupported_file_type.py",
+					TargetType: "function",
+				},
+			},
+		},
+	}
+
+	// Call ApplyChanges with dryrun set to false
+	err := ApplyChanges(changesPlan, false)
+
+	// Check if the error message is as expected
+	expectedError := "unsupported file type: unsupported_file_type.py"
+	if err == nil || err.Error() != expectedError {
+		t.Fatalf("expected error: %s, got: %v", expectedError, err)
+	}
+}
