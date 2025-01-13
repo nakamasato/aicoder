@@ -39,6 +39,33 @@ Steps:
 
 --------- Example 1 End --------------
 
+--------- Example 2 Start --------------
+
+Goal: Update readme by checking the current implementation.
+
+Files:
+
+README.md:
+
+` + "```\n" + `
+# Project Name
+
+This project is a sample project for the aicoder.
+
+...
+
+` + "```\n" + `
+
+
+Steps:
+
+1. Determine files that have core implementation details.
+2. Check the current implementation in the files.
+3. Check the current readme file.
+5. Update the readme file with the current implementation details.
+
+--------- Example 2 End --------------
+
 etc.
 
 Ideally each step will be corresponding to one change in a block.
