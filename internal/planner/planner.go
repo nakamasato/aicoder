@@ -150,6 +150,16 @@ func GenerateSchema[T any]() interface{} {
 	return schema
 }
 
+func makeFileBlocksString(fileBlocks map[string][]Block) string {
+	var builder strings.Builder
+	for _, blocks := range fileBlocks {
+		for _, b := range blocks {
+			builder.WriteString(fmt.Sprintf("\n- %s: %s", b.TargetType, b.TargetName))
+		}
+	}
+	return builder.String()
+}
+
 // GeneratePromptWithFiles creates a prompt to extract blocks of the given files to modify
 func (p *Planner) GeneratePromptWithFiles(ctx context.Context, prompt, goal string, files []file.File, fileBlocks map[string][]Block) (string, error) {
 	// Create a comprehensive prompt
@@ -167,6 +177,7 @@ func (p *Planner) GeneratePromptWithFiles(ctx context.Context, prompt, goal stri
 
 		builder.WriteString(fmt.Sprintf("\n--------------------\nfilepath:%s\n--%s\n--- content end---\n--- blocks ---\n%s", f.Path, f.Content, blockStr))
 	}
+
 	return fmt.Sprintf(prompt, builder.String(), goal), nil
 }
 
@@ -290,10 +301,8 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 	}
 
 	// Make a Plan: which file to change and what to change
-	prompt, err := p.GeneratePromptWithFiles(ctx, NECESSARY_CHANGES_PLAN_PROMPT, query, files, fileBlocks)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
-	}
+	fileBlocksStr := makeFileBlocksString(fileBlocks)
+	prompt := fmt.Sprintf(NECESSARY_CHANGES_PLAN_PROMPT, fileBlocksStr, query)
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
@@ -308,12 +317,11 @@ func (p *Planner) GenerateChangesPlan2(ctx context.Context, query string, maxAtt
 	if err = json.Unmarshal([]byte(content), &plan); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal necessary changes plan: %w", err)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
-	}
 
-	// TODO: Sophisticate plan steps
-	// If there are multiple steps for one file, we need to merge them into one step.
+	fmt.Println("Plan:")
+	for i, step := range plan.Steps {
+		fmt.Printf("Step %d: %s\n", i+1, step)
+	}
 
 	// Generate ChangesPlan
 	changesPlan := &ChangesPlan{}
