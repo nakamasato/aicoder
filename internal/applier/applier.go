@@ -70,6 +70,12 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			if err := os.WriteFile(targetPath, f.Bytes(), 0644); err != nil {
 				return fmt.Errorf("failed to write updated file: %w", err)
 			}
+		} else if change.Block.TargetType == "file" {
+			// Apply change to file
+			err := ApplyChangeFilePlan(&change, targetPath)
+			if err != nil {
+				return fmt.Errorf("failed to apply change to file (%s): %w", targetPath, err)
+			}
 		} else {
 			return fmt.Errorf("unsupported file type: %s", change.Block.Path)
 		}
@@ -211,7 +217,7 @@ func GetFileContent(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-func ApplyChangeFilePlan(change *planner.ChangeFilePlan, targetPath string) error {
+func ApplyChangeFilePlan(change *planner.BlockChange, targetPath string) error {
 	if err := os.WriteFile(targetPath, []byte(change.NewContent), 0644); err != nil {
 		return fmt.Errorf("failed to create new file: %w", err)
 	}
