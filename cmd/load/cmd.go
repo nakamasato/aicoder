@@ -2,10 +2,8 @@ package load
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"entgo.io/ent/dialect"
@@ -88,29 +86,12 @@ func runLoad(cmd *cobra.Command, args []string) {
 
 	store := vectorstore.New(entClient, llmClient)
 
-	// Load current RepoStructure
-	loadCfg := config.GetCurrentLoadConfig()
-	currentRepo, err := loader.LoadRepoStructureFromHead(ctx, gitRootPath, loadCfg.TargetPath, loadCfg.Include, loadCfg.Exclude)
-	if err != nil {
-		fmt.Printf("Error loading repo structure: %v\n", err)
-		os.Exit(1)
+	svc := loader.NewService(&config, entClient, llmClient, store)
+
+	if err := svc.UpdateRepoStructure(ctx, gitRootPath, outputFile); err != nil {
+		log.Fatalf("failed to load repository structure: %v", err)
 	}
 
-	// Marshal to JSON
-	output, err := json.MarshalIndent(currentRepo, "", "  ")
-	if err != nil {
-		fmt.Printf("Error marshaling JSON: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Write to file
-	err = os.WriteFile(outputFile, output, 0644)
-	if err != nil {
-		fmt.Printf("Error writing JSON to file: %v\n", err)
-		os.Exit(1)
-	}
-
-	svc := loader.NewService(&config, &currentRepo, entClient, llmClient, store)
 	if err := svc.UpdateDocuments(ctx); err != nil {
 		log.Fatalf("failed to load repository structure: %v", err)
 	}

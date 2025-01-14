@@ -30,20 +30,19 @@ type service struct {
 	vectorstore vectorstore.VectorStore
 }
 
-func NewService(cfg *config.AICoderConfig, structure *RepoStructure, entClient *ent.Client, llmClient llm.Client, store vectorstore.VectorStore) *service {
+func NewService(cfg *config.AICoderConfig, entClient *ent.Client, llmClient llm.Client, store vectorstore.VectorStore) *service {
 	return &service{
 		config:      cfg,
-		structure:   structure,
 		llmClient:   llmClient,
 		entClient:   entClient,
 		vectorstore: store,
 	}
 }
 
-func (s *service) ReadRepoStructure(ctx context.Context, filename string) (*RepoStructure, error) {
+func (s *service) ReadRepoStructure(ctx context.Context, structureFile string) (*RepoStructure, error) {
 	var repo RepoStructure
-	if _, err := os.Stat(filename); err == nil {
-		data, err := os.ReadFile(filename)
+	if _, err := os.Stat(structureFile); err == nil {
+		data, err := os.ReadFile(structureFile)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to read existing repo structure: %v", err)
 		}
@@ -52,6 +51,25 @@ func (s *service) ReadRepoStructure(ctx context.Context, filename string) (*Repo
 		}
 	}
 	return &repo, nil
+}
+
+func (s *service) UpdateRepoStructure(ctx context.Context, gitRootPath string, structureFile string) error {
+	var err error
+	structure, err := LoadRepoStructureFromHead(ctx, gitRootPath, s.config.GetCurrentLoadConfig().TargetPath, s.config.GetCurrentLoadConfig().Include, s.config.GetCurrentLoadConfig().Exclude)
+	if err != nil {
+		return fmt.Errorf("Failed to load repo structure: %v", err)
+	}
+	s.structure = &structure
+
+	data, err := json.Marshal(structure)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal repo structure: %v", err)
+	}
+	err = os.WriteFile(structureFile, data, 0644)
+	if err != nil {
+		return fmt.Errorf("Failed to write repo structure: %v", err)
+	}
+	return nil
 }
 
 // Load loads the repository structure and documents into the vector store.
