@@ -2,6 +2,7 @@ package loader
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,7 +40,22 @@ func NewService(cfg *config.AICoderConfig, structure *RepoStructure, entClient *
 	}
 }
 
-func (s *service) Load(ctx context.Context) error {
+func (s *service) ReadRepoStructure(ctx context.Context, filename string) (*RepoStructure, error) {
+	var repo RepoStructure
+	if _, err := os.Stat(filename); err == nil {
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read existing repo structure: %v", err)
+		}
+		if err := json.Unmarshal(data, &repo); err != nil {
+			return nil, fmt.Errorf("Failed to parse existing repo structure: %v", err)
+		}
+	}
+	return &repo, nil
+}
+
+// Load loads the repository structure and documents into the vector store.
+func (s *service) UpdateDocuments(ctx context.Context) error {
 
 	// clean up non-existing files
 	var filePaths []string

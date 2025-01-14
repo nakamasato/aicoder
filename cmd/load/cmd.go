@@ -88,18 +88,6 @@ func runLoad(cmd *cobra.Command, args []string) {
 
 	store := vectorstore.New(entClient, llmClient)
 
-	// Load existing RepoStructure if exists
-	var previousRepo loader.RepoStructure
-	if _, err := os.Stat(outputFile); err == nil {
-		data, err := os.ReadFile(outputFile)
-		if err != nil {
-			log.Fatalf("Failed to read existing repo structure: %v", err)
-		}
-		if err := json.Unmarshal(data, &previousRepo); err != nil {
-			log.Fatalf("Failed to parse existing repo structure: %v", err)
-		}
-	}
-
 	// Load current RepoStructure
 	loadCfg := config.GetCurrentLoadConfig()
 	currentRepo, err := loader.LoadRepoStructureFromHead(ctx, gitRootPath, loadCfg.TargetPath, loadCfg.Include, loadCfg.Exclude)
@@ -123,7 +111,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 	}
 
 	svc := loader.NewService(&config, &currentRepo, entClient, llmClient, store)
-	if err := svc.Load(ctx); err != nil {
+	if err := svc.UpdateDocuments(ctx); err != nil {
 		log.Fatalf("failed to load repository structure: %v", err)
 	}
 
