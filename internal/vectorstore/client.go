@@ -3,6 +3,8 @@ package vectorstore
 import (
 	"context"
 	"fmt"
+	"log"
+	"math"
 	"strings"
 	"time"
 
@@ -10,7 +12,6 @@ import (
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/nakamasato/aicoder/internal/llm"
-	"github.com/nakamasato/aicoder/pkg/vectorutils"
 	"github.com/pgvector/pgvector-go"
 )
 
@@ -19,9 +20,27 @@ type VectorStore interface {
 	Search(ctx context.Context, repository, context, query string, k int) (*SearchResult, error)
 }
 
+type DistanceFunc func(a, b []float32) float64
+
+func EuclideanDistance(a, b []float32) float64 {
+	if len(a) != len(b) {
+		log.Fatalf("Vectors must be of same length")
+	}
+
+	var sum float64
+
+	for i := 0; i < len(a); i++ {
+		diff := float64(a[i] - b[i])
+		sum += diff * diff
+	}
+
+	return math.Sqrt(sum)
+}
+
 type vectorstore struct {
-	llmClient llm.Client
-	entClient *ent.Client
+	llmClient    llm.Client
+	entClient    *ent.Client
+	distanceFunc DistanceFunc
 }
 
 type Document struct {
@@ -49,7 +68,7 @@ func (r *SearchResult) String() string {
 }
 
 func New(entClient *ent.Client, llmClient llm.Client) VectorStore {
-	return &vectorstore{entClient: entClient, llmClient: llmClient}
+	return &vectorstore{entClient: entClient, llmClient: llmClient, distanceFunc: EuclideanDistance}
 }
 
 func (c *vectorstore) AddDocument(ctx context.Context, doc *Document) error {
@@ -90,7 +109,7 @@ func (c *vectorstore) Search(ctx context.Context, repository, context, query str
 	}
 	results := SearchResult{Documents: &[]DocumentWithScore{}}
 	for _, doc := range docs {
-		distance := vectorutils.EuclideanDistance(doc.Embedding.Slice(), queryEmbedding)
+		distance := c.distanceFunc(doc.Embedding.Slice(), queryEmbedding)
 		*results.Documents = append(*results.Documents, DocumentWithScore{
 			Document: &Document{
 				Repository:  doc.Repository,

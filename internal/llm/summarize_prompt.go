@@ -12,4 +12,27 @@ Please write the summary in the following manner:
 - Any other relevant information
 
 \n\n%s`
+
+	SUMMARIZE_REPO_CONTENT_PROMPT = `Please provide a concise summary of the repository structure.
+
+This summary is used for new users to understand the repository structure.
+Please include the following information:
+
+- What is the repository about?
+- What are the main directories and their purposes?
+- Any important files or directories that users should know about?
+- Important functions or classes that are used throughout the repository
+- Concepts or technologies used in the repository
+
+## Repository
+
+Name: %s
+
+Target Directory: %s
+
+Files:
+
+%s
+
+`
 )

@@ -14,6 +14,7 @@ import (
 	"github.com/nakamasato/aicoder/cmd/load"
 	"github.com/nakamasato/aicoder/cmd/plan"
 	"github.com/nakamasato/aicoder/cmd/search"
+	"github.com/nakamasato/aicoder/cmd/summarize"
 	"github.com/nakamasato/aicoder/config"
 	"github.com/spf13/cobra"
 )
@@ -55,6 +56,7 @@ func init() {
 		apply.Command(),
 		debug.Command(),
 		cmdconfig.Command(),
+		summarize.Command(),
 	)
 }
 
