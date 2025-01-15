@@ -21,7 +21,6 @@ var (
 	openaiAPIKey string
 	openaiModel  string
 	dbConnString string
-	refresh      bool
 )
 
 func Command() *cobra.Command {
