@@ -43,8 +43,31 @@ make generate
 or
 
 ```
-go run main.go setup
+go run main.go db migrate
 ```
 
 Ref: https://github.com/pgvector/pgvector-go/blob/master/ent/schema/item.go
 
+## Test
+
+```
+TEST_DATABASE_URL=postgres://aicoder:aicoder@localhost:5432/aicoder_test?sslmode=disable
+```
+
+```sql
+CREATE DATABASE aicoder_test;
+\c aicoder_test
+CREATE EXTENSION IF NOT EXISTS vector;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO aicoder;
+GRANT ALL ON SCHEMA public TO aicoder;
+```
+
+```
+go run main.go db migrate --db-conn $TEST_DATABASE_URL
+```
+
+If you're using VSCode, set `Go: Test Env File` to `${workspaceFolder}/.env` to load env var in `run test`
+
+```
+make test
+```

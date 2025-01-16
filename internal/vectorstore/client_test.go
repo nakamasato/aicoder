@@ -3,6 +3,7 @@ package vectorstore
 import (
 	"context"
 	"math"
+	"os"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -14,8 +15,13 @@ import (
 func TestVectorStore_AddDocument(t *testing.T) {
 	ctx := context.Background()
 
+	dbURL := os.Getenv("TEST_DATABASE_URL")
+	if dbURL == "" {
+		t.Fatal("TEST_DATABASE_URL is not set")
+	}
+
 	// Initialize entgo client
-	entClient, err := ent.Open("postgres", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable")
+	entClient, err := ent.Open("postgres", dbURL)
 	if err != nil {
 		t.Fatalf("failed opening connection to postgres: %v", err)
 	}
