@@ -21,6 +21,7 @@ var (
 	openaiAPIKey string
 	openaiModel  string
 	dbConnString string
+	languageStr  string
 )
 
 func Command() *cobra.Command {
@@ -35,6 +36,7 @@ func Command() *cobra.Command {
 	summarizeCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
 	summarizeCmd.Flags().StringVarP(&openaiModel, "model", "m", "gpt-4o-mini", "OpenAI model to use for summarization")
 	summarizeCmd.Flags().StringVar(&dbConnString, "db-conn", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable", "PostgreSQL connection string (e.g., postgres://aicoder:aicoder@localhost:5432/aicoder)")
+	summarizeCmd.Flags().StringVarP(&languageStr, "language", "l", "en", "Language of the repository")
 
 	return summarizeCmd
 }
@@ -74,7 +76,7 @@ func runSummarize(cmd *cobra.Command, args []string) {
 
 	svc := summarizer.NewService(&config, entClient, llmClient, store)
 
-	if err := svc.SummarizeRepo(ctx); err != nil {
+	if err := svc.SummarizeRepo(ctx, summarizer.Language(languageStr)); err != nil {
 		log.Fatalf("failed to summarize repository: %v", err)
 	}
 }
