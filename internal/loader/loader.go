@@ -39,6 +39,7 @@ func NewService(cfg *config.AICoderConfig, entClient *ent.Client, llmClient llm.
 	}
 }
 
+// ReadRepoStructure reads the repository structure from the specified file.
 func (s *service) ReadRepoStructure(ctx context.Context, structureFile string) (*RepoStructure, error) {
 	var repo RepoStructure
 	if _, err := os.Stat(structureFile); err == nil {

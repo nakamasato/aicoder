@@ -82,11 +82,16 @@ type YesOrNo struct {
 	Answer bool `json:"answer" jsonschema_description:"Answer to the yes or no question"`
 }
 
+type RelevantFiles struct {
+	Paths []string `json:"paths" jsonschema_description:"Paths of the relevant files"`
+}
+
 var (
 	TargetBlocksSchema         = GenerateSchema[TargetBlocks]()
 	YesOrNoSchema              = GenerateSchema[YesOrNo]()
 	ChangeDiffSchema           = GenerateSchema[ChangeDiff]()
 	NecessaryChangesPlanSchema = GenerateSchema[NecessaryChangesPlan]()
+	RelevantFilesSchema        = GenerateSchema[RelevantFiles]()
 
 	ChangeDiffSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
 		Name:        openai.F("changes"),
@@ -113,6 +118,13 @@ var (
 		Name:        openai.F("necessary_changes"),
 		Description: openai.F("List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal."),
 		Schema:      openai.F(NecessaryChangesPlanSchema),
+		Strict:      openai.Bool(true),
+	}
+
+	RelevantFilesSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F("relevant_files"),
+		Description: openai.F("Paths of the relevant files"),
+		Schema:      openai.F(RelevantFilesSchema),
 		Strict:      openai.Bool(true),
 	}
 )

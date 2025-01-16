@@ -14,6 +14,7 @@ import (
 	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/loader"
+	"github.com/nakamasato/aicoder/internal/summarizer"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/spf13/cobra"
 )
@@ -86,14 +87,19 @@ func runLoad(cmd *cobra.Command, args []string) {
 
 	store := vectorstore.New(entClient, llmClient)
 
-	svc := loader.NewService(&config, entClient, llmClient, store)
-
-	if err := svc.UpdateRepoStructure(ctx, gitRootPath, outputFile); err != nil {
+	// loader
+	loaderSvc := loader.NewService(&config, entClient, llmClient, store)
+	if err := loaderSvc.UpdateRepoStructure(ctx, gitRootPath, outputFile); err != nil {
+		log.Fatalf("failed to load repository structure: %v", err)
+	}
+	if err := loaderSvc.UpdateDocuments(ctx); err != nil {
 		log.Fatalf("failed to load repository structure: %v", err)
 	}
 
-	if err := svc.UpdateDocuments(ctx); err != nil {
-		log.Fatalf("failed to load repository structure: %v", err)
+	// summarizer
+	summarizerSvc := summarizer.NewService(&config, entClient, llmClient, store)
+	if _, err := summarizerSvc.UpdateRepoSummary(ctx, summarizer.LanguageEnglish, "repo_summary.json"); err != nil {
+		log.Fatalf("failed to summarize repository: %v", err)
 	}
 
 	fmt.Printf("Repository structure has been written to %s (%s)\n", outputFile, time.Since(startTs))

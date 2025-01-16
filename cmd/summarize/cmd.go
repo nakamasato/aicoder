@@ -76,7 +76,7 @@ func runSummarize(cmd *cobra.Command, args []string) {
 
 	svc := summarizer.NewService(&config, entClient, llmClient, store)
 
-	if err := svc.SummarizeRepo(ctx, summarizer.Language(languageStr)); err != nil {
+	if _, err := svc.UpdateRepoSummary(ctx, summarizer.Language(languageStr), "repo_summary.json"); err != nil {
 		log.Fatalf("failed to summarize repository: %v", err)
 	}
 }
