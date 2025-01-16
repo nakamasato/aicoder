@@ -13,6 +13,13 @@ import (
 	"github.com/openai/openai-go"
 )
 
+type Language string
+
+const (
+	LanguageEnglish  Language = "en"
+	LanguageJapanese Language = "ja"
+)
+
 type service struct {
 	config      *config.AICoderConfig
 	llmClient   llm.Client
@@ -29,7 +36,7 @@ func NewService(cfg *config.AICoderConfig, entClient *ent.Client, llmClient llm.
 	}
 }
 
-func (s *service) SummarizeRepo(ctx context.Context) error {
+func (s *service) SummarizeRepo(ctx context.Context, language Language) error {
 	docs, err := s.entClient.Document.Query().Where(document.RepositoryEQ(s.config.Repository), document.ContextEQ(s.config.CurrentContext)).All(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to query documents: %v", err)
@@ -51,7 +58,7 @@ func (s *service) SummarizeRepo(ctx context.Context) error {
 		builder.WriteString(fmt.Sprintf("Summary: %s\n", doc.Description))
 	}
 
-	prompt := fmt.Sprintf(llm.SUMMARIZE_REPO_CONTENT_PROMPT, s.config.Repository, s.config.CurrentContext, builder.String())
+	prompt := fmt.Sprintf(llm.SUMMARIZE_REPO_CONTENT_PROMPT, s.config.Repository, s.config.CurrentContext, builder.String(), language)
 	messages := []openai.ChatCompletionMessageParamUnion{
 		openai.SystemMessage(prompt),
 	}
