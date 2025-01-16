@@ -1,0 +1,4 @@
+
+# sample regex patterns
+ignore:
+  - "ent"  # ignore folders and all its contents

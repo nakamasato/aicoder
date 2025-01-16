@@ -45,6 +45,8 @@ jobs:
         run: go run main.go db migrate
 
       - name: Run tests
+        env:
+          TEST_DATABASE_URL: postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable
         run: go test -coverprofile="coverage.txt" -covermode=atomic ./...
 
       - name: codecov
