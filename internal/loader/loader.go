@@ -61,7 +61,7 @@ func (s *service) UpdateRepoStructure(ctx context.Context, gitRootPath string, s
 	}
 	s.structure = &structure
 
-	data, err := json.Marshal(structure)
+	data, err := json.MarshalIndent(structure, "", "    ")
 	if err != nil {
 		return fmt.Errorf("Failed to marshal repo structure: %v", err)
 	}
