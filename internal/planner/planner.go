@@ -34,6 +34,7 @@ func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
 // Block is different in each language. For example, in Go, a block is a function. In HCL, a block is a resource.
 // This will replace ChangeFilePlan.
 type ChangesPlan struct {
+	Query   string        `json:"query" jsonschema_description:"The goal of the changes"`
 	Changes []BlockChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
 }
 
@@ -313,7 +314,9 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAtte
 	}
 
 	// Generate ChangesPlan
-	changesPlan := &ChangesPlan{}
+	changesPlan := &ChangesPlan{
+		Query: query,
+	}
 	for i, step := range plan.Steps {
 		fmt.Printf("Step %d: %s\n", i+1, step)
 
