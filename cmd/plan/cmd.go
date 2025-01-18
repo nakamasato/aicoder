@@ -13,6 +13,7 @@ import (
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/planner"
+	"github.com/nakamasato/aicoder/internal/reviewer"
 	"github.com/nakamasato/aicoder/internal/summarizer"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
@@ -24,6 +25,7 @@ var (
 	dbConnString string
 	openaiAPIKey string
 	maxAttempts  int
+	reviewFile   string
 )
 
 // Command creates the plan command.
@@ -31,7 +33,6 @@ func Command() *cobra.Command {
 	planCmd := &cobra.Command{
 		Use:   "plan [goal]",
 		Short: "Generate a plan based on the repository structure and the given goal.",
-		Args:  cobra.MinimumNArgs(1),
 		Run:   runPlan,
 	}
 
@@ -40,6 +41,7 @@ func Command() *cobra.Command {
 	planCmd.Flags().StringVar(&dbConnString, "db-conn", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable", "PostgreSQL connection string")
 	planCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
 	planCmd.Flags().IntVarP(&maxAttempts, "max-attempts", "m", 10, "Maximum number of attempts to generate a plan")
+	planCmd.Flags().StringVar(&reviewFile, "review", "", "Optional review file to improve the plan")
 
 	return planCmd
 }
@@ -47,7 +49,31 @@ func Command() *cobra.Command {
 func runPlan(cmd *cobra.Command, args []string) {
 	ctx := cmd.Context()
 	config := config.GetConfig()
-	query := strings.Join(args, " ")
+	if len(args) == 0 && reviewFile == "" {
+		log.Fatal("either [goal] or review must be specified.")
+	}
+
+	var query string
+
+	// set query from plan query and load review data if review file is provided
+	var review reviewer.ReviewResult
+	var plan planner.ChangesPlan
+	if reviewFile != "" {
+		if err := file.ReadObject(reviewFile, &review); err != nil {
+			log.Fatalf("failed to read review file: %v", err)
+		}
+
+		// Load the plan file
+		if err := file.ReadObject(outputFile, &plan); err != nil {
+			log.Fatalf("failed to read plan file: %v", err)
+		}
+		if plan.Id != review.PlanId {
+			log.Fatalf("plan ID mismatch: %s != %s", plan.Id, review.PlanId)
+		}
+		query = plan.Query
+	} else {
+		query = strings.Join(args, " ")
+	}
 
 	// Initialize OpenAI client
 	if openaiAPIKey != "" {
@@ -133,7 +159,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 
 	// Generate plan based on the query and the files
 	plnr := planner.NewPlanner(llmClient, entClient)
-	p, err := plnr.GenerateChangesPlan(ctx, query, maxAttempts, files)
+	p, err := plnr.GeneratePlan(ctx, query, maxAttempts, files, &plan, review.Comment)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}

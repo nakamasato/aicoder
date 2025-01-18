@@ -80,7 +80,7 @@ func runRefactor(cmd *cobra.Command, args []string) {
 		},
 	}
 
-	changesPlan, err := plnr.GenerateChangesPlan(ctx, query, 10, files)
+	changesPlan, err := plnr.GeneratePlan(ctx, query, 10, files, nil, "") // neither existing plan nor review
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
