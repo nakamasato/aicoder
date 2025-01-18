@@ -13,6 +13,7 @@ import (
 	"github.com/nakamasato/aicoder/cmd/debug"
 	"github.com/nakamasato/aicoder/cmd/load"
 	"github.com/nakamasato/aicoder/cmd/plan"
+	"github.com/nakamasato/aicoder/cmd/review"
 	"github.com/nakamasato/aicoder/cmd/search"
 	"github.com/nakamasato/aicoder/cmd/summarize"
 	"github.com/nakamasato/aicoder/config"
@@ -57,6 +58,7 @@ func init() {
 		debug.Command(),
 		cmdconfig.Command(),
 		summarize.Command(),
+		review.Command(),
 	)
 }
 

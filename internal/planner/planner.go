@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/invopop/jsonschema"
+	"github.com/google/uuid"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
@@ -34,6 +34,8 @@ func NewPlanner(llmClient llm.Client, entClient *ent.Client) *Planner {
 // Block is different in each language. For example, in Go, a block is a function. In HCL, a block is a resource.
 // This will replace ChangeFilePlan.
 type ChangesPlan struct {
+	Id      string        `json:"id" jsonschema_description:"ID of the plan"`
+	Query   string        `json:"query" jsonschema_description:"The goal of the changes"`
 	Changes []BlockChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
 }
 
@@ -82,50 +84,17 @@ type YesOrNo struct {
 	Answer bool `json:"answer" jsonschema_description:"Answer to the yes or no question"`
 }
 
-var (
-	TargetBlocksSchema         = GenerateSchema[TargetBlocks]()
-	YesOrNoSchema              = GenerateSchema[YesOrNo]()
-	ChangeDiffSchema           = GenerateSchema[ChangeDiff]()
-	NecessaryChangesPlanSchema = GenerateSchema[NecessaryChangesPlan]()
-
-	ChangeDiffSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("changes"),
-		Description: openai.F("List of changes to be made to achieve the goal"),
-		Schema:      openai.F(ChangeDiffSchema),
-		Strict:      openai.Bool(true),
-	}
-
-	TargetBlocksSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("block_changes"),
-		Description: openai.F("List of changes to be made to achieve the goal"),
-		Schema:      openai.F(TargetBlocksSchema),
-		Strict:      openai.Bool(true),
-	}
-
-	YesOrNoSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("yes_or_no"),
-		Description: openai.F("Answer to the yes or no question"),
-		Schema:      openai.F(YesOrNoSchema),
-		Strict:      openai.Bool(true),
-	}
-
-	NecessaryChangesPlanSchemaParam = openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F("necessary_changes"),
-		Description: openai.F("List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal."),
-		Schema:      openai.F(NecessaryChangesPlanSchema),
-		Strict:      openai.Bool(true),
-	}
-)
-
-func GenerateSchema[T any]() interface{} {
-	reflector := jsonschema.Reflector{
-		AllowAdditionalProperties: false,
-		DoNotReference:            true,
-	}
-	var v T
-	schema := reflector.Reflect(v)
-	return schema
+type RelevantFiles struct {
+	Paths []string `json:"paths" jsonschema_description:"Paths of the relevant files"`
 }
+
+var (
+	ChangeDiffSchemaParam           = llm.GenerateJsonSchemaParam[TargetBlocks]("changes", "List of changes to be made to achieve the goal")
+	TargetBlocksSchemaParam         = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
+	YesOrNoSchemaParam              = llm.GenerateJsonSchemaParam[YesOrNo]("yes_or_no", "Answer to the yes or no question")
+	NecessaryChangesPlanSchemaParam = llm.GenerateJsonSchemaParam[NecessaryChangesPlan]("necessary_changes", "List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal. Please simplify the steps as much as possible. Usually steps are less than or equal to 5.")
+	RelevantFilesSchemaParam        = llm.GenerateJsonSchemaParam[RelevantFiles]("relevant_files", "Paths of the relevant files")
+)
 
 func makeFileBlocksString(fileBlocks map[string][]Block) string {
 	var builder strings.Builder
@@ -301,7 +270,11 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAtte
 	}
 
 	// Generate ChangesPlan
-	changesPlan := &ChangesPlan{}
+	changesPlan := &ChangesPlan{
+		Id:      uuid.NewString(),
+		Query:   query,
+		Changes: []BlockChange{},
+	}
 	for i, step := range plan.Steps {
 		fmt.Printf("Step %d: %s\n", i+1, step)
 
@@ -403,21 +376,3 @@ func LoadPlanFile[T any](planFile string) (*T, error) {
 	return &plan, nil
 }
 
-// SavePlan saves the plan to a file.
-func SavePlan[T any](plan *T, outputFile string) error {
-	data, err := json.MarshalIndent(plan, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal plan: %w", err)
-	}
-
-	file, err := os.Create(outputFile)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer file.Close()
-
-	if _, err := file.Write(data); err != nil {
-		return fmt.Errorf("failed to write plan to file: %w", err)
-	}
-	return nil
-}

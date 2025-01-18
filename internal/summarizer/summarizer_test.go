@@ -41,10 +41,19 @@ func TestSummarizeRepo(t *testing.T) {
 	ctx := context.Background()
 
 	// Call the method
-	err = svc.SummarizeRepo(ctx, LanguageEnglish)
+	summary, err := svc.UpdateRepoSummary(ctx, LanguageEnglish, "test-output.json")
+
+	defer func() {
+		// delete the file
+		err := os.Remove("test-output.json")
+		if err != nil {
+			t.Fatalf("failed to delete file: %v", err)
+		}
+	}()
 
 	// Assert no error occurred
 	assert.NoError(t, err)
 
 	// Additional assertions can be added here to verify the behavior
+	assert.EqualValues(t, "dummy simple result", summary)
 }

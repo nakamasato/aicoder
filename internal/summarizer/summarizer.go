@@ -2,7 +2,10 @@ package summarizer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/nakamasato/aicoder/config"
@@ -36,10 +39,10 @@ func NewService(cfg *config.AICoderConfig, entClient *ent.Client, llmClient llm.
 	}
 }
 
-func (s *service) SummarizeRepo(ctx context.Context, language Language) error {
+func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outputfile string) (string, error) {
 	docs, err := s.entClient.Document.Query().Where(document.RepositoryEQ(s.config.Repository), document.ContextEQ(s.config.CurrentContext)).All(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to query documents: %v", err)
+		return "", fmt.Errorf("failed to query documents: %v", err)
 	}
 
 	var documents []*vectorstore.Document
@@ -62,11 +65,47 @@ func (s *service) SummarizeRepo(ctx context.Context, language Language) error {
 	messages := []openai.ChatCompletionMessageParamUnion{
 		openai.SystemMessage(prompt),
 	}
-	summaries, err := s.llmClient.GenerateCompletionSimple(ctx, messages)
+	summary, err := s.llmClient.GenerateCompletionSimple(ctx, messages)
 	if err != nil {
-		return fmt.Errorf("failed to generate completion: %v", err)
+		return "", fmt.Errorf("failed to generate completion: %v", err)
 	}
-	fmt.Printf("Summary: %s\n", summaries)
 
-	return nil
+	// Marshal the summary data to JSON
+	summaryJSON, err := json.MarshalIndent(
+		map[string]string{
+			"summary": summary,
+		}, "", "  ")
+	if err != nil {
+		log.Fatalf("failed to marshal summary to JSON: %v", err)
+	}
+
+	// Write the JSON to the output file
+	if err := os.WriteFile(outputfile, summaryJSON, 0644); err != nil {
+		log.Fatalf("failed to write summary to file: %v", err)
+	}
+
+	return summary, nil
+}
+
+// ReadSummary reads the summary from the given file
+func (s *service) ReadSummary(ctx context.Context, filename string) (string, error) {
+	// Read the file content
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file: %v", err)
+	}
+
+	// Unmarshal the JSON content
+	var data map[string]string
+	if err := json.Unmarshal(content, &data); err != nil {
+		return "", fmt.Errorf("failed to unmarshal JSON: %v", err)
+	}
+
+	// Return the summary
+	summary, ok := data["summary"]
+	if !ok {
+		return "", fmt.Errorf("summary not found in file")
+	}
+
+	return summary, nil
 }

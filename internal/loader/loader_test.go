@@ -91,6 +91,7 @@ func countFiles(dir string) (int, error) {
 	return len(entries), err
 }
 
+// check cmd directory
 func TestLoadRepoStructure(t *testing.T) {
 	ctx := context.Background()
 	gitRootPath := "../../"

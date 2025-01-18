@@ -3,6 +3,7 @@ package file
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -96,4 +97,23 @@ func UpdateFuncInMemory(originalContent []byte, functionName, newFunctionContent
 	buffer.WriteString(originalStr[endIndex:])
 
 	return buffer.Bytes(), nil
+}
+
+// WriteFile writes the content to the file at the given path.
+func SaveObject(obj interface{}, outputFile string) error {
+	data, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal obj: %w", err)
+	}
+
+	file, err := os.Create(outputFile)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("failed to write to file: %w", err)
+	}
+	return nil
 }
