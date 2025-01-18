@@ -17,6 +17,7 @@ import (
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/ent/document"
+	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
@@ -175,6 +176,24 @@ type FileInfo struct {
 type RepoStructure struct {
 	GeneratedAt time.Time `json:"generated_at"`
 	Root        FileInfo  `json:"root"`
+}
+
+func (r RepoStructure) String() string {
+	data, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// ReadSummary reads the summary from the given file
+func ReadRepoStructure(ctx context.Context, filename string) (*RepoStructure, error) {
+	var structure RepoStructure
+	err := file.ReadObject(filename, &structure)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read repo structure: %w", err)
+	}
+	return &structure, nil
 }
 
 // FilePathGenerator generates file paths from the FileInfo structure.
@@ -385,12 +404,4 @@ func isIncluded(path string, include []string) bool {
 
 func matchesPath(target, pattern string) bool {
 	return strings.HasPrefix(target, pattern)
-}
-
-func LoadFileContent(path string) (string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file %s: %w", path, err)
-	}
-	return string(data), nil
 }

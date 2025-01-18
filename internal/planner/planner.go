@@ -80,20 +80,11 @@ type ChangeDiff struct {
 	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the target block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
-type YesOrNo struct {
-	Answer bool `json:"answer" jsonschema_description:"Answer to the yes or no question"`
-}
-
-type RelevantFiles struct {
-	Paths []string `json:"paths" jsonschema_description:"Paths of the relevant files"`
-}
 
 var (
-	ChangeDiffSchemaParam    = llm.GenerateJsonSchemaParam[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
-	TargetBlocksSchemaParam  = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
-	YesOrNoSchemaParam       = llm.GenerateJsonSchemaParam[YesOrNo]("yes_or_no", "Answer to the yes or no question")
-	ActionPlanSchemaParam    = llm.GenerateJsonSchemaParam[ActionPlan]("action_plans", "List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal. Please simplify the steps as much as possible. Usually steps are less than or equal to 5.")
-	RelevantFilesSchemaParam = llm.GenerateJsonSchemaParam[RelevantFiles]("relevant_files", "Paths of the relevant files")
+	ChangeDiffSchemaParam   = llm.GenerateJsonSchemaParam[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
+	TargetBlocksSchemaParam = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
+	ActionPlanSchemaParam   = llm.GenerateJsonSchemaParam[ActionPlan]("action_plans", "List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal. Please simplify the steps as much as possible. Usually steps are less than or equal to 5.")
 )
 
 func makeFileBlocksString(fileBlocks map[string][]Block) string {
@@ -144,14 +135,14 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 					openai.SystemMessage("You are a helpful assistant that determines if a file is relevant to a given query."),
 					openai.UserMessage(fmt.Sprintf("Query: %s\nFile Content: %s", query, f.Content)),
 				},
-				YesOrNoSchemaParam)
+				llm.YesOrNoSchemaParam)
 			if err != nil {
 				fmt.Printf("failed to determine file relevance: %v", err)
 				errChan <- err
 				return
 			}
 
-			var yesOrNo YesOrNo
+			var yesOrNo llm.YesOrNo
 			if err = json.Unmarshal([]byte(content), &yesOrNo); err != nil {
 				fmt.Printf("failed to unmarshal content to YesOrNo: %v", err)
 				errChan <- err
