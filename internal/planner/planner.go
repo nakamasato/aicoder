@@ -376,21 +376,3 @@ func LoadPlanFile[T any](planFile string) (*T, error) {
 	return &plan, nil
 }
 
-// SavePlan saves the plan to a file.
-func SavePlan[T any](plan *T, outputFile string) error {
-	data, err := json.MarshalIndent(plan, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal plan: %w", err)
-	}
-
-	file, err := os.Create(outputFile)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w", err)
-	}
-	defer file.Close()
-
-	if _, err := file.Write(data); err != nil {
-		return fmt.Errorf("failed to write plan to file: %w", err)
-	}
-	return nil
-}

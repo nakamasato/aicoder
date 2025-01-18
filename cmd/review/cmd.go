@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/nakamasato/aicoder/config"
+	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"github.com/nakamasato/aicoder/internal/reviewer"
@@ -47,8 +48,13 @@ func runReview(cmd *cobra.Command, args []string) {
 	}
 
 	// Review the changes
-	err = reviewer.ReviewChanges(ctx, llmClient, changesPlan, reviewfile)
+	review, err := reviewer.ReviewChanges(ctx, llmClient, changesPlan)
 	if err != nil {
 		fmt.Println("Error reviewing changes:", err)
+	}
+
+	// Save review to file
+	if err := file.SaveObject(review, reviewfile); err != nil {
+		log.Fatalf("failed to save review: %v", err)
 	}
 }

@@ -23,13 +23,21 @@ type client struct {
 	openai *openai.Client
 }
 
-type DummyClient struct{}
+type DummyClient struct{
+	ReturnValue string
+}
 
 func (d DummyClient) GenerateCompletion(ctx context.Context, messages []openai.ChatCompletionMessageParamUnion, schema openai.ResponseFormatJSONSchemaJSONSchemaParam) (string, error) {
+	if d.ReturnValue != "" {
+		return d.ReturnValue, nil
+	}
 	return "dummy result", nil
 }
 
 func (d DummyClient) GenerateCompletionSimple(ctx context.Context, messages []openai.ChatCompletionMessageParamUnion) (string, error) {
+	if d.ReturnValue != "" {
+		return d.ReturnValue, nil
+	}
 	return "dummy simple result", nil
 }
 

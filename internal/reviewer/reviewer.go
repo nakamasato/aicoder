@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/nakamasato/aicoder/internal/llm"
@@ -39,7 +38,7 @@ If the changes are certain to achieve the goal, the result should be "true".
 
 // ReviewChanges applies changes based on the provided changesPlan.
 // If dryrun is true, it displays the diffs without modifying the actual files.
-func ReviewChanges(ctx context.Context, llmClient llm.Client, changesPlan *planner.ChangesPlan, outputfile string) error {
+func ReviewChanges(ctx context.Context, llmClient llm.Client, changesPlan *planner.ChangesPlan) (*ReviewResult, error) {
 	fmt.Println("Reviewing changes for query:", changesPlan.Query)
 
 	message := fmt.Sprintf(REVIEW_PROMPT, changesPlan.Query, changesPlan.Id, makeChangeString(&changesPlan.Changes))
@@ -52,35 +51,15 @@ func ReviewChanges(ctx context.Context, llmClient llm.Client, changesPlan *plann
 		ResultSchemaParam)
 
 	if err != nil {
-		return fmt.Errorf("failed to generate completion: %w", err)
+		return nil, fmt.Errorf("failed to generate completion: %w", err)
 	}
 	fmt.Println("Review result:", content)
 	var result ReviewResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		return fmt.Errorf("failed to unmarshal review result: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal review result: %w", err)
 	}
 
-	err = save(outputfile, result)
-	if err != nil {
-		return fmt.Errorf("failed to save the review result: %w", err)
-	}
-
-	return nil
-}
-
-func save(outputfile string, result ReviewResult) error {
-	if outputfile == "" {
-		return nil
-	}
-	jsonData, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal review result to JSON: %w", err)
-	}
-	err = os.WriteFile(outputfile, jsonData, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to save the review result: %w", err)
-	}
-	return nil
+	return &result, nil
 }
 
 func makeChangeString(changes *[]planner.BlockChange) string {
