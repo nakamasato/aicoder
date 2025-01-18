@@ -39,9 +39,9 @@ type ChangesPlan struct {
 	Changes []BlockChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
 }
 
-// NecessaryChangesPlan is a list of changes to be made to a file.
+// ActionPlan is a list of changes to be made to a file.
 // This is a more comprehensive plan before making ChangesPlan.
-type NecessaryChangesPlan struct {
+type ActionPlan struct {
 	Steps []string `json:"steps" jsonschema_description:"List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal."`
 }
 
@@ -89,11 +89,11 @@ type RelevantFiles struct {
 }
 
 var (
-	ChangeDiffSchemaParam           = llm.GenerateJsonSchemaParam[TargetBlocks]("changes", "List of changes to be made to achieve the goal")
-	TargetBlocksSchemaParam         = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
-	YesOrNoSchemaParam              = llm.GenerateJsonSchemaParam[YesOrNo]("yes_or_no", "Answer to the yes or no question")
-	NecessaryChangesPlanSchemaParam = llm.GenerateJsonSchemaParam[NecessaryChangesPlan]("necessary_changes", "List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal. Please simplify the steps as much as possible. Usually steps are less than or equal to 5.")
-	RelevantFilesSchemaParam        = llm.GenerateJsonSchemaParam[RelevantFiles]("relevant_files", "Paths of the relevant files")
+	ChangeDiffSchemaParam    = llm.GenerateJsonSchemaParam[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
+	TargetBlocksSchemaParam  = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
+	YesOrNoSchemaParam       = llm.GenerateJsonSchemaParam[YesOrNo]("yes_or_no", "Answer to the yes or no question")
+	ActionPlanSchemaParam    = llm.GenerateJsonSchemaParam[ActionPlan]("action_plans", "List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal. Please simplify the steps as much as possible. Usually steps are less than or equal to 5.")
+	RelevantFilesSchemaParam = llm.GenerateJsonSchemaParam[RelevantFiles]("relevant_files", "Paths of the relevant files")
 )
 
 func makeFileBlocksString(fileBlocks map[string][]Block) string {
@@ -182,12 +182,16 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 
 // GenerateBlockChangePlan generates a plan to change a block of code.
 // Use an appropriate prompt template for each language.
-func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate string, block Block, blockContent string) (*BlockChange, error) {
+func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate string, block Block, blockContent string, currentPlan *ChangesPlan, review string) (*BlockChange, error) {
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
+		openai.UserMessage(fmt.Sprintf(promptTemplate, block.TargetName, block.Path, blockContent)),
+	}
+	if currentPlan != nil && review != "" {
+		messages = append(messages, openai.SystemMessage(fmt.Sprintf("The followings are current plan and review. Please improve the existing plan based on the review:\nCurrent Plan: %s\nReview:%s", currentPlan.String(), review)))
+	}
 	content, err := p.llmClient.GenerateCompletion(ctx,
-		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-			openai.UserMessage(fmt.Sprintf(promptTemplate, block.TargetName, block.Path, blockContent)),
-		},
+		messages,
 		ChangeDiffSchemaParam)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
@@ -208,8 +212,10 @@ func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate st
 	return plan, nil
 }
 
-// GenerateChangesPlan generates ChangesPlan for Go language.
-func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAttempts int, files []file.File) (*ChangesPlan, error) {
+// GeneratePlan generates ChangesPlan
+// If currentPlan is provided, it will be used as a base plan.
+// If review is provided, it will be used as a review comment to improve the plan.
+func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts int, files []file.File, currentPlan *ChangesPlan, review string) (*ChangesPlan, error) {
 
 	// identify files to change
 	files, err := p.removeUnrelevantFiles(ctx, query, files)
@@ -217,8 +223,9 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAtte
 		return nil, fmt.Errorf("failed to remove irrelevant files: %w", err)
 	}
 
-	// identify blocks to change
-	fileBlocks := map[string][]Block{}
+	// 1. Identify candidate blocks to change
+	fmt.Printf("---------- 1. Identify candidate blocks to change -----------\n")
+	candidateBlocks := map[string][]Block{}
 	for i, f := range files {
 		fmt.Printf("File %d: %s\n", i+1, f.Path)
 		if filepath.Ext(f.Path) == ".go" {
@@ -229,7 +236,7 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAtte
 			}
 			for _, fn := range functions {
 				fmt.Printf("Function: %s\n", fn.Name)
-				fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: "function", TargetName: fn.Name, Content: fn.Content})
+				candidateBlocks[f.Path] = append(candidateBlocks[f.Path], Block{Path: f.Path, TargetType: "function", TargetName: fn.Name, Content: fn.Content})
 			}
 		} else if filepath.Ext(f.Path) == ".hcl" || filepath.Ext(f.Path) == ".tf" {
 			blocks, _, err := file.ParseHCL(f.Path)
@@ -239,47 +246,57 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAtte
 			}
 			for _, b := range blocks {
 				fmt.Printf("Block: Type:%s, Labels:%s\n", b.Type, strings.Join(b.Labels, ","))
-				fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: b.Type, TargetName: strings.Join(b.Labels, ","), Content: b.Content})
+				candidateBlocks[f.Path] = append(candidateBlocks[f.Path], Block{Path: f.Path, TargetType: b.Type, TargetName: strings.Join(b.Labels, ","), Content: b.Content})
 			}
 		} else { // file: block is the entire file
-			fileBlocks[f.Path] = append(fileBlocks[f.Path], Block{Path: f.Path, TargetType: "file", TargetName: f.Path, Content: f.Content})
+			candidateBlocks[f.Path] = append(candidateBlocks[f.Path], Block{Path: f.Path, TargetType: "file", TargetName: f.Path, Content: f.Content})
 		}
 	}
 
-	// Make a Plan: which file to change and what to change
-	fileBlocksStr := makeFileBlocksString(fileBlocks)
-	prompt := fmt.Sprintf(NECESSARY_CHANGES_PLAN_PROMPT, fileBlocksStr, query)
+	// 2. Make action plan (steps)
+	fmt.Printf("---------- 2. Make actioin plan (steps) -----------\n")
+	candidateBlocksStr := makeFileBlocksString(candidateBlocks)
+	prompt := fmt.Sprintf(NECESSARY_CHANGES_PLAN_PROMPT, candidateBlocksStr, query)
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
+		openai.UserMessage(prompt),
+	}
+	if currentPlan != nil && review != "" {
+		messages = append(messages, openai.SystemMessage(fmt.Sprintf("The followings are current plan and review. Please improve the existing plan based on the review:\nCurrent Plan: %s\nReview:%s", currentPlan.String(), review)))
+	}
 	content, err := p.llmClient.GenerateCompletion(ctx,
-		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-			openai.UserMessage(prompt),
-		},
-		NecessaryChangesPlanSchemaParam,
+		messages,
+		ActionPlanSchemaParam,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
 	}
-	var plan NecessaryChangesPlan
+	var plan ActionPlan
 	if err = json.Unmarshal([]byte(content), &plan); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal necessary changes plan: %w", err)
 	}
 
-	fmt.Println("Plan:")
+	fmt.Println("ActionPlan:")
 	for i, step := range plan.Steps {
 		fmt.Printf("Step %d: %s\n", i+1, step)
 	}
 
-	// Generate ChangesPlan
+	// 3. Generate ChangesPlan for each ActionPlan step
+	fmt.Printf("---------- 3. Generate ChangesPlan for each ActionPlan step -----------\n")
 	changesPlan := &ChangesPlan{
-		Id:      uuid.NewString(),
+		Id:      uuid.New().String(),
 		Query:   query,
 		Changes: []BlockChange{},
 	}
+	if currentPlan != nil {
+		changesPlan.Id = currentPlan.Id
+	}
+
 	for i, step := range plan.Steps {
 		fmt.Printf("Step %d: %s\n", i+1, step)
 
 		// identify blocks to change
-		prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, query, files, fileBlocks)
+		prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, query, files, candidateBlocks)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
 		}
@@ -295,11 +312,11 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAtte
 			// TODO: create Planner interface and implement planner for each Language
 			if filepath.Ext(blkToChange.Path) == ".go" {
 				// Use function as a unit of block for go
-				blocks := fileBlocks[blkToChange.Path]
+				blocks := candidateBlocks[blkToChange.Path]
 				for _, blk := range blocks {
 					if blk.TargetName == blkToChange.TargetName && blk.TargetType == blkToChange.TargetType {
 						fmt.Printf("Step %d: Matched Block Go path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
-						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, blkToChange, blk.Content)
+						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, blkToChange, blk.Content, changesPlan, review)
 						if err != nil {
 							log.Fatalf("failed to generate plan: %v", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
@@ -310,11 +327,11 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAtte
 				}
 			} else if filepath.Ext(blkToChange.Path) == ".hcl" || filepath.Ext(blkToChange.Path) == ".tf" {
 				// Use block as a unit of block for hcl
-				blocks := fileBlocks[blkToChange.Path]
+				blocks := candidateBlocks[blkToChange.Path]
 				for _, blk := range blocks {
 					if blk.TargetName == blkToChange.TargetName && blk.TargetType == blkToChange.TargetType { // variable, resource, module, etc.
 						fmt.Printf("Step %d: Matched Block HCL path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
-						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, blkToChange, blk.Content)
+						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, blkToChange, blk.Content, changesPlan, review)
 						if err != nil {
 							log.Fatalf("failed to generate plan: %v", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
@@ -325,8 +342,8 @@ func (p *Planner) GenerateChangesPlan(ctx context.Context, query string, maxAtte
 				}
 				// TODO: enable to change attr in hcl
 			} else if blkToChange.TargetType == "file" {
-				for _, blk := range fileBlocks[blkToChange.Path] {
-					blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE, blkToChange, blk.Content)
+				for _, blk := range candidateBlocks[blkToChange.Path] {
+					blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE, blkToChange, blk.Content, changesPlan, review)
 					if err != nil {
 						log.Fatalf("failed to generate plan: %v", err)
 					}
@@ -375,4 +392,3 @@ func LoadPlanFile[T any](planFile string) (*T, error) {
 
 	return &plan, nil
 }
-

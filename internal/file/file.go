@@ -117,3 +117,16 @@ func SaveObject(obj interface{}, outputFile string) error {
 	}
 	return nil
 }
+
+// ReadObject reads the content of the file at the given path and unmarshals it into the given object.
+func ReadObject(filePath string, obj interface{}) error {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	if err := json.Unmarshal(data, obj); err != nil {
+		return fmt.Errorf("failed to unmarshal data: %w", err)
+	}
+	return nil
+}
