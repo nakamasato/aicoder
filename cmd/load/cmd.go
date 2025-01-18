@@ -89,7 +89,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 
 	// loader
 	loaderSvc := loader.NewService(&config, entClient, llmClient, store)
-	if err := loaderSvc.UpdateRepoStructure(ctx, gitRootPath, outputFile); err != nil {
+	if _, err := loaderSvc.UpdateRepoStructure(ctx, gitRootPath, outputFile); err != nil {
 		log.Fatalf("failed to load repository structure: %v", err)
 	}
 	if err := loaderSvc.UpdateDocuments(ctx); err != nil {

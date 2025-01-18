@@ -102,7 +102,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	// Load file content
 	var files []file.File
 	fileMap := make(map[string]bool)
-	fmt.Printf("Found %d files\n", len(relFiles.Paths))
+	fmt.Printf("Found %d files using LLM\n", len(relFiles.Paths))
 	for i, path := range relFiles.Paths {
 		if fileMap[path] {
 			continue
@@ -110,13 +110,14 @@ func runPlan(cmd *cobra.Command, args []string) {
 		fmt.Printf("%d: %s\n", i, path)
 		content, err := loader.LoadFileContent(path)
 		if err != nil {
-			log.Fatalf("failed to load file content. you might need to refresh loader by `aicoder load -r`: %v", err)
+			fmt.Printf("failed to load file content. skip: %v", err)
+			continue
 		}
 		files = append(files, file.File{Path: path, Content: content})
 		fileMap[path] = true
 	}
 
-	fmt.Printf("Found %d files\n", len(*res.Documents))
+	fmt.Printf("Found %d files using embedding\n", len(*res.Documents))
 	for i, doc := range *res.Documents {
 		if fileMap[doc.Document.Filepath] {
 			continue

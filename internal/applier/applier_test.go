@@ -10,6 +10,7 @@ import (
 
 func TestApplyChangesGo(t *testing.T) {
 	changesPlan := &planner.ChangesPlan{
+		Query: "Please update the function Func1 in testfile.go",
 		Changes: []planner.BlockChange{
 			{Block: planner.Block{Path: "testfile.go", TargetName: "Func1", TargetType: "function"}, NewContent: " fmt.Println(\"This is the new content.\")", NewComment: "This is a new comment."},
 		},

@@ -54,23 +54,23 @@ func (s *service) ReadRepoStructure(ctx context.Context, structureFile string) (
 	return &repo, nil
 }
 
-func (s *service) UpdateRepoStructure(ctx context.Context, gitRootPath string, structureFile string) error {
+func (s *service) UpdateRepoStructure(ctx context.Context, gitRootPath string, structureFile string) (*RepoStructure, error) {
 	var err error
 	structure, err := LoadRepoStructureFromHead(ctx, gitRootPath, s.config.GetCurrentLoadConfig().TargetPath, s.config.GetCurrentLoadConfig().Include, s.config.GetCurrentLoadConfig().Exclude)
 	if err != nil {
-		return fmt.Errorf("Failed to load repo structure: %v", err)
+		return nil, fmt.Errorf("Failed to load repo structure: %v", err)
 	}
 	s.structure = &structure
 
 	data, err := json.MarshalIndent(structure, "", "    ")
 	if err != nil {
-		return fmt.Errorf("Failed to marshal repo structure: %v", err)
+		return nil, fmt.Errorf("Failed to marshal repo structure: %v", err)
 	}
 	err = os.WriteFile(structureFile, data, 0644)
 	if err != nil {
-		return fmt.Errorf("Failed to write repo structure: %v", err)
+		return nil, fmt.Errorf("Failed to write repo structure: %v", err)
 	}
-	return nil
+	return &structure, nil
 }
 
 // Load loads the repository structure and documents into the vector store.
