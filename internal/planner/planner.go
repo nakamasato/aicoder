@@ -340,7 +340,7 @@ Please generate the investigation result based on the collected information.
 
 	var investigationResultStr strings.Builder
 	for i, res := range investigationResult {
-		investigationResultStr.WriteString(fmt.Sprintf("\n--- %i ---\nInvestigation: %s\nInvestigation Result:\n%s\n--- %i end ---\n", i, res.Step, res.Result))
+		investigationResultStr.WriteString(fmt.Sprintf("\n--- %d ---\nInvestigation: %s\nInvestigation Result:\n%s\n--- %d end ---\n", i, res.Step, res.Result, i))
 	}
 
 	// 4. Change file step
