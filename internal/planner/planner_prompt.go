@@ -1,8 +1,11 @@
 package planner
 
-const NECESSARY_CHANGES_PLAN_PROMPT = `Please make a plan to achieve the goal.
-A plan consists of a series of steps to execute in order. Currently possible action is to replace content of a block in a file.
-You can make several steps (changing multiple blocks in multiple files if necessary) to achieve the goal.
+const GENERATE_ACTION_PLAN_PROMPT = `Please make a plan to achieve the goal.
+The plan has two parts:
+1. Investigation: collect information that is necessary to achieve the goal.
+2. File change: make file changes plan (change what in which file) to achieve the goal.
+
+The step can be one or more.
 
 -----------------------
 Goal: %s
@@ -11,64 +14,17 @@ Goal: %s
 Relevant files:
 %s
 
-Examples:
---------- Example 1 Start --------------
-Goal: Please add tanaka@gmail.com and john@gmail.com to the member as analytics members to data-user.
+-----------------------
 
-Files:
-
-terraform/team/data_users.tf:
-
-` + "```\n" + `
-module "data-user" {
-  source  = "../modules/team"
-  members = [
-    // Manager
-    "sudo@gmail.com",
-	// Developer
-	"hiroshi@gmail.com",
-	"ken@gmail.com",
-	// Analytics
-	"shiho@gmail.com",
- ]
-}
-` + "```\n" + `
+Example:
 
 Steps:
-1. Add tanaka@gmail.com and john@gmail.com to the members list after shiho@gmail.com in the data-user module in the file terraform/team/data_users.tf.
-
---------- Example 1 End --------------
-
---------- Example 2 Start --------------
-
-Goal: Update readme by checking the current implementation.
-
-Files:
-
-README.md:
-
-` + "```\n" + `
-# Project Name
-
-This project is a sample project for the aicoder.
-
-...
-
-` + "```\n" + `
-
-
-Steps:
-
-1. Determine files that have core implementation details.
-2. Check the current implementation in the files.
-3. Check the current readme file.
-5. Update the readme file with the current implementation details.
-
---------- Example 2 End --------------
-
-etc.
-
-Ideally each step will be corresponding to one change in a block.
+- Investigation:
+	- Check the current implementation in the files xxx.
+	- Check the current README.md file.
+- Changes Plan:
+	- Update the title in the README.md file.
+	- Add feature lists in the README.md file.
 `
 
 const PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT = `You are a helpful assistant that extract blocks to execute the given step.
@@ -132,43 +88,43 @@ Output:
 const GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO = `Please provide the new content of the Go function '%s' in the file '%s'
 ## Current content
 
-`+"```"+`
+` + "```" + `
 %s
-`+"```"+`
+` + "```" + `
 
 Note that please do not include the function signature in the new content.
 
 Output Example:
-`+"```"+`
+` + "```" + `
 fmt.Println("Hello, World!")
-`+"```"+`
+` + "```" + `
 `
 
 const GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL = `Please provide the new content of the HCL block %s in the file %s
 
 ## Current content
 
-`+"```"+`
+` + "```" + `
 %s
-`+"```"+`
+` + "```" + `
 
 Example:
 
 To replace the content of a block like this
 
-`+"```"+`
+` + "```" + `
 resource "google_storage_bucket" "example_bucket" {
   name     = "example-bucket"
   location = "US"
 }
-`+"```"+`
+` + "```" + `
 
 Output should be like this:
 
-`+"```"+`
+` + "```" + `
 name     = "new-example-bucket"
 location = "EU"
-`+"```"+`
+` + "```" + `
 
 
 Rules:
@@ -182,9 +138,9 @@ const GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE = `Please provide the new conten
 
 ## Current content
 
-`+"```"+`
+` + "```" + `
 %s
-`+"```"+`
+` + "```" + `
 
 Rules:
 - Provide the new content of the entire file.
