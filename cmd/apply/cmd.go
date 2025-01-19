@@ -31,7 +31,7 @@ func runApply(cmd *cobra.Command, args []string) {
 	if planFile == "" {
 		log.Fatalln("plan file is required")
 	}
-	fmt.Printf("apply %s", planFile)
+	fmt.Printf("apply %s\n", planFile)
 
 	// Read the plan file
 	changesPlan, err := planner.LoadPlanFile[planner.ChangesPlan](planFile)

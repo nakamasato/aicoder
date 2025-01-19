@@ -28,11 +28,11 @@ Planned changes to review (PlanID: %s):
 %s
 --- Review Point ---
 
-Please give your comment for changes.
-If you think the change is necessary and reasonable to achieve the goal, please leave a comment like "Looks good to me" with a reason.
-If you think the change is not necessary nor reasonable, please include the reason and suggest an alternative if possible.
-Please consider if the target file is correct and the change is necessary to achieve the goal.
-If the changes are certain to achieve the goal, the result should be "true".
+- If you think the change is necessary and reasonable to achieve the goal, please leave a comment like "Looks good to me" with a reason.
+- If you think the change is not necessary nor reasonable, please include the reason and suggest an alternative if possible.
+- Please consider if the target file is correct and the change is necessary to achieve the goal.
+- If the changes are certain to achieve the goal, the result should be "true".
+- If target_type is file and multiple changes are made to the same file, please consider if the changes are necessary and reasonable to achieve the goal.
 `
 )
 
