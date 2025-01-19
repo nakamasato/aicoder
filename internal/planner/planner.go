@@ -45,7 +45,7 @@ const (
 	ActionTypeAdd         ActionType = "add"
 	ActionTypeUpdate      ActionType = "update"
 	ActionTypeDelete      ActionType = "delete"
-	ActionTypeInvesitgate ActionType = "investigate"
+	ActionTypeInvestigate ActionType = "investigate"
 )
 
 type Action struct {
@@ -57,7 +57,7 @@ type Action struct {
 // This is a more comprehensive plan before making ChangesPlan.
 type ActionPlan struct {
 	InvestigateSteps []string `json:"investigate_steps" jsonschema_description:"List of steps to investigate and collect relevant information in advance before planning actual file changes"`
-	ChangeSteps      []string `json:"steps" jsonschema_description:"List of steps to make changes to block/file to meet the requirements."`
+	ChangeSteps      []string `json:"change_steps" jsonschema_description:"List of steps to make changes to block/file to meet the requirements."`
 }
 
 func (c ChangesPlan) String() string {
@@ -430,9 +430,6 @@ func (p *Planner) identifyBlocksToChangeForStep(ctx context.Context, step string
 		return nil, fmt.Errorf("failed to unmarshal changes plan: %w", err)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to get blocks: %w", err)
-	}
 	return &blks, nil
 }
 
