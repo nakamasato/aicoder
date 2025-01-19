@@ -221,7 +221,7 @@ func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate st
 // GeneratePlan generates ChangesPlan
 // If currentPlan is provided, it will be used as a base plan.
 // If review is provided, it will be used as a review comment to improve the plan.
-func (p *Planner) GeneratePlan(ctx context.Context, query string, summary string, maxAttempts int, files []file.File, currentPlan *ChangesPlan, review string) (*ChangesPlan, error) {
+func (p *Planner) GeneratePlan(ctx context.Context, query string, summary string, files []file.File, currentPlan *ChangesPlan, review string) (*ChangesPlan, error) {
 
 	// identify files to change
 	filteredFiles, err := p.removeUnrelevantFiles(ctx, query, files)
