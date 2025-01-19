@@ -40,21 +40,6 @@ func NewService(cfg *config.AICoderConfig, entClient *ent.Client, llmClient llm.
 	}
 }
 
-// ReadRepoStructure reads the repository structure from the specified file.
-func (s *service) ReadRepoStructure(ctx context.Context, structureFile string) (*RepoStructure, error) {
-	var repo RepoStructure
-	if _, err := os.Stat(structureFile); err == nil {
-		data, err := os.ReadFile(structureFile)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to read existing repo structure: %v", err)
-		}
-		if err := json.Unmarshal(data, &repo); err != nil {
-			return nil, fmt.Errorf("Failed to parse existing repo structure: %v", err)
-		}
-	}
-	return &repo, nil
-}
-
 func (s *service) UpdateRepoStructure(ctx context.Context, gitRootPath string, structureFile string) (*RepoStructure, error) {
 	var err error
 	structure, err := LoadRepoStructureFromHead(ctx, gitRootPath, s.config.GetCurrentLoadConfig().TargetPath, s.config.GetCurrentLoadConfig().Include, s.config.GetCurrentLoadConfig().Exclude)
@@ -184,16 +169,6 @@ func (r RepoStructure) String() string {
 		return ""
 	}
 	return string(data)
-}
-
-// ReadSummary reads the summary from the given file
-func ReadRepoStructure(ctx context.Context, filename string) (*RepoStructure, error) {
-	var structure RepoStructure
-	err := file.ReadObject(filename, &structure)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read repo structure: %w", err)
-	}
-	return &structure, nil
 }
 
 // FilePathGenerator generates file paths from the FileInfo structure.
