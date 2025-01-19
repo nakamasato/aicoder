@@ -39,10 +39,25 @@ type ChangesPlan struct {
 	Changes []BlockChange `json:"changes" jsonschema_description:"List of changes to be made to meet the requirements"`
 }
 
+type ActionType string
+
+const (
+	ActionTypeAdd         ActionType = "add"
+	ActionTypeUpdate      ActionType = "update"
+	ActionTypeDelete      ActionType = "delete"
+	ActionTypeInvestigate ActionType = "investigate"
+)
+
+type Action struct {
+	Step string     `json:"step" jsonschema_description:"Actual step to be made to meet the requirements"`
+	Type ActionType `json:"type" jsonschema_description:"Type of the action"`
+}
+
 // ActionPlan is a list of changes to be made to a file.
 // This is a more comprehensive plan before making ChangesPlan.
 type ActionPlan struct {
-	Steps []string `json:"steps" jsonschema_description:"List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal."`
+	InvestigateSteps []string `json:"investigate_steps" jsonschema_description:"List of steps to investigate and collect relevant information in advance before planning actual file changes"`
+	ChangeSteps      []string `json:"change_steps" jsonschema_description:"List of steps to make changes to block/file to meet the requirements."`
 }
 
 func (c ChangesPlan) String() string {
@@ -80,11 +95,10 @@ type ChangeDiff struct {
 	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the target block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
-
 var (
 	ChangeDiffSchemaParam   = llm.GenerateJsonSchemaParam[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
 	TargetBlocksSchemaParam = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
-	ActionPlanSchemaParam   = llm.GenerateJsonSchemaParam[ActionPlan]("action_plans", "List of steps to be made to meet the requirements. What kind of changes are necessary to achieve the goal. Please simplify the steps as much as possible. Usually steps are less than or equal to 5.")
+	ActionPlanSchemaParam   = llm.GenerateJsonSchemaParam[ActionPlan]("action_plans", "There are two parts, investigation steps and change steps. First, in the investigation steps, please check the relevant file contents to collect information in advance. The collected information is passed to the next steps (change step) to plan file changes in . Usually steps are less than or equal to 5.")
 )
 
 func makeFileBlocksString(fileBlocks map[string][]Block) string {
@@ -173,9 +187,10 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 
 // GenerateBlockChangePlan generates a plan to change a block of code.
 // Use an appropriate prompt template for each language.
-func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate string, block Block, blockContent string, currentPlan *ChangesPlan, review string) (*BlockChange, error) {
+func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate string, block Block, blockContent string, investigationResult string, currentPlan *ChangesPlan, review string) (*BlockChange, error) {
 	messages := []openai.ChatCompletionMessageParamUnion{
 		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
+		openai.SystemMessage(fmt.Sprintf("You can also utilize the investigation results: %s", investigationResult)),
 		openai.UserMessage(fmt.Sprintf(promptTemplate, block.TargetName, block.Path, blockContent)),
 	}
 	if currentPlan != nil && review != "" {
@@ -206,10 +221,10 @@ func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate st
 // GeneratePlan generates ChangesPlan
 // If currentPlan is provided, it will be used as a base plan.
 // If review is provided, it will be used as a review comment to improve the plan.
-func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts int, files []file.File, currentPlan *ChangesPlan, review string) (*ChangesPlan, error) {
+func (p *Planner) GeneratePlan(ctx context.Context, query string, summary string, maxAttempts int, files []file.File, currentPlan *ChangesPlan, review string) (*ChangesPlan, error) {
 
 	// identify files to change
-	files, err := p.removeUnrelevantFiles(ctx, query, files)
+	filteredFiles, err := p.removeUnrelevantFiles(ctx, query, files)
 	if err != nil {
 		return nil, fmt.Errorf("failed to remove irrelevant files: %w", err)
 	}
@@ -217,7 +232,7 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts in
 	// 1. Identify candidate blocks to change
 	fmt.Printf("---------- 1. Identify candidate blocks to change -----------\n")
 	candidateBlocks := map[string][]Block{}
-	for i, f := range files {
+	for i, f := range filteredFiles {
 		fmt.Printf("File %d: %s\n", i+1, f.Path)
 		if filepath.Ext(f.Path) == ".go" {
 			functions, _, err := file.ParseGo(f.Path)
@@ -245,7 +260,7 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts in
 	}
 
 	// 2. Make action plan (steps)
-	fmt.Printf("---------- 2. Make actioin plan (steps) -----------\n")
+	fmt.Printf("---------- 2. Make action plan (steps) -----------\n")
 	candidateBlocksStr := makeFileBlocksString(candidateBlocks)
 	prompt := fmt.Sprintf(NECESSARY_CHANGES_PLAN_PROMPT, candidateBlocksStr, query)
 	messages := []openai.ChatCompletionMessageParamUnion{
@@ -268,12 +283,15 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts in
 	}
 
 	fmt.Println("ActionPlan:")
-	for i, step := range plan.Steps {
-		fmt.Printf("Step %d: %s\n", i+1, step)
+	for i, step := range plan.InvestigateSteps {
+		fmt.Printf("Investigation Step %d: %s\n", i+1, step)
+	}
+	for i, step := range plan.ChangeSteps {
+		fmt.Printf("Change Step %d: %s\n", i+1, step)
 	}
 
-	// 3. Generate ChangesPlan for each ActionPlan step
-	fmt.Printf("---------- 3. Generate ChangesPlan for each ActionPlan step -----------\n")
+	// 3. Investigation Step
+	fmt.Printf("---------- 3. Investigation step -----------\n")
 	changesPlan := &ChangesPlan{
 		Id:      uuid.New().String(),
 		Query:   query,
@@ -283,19 +301,59 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts in
 		changesPlan.Id = currentPlan.Id
 	}
 
-	for i, step := range plan.Steps {
-		fmt.Printf("Step %d: %s\n", i+1, step)
+	investigationResult := []struct {
+		Step   string
+		Result string
+	}{}
 
-		// identify blocks to change
-		prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, query, files, candidateBlocks)
+	for i, step := range plan.InvestigateSteps {
+		fmt.Printf("Investigation Step %d: %s\n", i+1, step)
+		// identify files to check for collect information
+		investigationFiles, err := p.removeUnrelevantFiles(ctx, step, files)
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
+			return nil, fmt.Errorf("failed to remove irrelevant files: %w", err)
+		}
+		fmt.Printf("Investigation Step %d: Relevant files: %d\n", i+1, len(investigationFiles))
+
+		// generate the investigation result for the step
+		var builder strings.Builder
+		for _, file := range investigationFiles {
+			builder.WriteString(fmt.Sprintf("\n--- %s start ---\n%s\n--- %s end ---\n", file.Path, file.Content, file.Path))
 		}
 
-		// get blocks
-		blocks, err := p.getBlocks(ctx, prompt_block)
+		res, err := p.llmClient.GenerateCompletionSimple(ctx, []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(fmt.Sprintf(`You are a helpful assistant to generate the investigation result based on the collected information.
+--- Relevant files ---
+%s
+--- Relevant files ---
+
+Please generate the investigation result based on the collected information.
+`, builder.String())),
+			openai.UserMessage(fmt.Sprintf(`Investigation theme: %s`, step)),
+		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get blocks: %w", err)
+			return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
+		}
+		// fmt.Printf("Investigation Step %d: Result: %s\n", i+1, res) // too long
+		investigationResult = append(investigationResult, struct {
+			Step   string
+			Result string
+		}{Step: step, Result: res})
+	}
+
+	var investigationResultStr strings.Builder
+	for i, res := range investigationResult {
+		investigationResultStr.WriteString(fmt.Sprintf("\n--- %d ---\nInvestigation: %s\nInvestigation Result:\n%s\n--- %d end ---\n", i, res.Step, res.Result, i))
+	}
+
+	// 4. Change file step
+	for i, step := range plan.ChangeSteps {
+		fmt.Printf("Change Step %d: %s\n", i+1, step)
+
+		// identify blocks to change for this step
+		blocks, err := p.identifyBlocksToChangeForStep(ctx, step, filteredFiles, candidateBlocks)
+		if err != nil {
+			return nil, fmt.Errorf("failed to identify blocks to change: %w", err)
 		}
 		fmt.Printf("Step %d: Got %d blocks\n", i+1, len(blocks.Changes))
 
@@ -307,7 +365,7 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts in
 				for _, blk := range blocks {
 					if blk.TargetName == blkToChange.TargetName && blk.TargetType == blkToChange.TargetType {
 						fmt.Printf("Step %d: Matched Block Go path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
-						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, blkToChange, blk.Content, changesPlan, review)
+						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_FUNCTION_CHANGES_PLAN_PROMPT_GO, blkToChange, blk.Content, investigationResultStr.String(), changesPlan, review)
 						if err != nil {
 							log.Fatalf("failed to generate plan: %v", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
@@ -322,7 +380,7 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts in
 				for _, blk := range blocks {
 					if blk.TargetName == blkToChange.TargetName && blk.TargetType == blkToChange.TargetType { // variable, resource, module, etc.
 						fmt.Printf("Step %d: Matched Block HCL path:%s, type:%s, name:%s\n", i+1, blk.Path, blk.TargetType, blk.TargetName)
-						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, blkToChange, blk.Content, changesPlan, review)
+						blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PLAN_PROMPT_HCL, blkToChange, blk.Content, investigationResultStr.String(), changesPlan, review)
 						if err != nil {
 							log.Fatalf("failed to generate plan: %v", err)
 							return nil, fmt.Errorf("failed to generate plan: %w", err)
@@ -334,7 +392,7 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts in
 				// TODO: enable to change attr in hcl
 			} else if blkToChange.TargetType == "file" {
 				for _, blk := range candidateBlocks[blkToChange.Path] {
-					blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE, blkToChange, blk.Content, changesPlan, review)
+					blkChange, err := p.GenerateBlockChangePlan(ctx, GENERATE_BLOCK_CHANGES_PROMPT_ENTIRE_FILE, blkToChange, blk.Content, investigationResultStr.String(), changesPlan, review)
 					if err != nil {
 						log.Fatalf("failed to generate plan: %v", err)
 					}
@@ -350,11 +408,16 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, maxAttempts in
 	return changesPlan, nil
 }
 
-func (p *Planner) getBlocks(ctx context.Context, prompt string) (*TargetBlocks, error) {
+func (p *Planner) identifyBlocksToChangeForStep(ctx context.Context, step string, files []file.File, candidateBlocks map[string][]Block) (*TargetBlocks, error) {
+	prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, step, files, candidateBlocks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
+	}
 
+	// get blocks
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
-			openai.UserMessage(prompt),
+			openai.UserMessage(prompt_block),
 		},
 		TargetBlocksSchemaParam)
 	if err != nil {

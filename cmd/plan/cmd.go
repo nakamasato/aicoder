@@ -104,7 +104,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 
 	// Generate plan based on the query and the files
 	plnr := planner.NewPlanner(llmClient, entClient)
-	p, err := plnr.GeneratePlan(ctx, query, maxAttempts, files, &plan, review.Comment)
+	p, err := plnr.GeneratePlan(ctx, query, summary, maxAttempts, files, &plan, review.Comment)
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}

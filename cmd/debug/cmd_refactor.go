@@ -13,6 +13,7 @@ import (
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/planner"
+	"github.com/nakamasato/aicoder/internal/summarizer"
 	"github.com/spf13/cobra"
 )
 
@@ -80,7 +81,12 @@ func runRefactor(cmd *cobra.Command, args []string) {
 		},
 	}
 
-	changesPlan, err := plnr.GeneratePlan(ctx, query, 10, files, nil, "") // neither existing plan nor review
+	summary, err := summarizer.ReadSummary(ctx, "repo_summary.json")
+	if err != nil {
+		log.Fatalf("failed to read summary: %v", err)
+	}
+
+	changesPlan, err := plnr.GeneratePlan(ctx, query, summary, 10, files, nil, "") // neither existing plan nor review
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
