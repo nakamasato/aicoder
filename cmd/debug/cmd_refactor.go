@@ -86,7 +86,7 @@ func runRefactor(cmd *cobra.Command, args []string) {
 		log.Fatalf("failed to read summary: %v", err)
 	}
 
-	changesPlan, err := plnr.GeneratePlan(ctx, query, summary, 10, files, nil, "") // neither existing plan nor review
+	changesPlan, err := plnr.GeneratePlan(ctx, query, summary, files, nil, "") // neither existing plan nor review
 	if err != nil {
 		log.Fatalf("failed to generate plan: %v", err)
 	}
