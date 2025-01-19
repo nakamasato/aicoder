@@ -16,15 +16,19 @@ Relevant files:
 
 -----------------------
 
-Example:
+---- Example start ---------
+Goal: Update README.md file with the latest implementation.
 
 Steps:
 - Investigation:
-	- Check the current implementation in the files xxx.
 	- Check the current README.md file.
+	- Search for the content written in the README.md file.
+	- Check the current implementation.
 - Changes Plan:
 	- Update the title in the README.md file.
 	- Add feature lists in the README.md file.
+
+---- Example end ---------
 `
 
 const PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT = `You are a helpful assistant that extract blocks to execute the given step.
