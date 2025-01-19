@@ -91,3 +91,30 @@ func TestReadObject(t *testing.T) {
 		t.Fatalf("Expected %v, got %v", expectedObj, resultObj)
 	}
 }
+
+func TestDefaultFileReader_ReadContent(t *testing.T) {
+	// Setup: Create a temporary file with some content
+	tempFile, err := os.CreateTemp("", "testfile")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name())
+
+	content := "Hello, World!"
+	if _, err := tempFile.WriteString(content); err != nil {
+		t.Fatalf("failed to write to temp file: %v", err)
+	}
+	tempFile.Close()
+
+	// Test: Use DefaultFileReader to read the content
+	reader := file.DefaultFileReader{}
+	readContent, err := reader.ReadContent(tempFile.Name())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// Verify: Check if the content read is as expected
+	if readContent != content {
+		t.Errorf("expected %q, got %q", content, readContent)
+	}
+}
