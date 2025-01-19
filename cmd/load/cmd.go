@@ -98,9 +98,12 @@ func runLoad(cmd *cobra.Command, args []string) {
 
 	// summarizer
 	summarizerSvc := summarizer.NewService(&config, entClient, llmClient, store)
-	if _, err := summarizerSvc.UpdateRepoSummary(ctx, summarizer.LanguageEnglish, "repo_summary.json"); err != nil {
+	summary, err := summarizerSvc.UpdateRepoSummary(ctx, summarizer.LanguageEnglish, "repo_summary.json")
+	if err != nil {
 		log.Fatalf("failed to summarize repository: %v", err)
 	}
+
+	fmt.Printf("Summary\n%s\n", summary)
 
 	fmt.Printf("Repository structure has been written to %s (%s)\n", outputFile, time.Since(startTs))
 }
