@@ -310,6 +310,9 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, summary string
 		fmt.Printf("Investigation Step %d: %s\n", i+1, step)
 		// identify files to check for collect information
 		investigationFiles, err := p.removeUnrelevantFiles(ctx, step, files)
+		if err != nil {
+			return nil, fmt.Errorf("failed to remove irrelevant files: %w", err)
+		}
 		fmt.Printf("Investigation Step %d: Relevant files: %d\n", i+1, len(investigationFiles))
 
 		// generate the investigation result for the step
