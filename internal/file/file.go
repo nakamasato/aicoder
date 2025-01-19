@@ -82,3 +82,33 @@ func ReadObject(filePath string, obj interface{}) error {
 	}
 	return nil
 }
+
+func ReadContent(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+	return string(data), nil
+}
+
+type FileReader interface {
+	ReadContent(path string) (string, error)
+}
+
+type DefaultFileReader struct{}
+
+func (d DefaultFileReader) ReadContent(path string) (string, error) {
+	data, err := ReadContent(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+	return data, nil
+}
+
+type MockFileReader struct {
+	Content string
+}
+
+func (m MockFileReader) ReadContent(path string) (string, error) {
+	return m.Content, nil
+}

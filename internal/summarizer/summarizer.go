@@ -88,7 +88,7 @@ func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outp
 }
 
 // ReadSummary reads the summary from the given file
-func (s *service) ReadSummary(ctx context.Context, filename string) (string, error) {
+func ReadSummary(ctx context.Context, filename string) (string, error) {
 	// Read the file content
 	content, err := os.ReadFile(filename)
 	if err != nil {

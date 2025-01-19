@@ -39,21 +39,6 @@ func NewService(cfg *config.AICoderConfig, entClient *ent.Client, llmClient llm.
 	}
 }
 
-// ReadRepoStructure reads the repository structure from the specified file.
-func (s *service) ReadRepoStructure(ctx context.Context, structureFile string) (*RepoStructure, error) {
-	var repo RepoStructure
-	if _, err := os.Stat(structureFile); err == nil {
-		data, err := os.ReadFile(structureFile)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to read existing repo structure: %v", err)
-		}
-		if err := json.Unmarshal(data, &repo); err != nil {
-			return nil, fmt.Errorf("Failed to parse existing repo structure: %v", err)
-		}
-	}
-	return &repo, nil
-}
-
 func (s *service) UpdateRepoStructure(ctx context.Context, gitRootPath string, structureFile string) (*RepoStructure, error) {
 	var err error
 	structure, err := LoadRepoStructureFromHead(ctx, gitRootPath, s.config.GetCurrentLoadConfig().TargetPath, s.config.GetCurrentLoadConfig().Include, s.config.GetCurrentLoadConfig().Exclude)
@@ -175,6 +160,14 @@ type FileInfo struct {
 type RepoStructure struct {
 	GeneratedAt time.Time `json:"generated_at"`
 	Root        FileInfo  `json:"root"`
+}
+
+func (r RepoStructure) String() string {
+	data, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }
 
 // FilePathGenerator generates file paths from the FileInfo structure.
@@ -385,12 +378,4 @@ func isIncluded(path string, include []string) bool {
 
 func matchesPath(target, pattern string) bool {
 	return strings.HasPrefix(target, pattern)
-}
-
-func LoadFileContent(path string) (string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file %s: %w", path, err)
-	}
-	return string(data), nil
 }

@@ -2,7 +2,6 @@
 package plan
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -11,12 +10,11 @@ import (
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
-	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/planner"
+	"github.com/nakamasato/aicoder/internal/retriever"
 	"github.com/nakamasato/aicoder/internal/reviewer"
 	"github.com/nakamasato/aicoder/internal/summarizer"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
-	"github.com/openai/openai-go"
 	"github.com/spf13/cobra"
 )
 
@@ -91,70 +89,17 @@ func runPlan(cmd *cobra.Command, args []string) {
 	}
 	defer entClient.Close()
 
-	// Get relevant files based on the query
 	store := vectorstore.New(entClient, llmClient)
-	res, err := store.Search(ctx, config.Repository, config.CurrentContext, query, 10)
-	if err != nil {
-		log.Fatalf("failed to search: %v", err)
-	}
-
-	// Get relevant files from repo summary
-	// TODO: create retriever
-	summarizerSvc := summarizer.NewService(&config, entClient, llmClient, store)
-	summary, err := summarizerSvc.ReadSummary(ctx, "repo_summary.json")
+	vr := retriever.NewVectorstoreRetriever(store, file.DefaultFileReader{}, &config)
+	summary, err := summarizer.ReadSummary(ctx, "repo_summary.json")
 	if err != nil {
 		log.Fatalf("failed to read summary: %v", err)
 	}
-
-	content, err := llmClient.GenerateCompletion(ctx,
-		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(summary),
-			openai.UserMessage(query),
-			openai.SystemMessage("Get relevant files from the repository"),
-		},
-		planner.RelevantFilesSchemaParam,
-	)
-
+	lr := retriever.NewLLMRetriever(llmClient, file.DefaultFileReader{}, &config, summary)
+	r := retriever.NewEnsembleRetriever(vr, lr)
+	files, err := r.Retrieve(ctx, query)
 	if err != nil {
-		log.Fatalf("failed to generate completion: %v", err)
-	}
-
-	var relFiles planner.RelevantFiles
-	err = json.Unmarshal([]byte(content), &relFiles)
-	if err != nil {
-		log.Fatalf("failed to unmarshal relevant files: %v", err)
-	}
-
-	// Load file content
-	var files []file.File
-	fileMap := make(map[string]bool)
-	fmt.Printf("Found %d files using LLM\n", len(relFiles.Paths))
-	for i, path := range relFiles.Paths {
-		if fileMap[path] {
-			continue
-		}
-		fmt.Printf("%d: %s\n", i, path)
-		content, err := loader.LoadFileContent(path)
-		if err != nil {
-			fmt.Printf("failed to load file content. skip: %v", err)
-			continue
-		}
-		files = append(files, file.File{Path: path, Content: content})
-		fileMap[path] = true
-	}
-
-	fmt.Printf("Found %d files using embedding\n", len(*res.Documents))
-	for i, doc := range *res.Documents {
-		if fileMap[doc.Document.Filepath] {
-			continue
-		}
-		fmt.Printf("%d: %s (score: %.2f)\n", i, doc.Document.Filepath, doc.Score)
-		content, err := loader.LoadFileContent(doc.Document.Filepath)
-		if err != nil {
-			log.Fatalf("failed to load file content. you might need to refresh loader by `aicoder load -r`: %v", err)
-		}
-		files = append(files, file.File{Path: doc.Document.Filepath, Content: content})
-		fileMap[doc.Document.Filepath] = true
+		log.Fatalf("failed to retrieve files: %v", err)
 	}
 
 	// Generate plan based on the query and the files
