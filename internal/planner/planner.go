@@ -445,7 +445,7 @@ The output is the information that is necessary to determine the actual file cha
 func (p *Planner) makeActionPlan(ctx context.Context, candidateBlocks map[string][]Block, currentPlan *ChangesPlan, query, review string) (*ActionPlan, error) {
 	// Use LLM to generate action plan
 	candidateBlocksStr := makeFileBlocksString(candidateBlocks)
-	examples_str := convertActionPlanExaplesToStr(ACTION_PLAN_EXAMPLES)
+	examples_str := convertActionPlanExaplesToStr(DefaultActionPlanExamples)
 	prompt := fmt.Sprintf(GENERATE_ACTION_PLAN_PROMPT, candidateBlocksStr, query, examples_str)
 	messages := []openai.ChatCompletionMessageParamUnion{
 		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),

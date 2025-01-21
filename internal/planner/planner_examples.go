@@ -10,7 +10,7 @@ type ActionPlanExample struct {
 	Plan ActionPlan
 }
 
-var ACTION_PLAN_EXAMPLES = []ActionPlanExample{
+var DefaultActionPlanExamples = []ActionPlanExample{
 	{
 		Goal: "Update README.md file with the latest implementation.",
 		Plan: ActionPlan{
