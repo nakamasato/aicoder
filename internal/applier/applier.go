@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,7 +31,7 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 
 	for _, change := range changesPlan.Changes {
 		// Capture the current value of change to avoid closure issues
-		if filepath.Ext(change.Block.Path) != ".go" && filepath.Ext(change.Block.Path) != ".hcl" && filepath.Ext(change.Block.Path) != ".tf" && change.Block.TargetType != "file" {
+		if !isValidFileType(change.Block.Path, change.Block.TargetType) {
 			return fmt.Errorf("unsupported file type: %s", change.Block.Path)
 		}
 
@@ -108,6 +107,11 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 	return nil
 }
 
+func isValidFileType(path string, targetType string) bool {
+	ext := filepath.Ext(path)
+	return ext == ".go" || ext == ".hcl" || ext == ".tf" || targetType == "file"
+}
+
 // generateDiff generates a unified diff between the original and modified content.
 func generateDiff(original, modified []byte) (string, error) {
 	// Create temporary files for original and modified content
@@ -140,7 +144,7 @@ func generateDiff(original, modified []byte) (string, error) {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
-		log.Println("There is diff")
+		fmt.Println("There is diff")
 	}
 	return string(output), nil
 }

@@ -3,7 +3,6 @@ package applier
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -37,13 +36,13 @@ func UpdateBlock(f *hclwrite.File, blockType, resourceName string, newContent st
 	blocks := body.Blocks()
 
 	for i, block := range blocks {
-		log.Println(i, " blockType: ", blockType, ", resourceName: ", resourceName, ", block.Type: ", block.Type(), ", block.Labels: ", strings.Join(block.Labels(), ","))
+		fmt.Println(i, " blockType: ", blockType, ", resourceName: ", resourceName, ", block.Type: ", block.Type(), ", block.Labels: ", strings.Join(block.Labels(), ","))
 		if block.Type() == blockType && strings.Join(block.Labels(), ",") == resourceName {
-			log.Println("found matched block for ", resourceName)
+			fmt.Println("found matched block for ", resourceName)
 			// Parse the new content into a temporary HCL file
 			tempFile, diags := hclwrite.ParseConfig([]byte(newContent), "", hcl.InitialPos)
 			if diags.HasErrors() {
-				log.Fatalf("failed to parse new block content: %s", diags.Error())
+				return fmt.Errorf("failed to parse new block content: %s", diags.Error())
 			}
 
 			// Clear the existing block body and append new tokens
