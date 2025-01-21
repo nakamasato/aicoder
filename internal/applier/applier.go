@@ -73,8 +73,12 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			diffs = append(diffs, diff)
 		} else {
 			// Reset the file pointer and truncate the file
-			f.Seek(0, io.SeekStart)
-			f.Truncate(0)
+			if _, err := f.Seek(0, io.SeekStart); err != nil {
+				return fmt.Errorf("failed to seek to the beginning of file (%s): %w", targetPath, err)
+			}
+			if err := f.Truncate(0); err != nil {
+				return fmt.Errorf("failed to truncate file (%s): %w", targetPath, err)
+			}
 			if _, err := f.Write(data); err != nil {
 				return fmt.Errorf("failed to write to file (%s): %w", targetPath, err)
 			}
