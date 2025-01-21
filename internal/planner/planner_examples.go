@@ -26,7 +26,7 @@ var DefaultActionPlanExamples = []ActionPlanExample{
 		},
 	},
 	{
-		Goal: "Devのbackendのsaに付与されてる権限と同じ権限をProdのbackendのsaに付与",
+		Goal: "Grant the same permissions to the backend service account in Prod as those assigned to the backend service account in Dev",
 		Plan: ActionPlan{
 			InvestigateSteps: []string{
 				"Check the current backend service account in the Dev environment.",
