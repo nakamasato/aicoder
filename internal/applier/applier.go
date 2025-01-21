@@ -54,10 +54,7 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			}
 		} else if change.Block.TargetType == "file" {
 			// Apply change to file
-			err := ApplyChangeFilePlan(&change, targetPath)
-			if err != nil {
-				return fmt.Errorf("failed to apply change to file (%s): %w", targetPath, err)
-			}
+			data = []byte(change.NewContent)
 		}
 
 		if dryrun {
@@ -148,12 +145,4 @@ func generateDiff(original, modified []byte) (string, error) {
 // GetFileContent retrieves the content of the specified file.
 func GetFileContent(path string) ([]byte, error) {
 	return os.ReadFile(path)
-}
-
-func ApplyChangeFilePlan(change *planner.BlockChange, targetPath string) error {
-	if err := os.WriteFile(targetPath, []byte(change.NewContent), 0644); err != nil {
-		return fmt.Errorf("failed to create new file: %w", err)
-	}
-	fmt.Printf("Successfully created new file: %s\n", targetPath)
-	return nil
 }
