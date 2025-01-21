@@ -14,8 +14,11 @@ import (
 	"github.com/nakamasato/aicoder/internal/planner"
 )
 
+// Applier defines the interface for applying changes to different types of files.
+// Implementations should handle reading from r, applying the change c, and returning
+// the modified content as bytes.
 type Applier interface {
-	Apply(r io.Reader, w io.Writer, c planner.BlockChange) ([]byte, error)
+	Apply(r io.Reader, c planner.BlockChange) ([]byte, error)
 }
 
 // ApplyChanges applies changes based on the provided changesPlan.
@@ -43,12 +46,12 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 
 		var data []byte
 		if filepath.Ext(change.Block.Path) == ".go" {
-			data, err = goAplr.Apply(f, f, change)
+			data, err = goAplr.Apply(f, change)
 			if err != nil {
 				return fmt.Errorf("failed to apply change to go file (%s): %w", targetPath, err)
 			}
 		} else if filepath.Ext(change.Block.Path) == ".hcl" || filepath.Ext(change.Block.Path) == ".tf" {
-			data, err = hclAplr.Apply(f, f, change)
+			data, err = hclAplr.Apply(f, change)
 			if err != nil {
 				return fmt.Errorf("failed to apply change to hcl file (%s): %w", targetPath, err)
 			}

@@ -28,9 +28,7 @@ func greet(name string) {
 	var inputBuffer bytes.Buffer
 	inputBuffer.WriteString(originalContent)
 
-	var outputBuffer bytes.Buffer
-
-	b, err := updateFuncGo(&inputBuffer, &outputBuffer, "greet", newContent, "greet function greet with welcome message")
+	b, err := updateFuncGo(&inputBuffer, "greet", newContent, "greet function greet with welcome message")
 	if err != nil {
 		t.Fatalf("UpdateFuncGo returned an error: %v", err)
 	}

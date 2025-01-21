@@ -15,10 +15,10 @@ import (
 
 type goApplier struct{}
 
-func (a *goApplier) Apply(r io.Reader, w io.Writer, c planner.BlockChange) ([]byte, error) {
+func (a *goApplier) Apply(r io.Reader, c planner.BlockChange) ([]byte, error) {
 
 	if c.Block.TargetType == "function" {
-		return updateFuncGo(r, w, c.Block.TargetName, c.NewContent, c.NewComment)
+		return updateFuncGo(r, c.Block.TargetName, c.NewContent, c.NewComment)
 	}
 
 	return nil, fmt.Errorf("unsupported target type: %s", c.Block.TargetType)
@@ -27,7 +27,7 @@ func (a *goApplier) Apply(r io.Reader, w io.Writer, c planner.BlockChange) ([]by
 // updateFuncGo updates the specified function in a Go file with new content and comment.
 // The function is identified by its name and the file is updated in place.
 // The function comment is updated if specified. Set comment to an empty string to keep the existing comment.
-func updateFuncGo(reader io.Reader, writer io.Writer, function, content, comment string) ([]byte, error) {
+func updateFuncGo(reader io.Reader, function, content, comment string) ([]byte, error) {
 	// Read the original file content from the reader
 	source, err := io.ReadAll(reader)
 	if err != nil {

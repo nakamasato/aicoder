@@ -13,7 +13,7 @@ import (
 
 type hclApplier struct{}
 
-func (a *hclApplier) Apply(r io.Reader, w io.Writer, c planner.BlockChange) ([]byte, error) {
+func (a *hclApplier) Apply(r io.Reader, c planner.BlockChange) ([]byte, error) {
 
 	src, err := io.ReadAll(r)
 	if err != nil {
