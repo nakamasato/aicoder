@@ -95,10 +95,21 @@ type ChangeDiff struct {
 	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the target block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
+type InvestigationResult struct {
+	TargetFiles    []string `json:"target_files" jsonschema_description:"List of files that are necessary to modify."`
+	ReferenceFiles []string `json:"reference_files" jsonschema_description:"List of files that are necessary to refer to determine modification."`
+	Result         string   `json:"result" jsonschema_description:"The result of the investigation. Please provide the necessary information or pieces of contents from the relevant files."`
+}
+
+func (ir InvestigationResult) String() string {
+	return fmt.Sprintf("Target Files: %v\nReference Files: %v\nResult: %s", ir.TargetFiles, ir.ReferenceFiles, ir.Result)
+}
+
 var (
-	ChangeDiffSchemaParam   = llm.GenerateJsonSchemaParam[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
-	TargetBlocksSchemaParam = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
-	ActionPlanSchemaParam   = llm.GenerateJsonSchemaParam[ActionPlan]("action_plans", "There are two parts, investigation steps and change steps. First, in the investigation steps, please check the relevant file contents to collect information in advance. The collected information is passed to the next steps (change step) to plan file changes in . Usually steps are less than or equal to 5.")
+	ChangeDiffSchemaParam          = llm.GenerateJsonSchemaParam[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
+	TargetBlocksSchemaParam        = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
+	ActionPlanSchemaParam          = llm.GenerateJsonSchemaParam[ActionPlan]("action_plans", "There are two parts, investigation steps and change steps. First, in the investigation steps, please check the relevant file contents to collect information in advance. The collected information is passed to the next steps (change step) to plan file changes in . Usually steps are less than or equal to 5.")
+	InvestigationResultSchemaParam = llm.GenerateJsonSchemaParam[InvestigationResult]("investigation_result", "The result of the investigation. Please provide the necessary information or pieces of contents from the relevant files.")
 )
 
 func makeFileBlocksString(fileBlocks map[string][]Block) string {
@@ -379,11 +390,7 @@ func (p *Planner) identifyBlocksToChangeForStep(ctx context.Context, step string
 
 // 3. Investigation Step
 func (p *Planner) executeInvestigation(ctx context.Context, query string, steps []string, files []file.File) (string, error) {
-	investigationResult := []struct {
-		Step   string
-		Result string
-	}{}
-
+	var investigationResultStr strings.Builder
 	for i, step := range steps {
 		fmt.Printf("Investigation Step %d: %s\n", i+1, step)
 		// identify files to check for collect information
@@ -399,7 +406,7 @@ func (p *Planner) executeInvestigation(ctx context.Context, query string, steps 
 			builder.WriteString(fmt.Sprintf("\n--- %s start ---\n%s\n--- %s end ---\n", file.Path, file.Content, file.Path))
 		}
 
-		res, err := p.llmClient.GenerateCompletionSimple(ctx, []openai.ChatCompletionMessageParamUnion{
+		res, err := p.llmClient.GenerateCompletion(ctx, []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(fmt.Sprintf(`You are a helpful assistant to generate the investigation result based on the collected information.
 Your investigation result will be used to plan the actual file changes in the next steps.
 So you need to collect information that is relevant to the original query and the goal.
@@ -416,23 +423,21 @@ The output is the information that is necessary to determine the actual file cha
 
 `, query, builder.String())),
 			openai.UserMessage(fmt.Sprintf(`Investigation theme: %s`, step)),
-		})
+		}, InvestigationResultSchemaParam)
 		if err != nil {
 			return "", fmt.Errorf("failed to create GenerateCompletion: %w", err)
 		}
 		fmt.Printf(`Investigation Step %d:
 	step: %s
 	result: %s\n`, i+1, step, res) // too long
-		investigationResult = append(investigationResult, struct {
-			Step   string
-			Result string
-		}{Step: step, Result: res})
+
+		var result InvestigationResult
+		if err = json.Unmarshal([]byte(res), &result); err != nil {
+			return "", fmt.Errorf("failed to unmarshal investigation result: %w", err)
+		}
+		investigationResultStr.WriteString(fmt.Sprintf("\n--- %d ---\nInvestigation: %s\nTarget files:\n%s\nReference files:\n%s\nResult:\n%s\n--- %d end ---\n", i, step, result.TargetFiles, result.ReferenceFiles, result.Result, i))
 	}
 
-	var investigationResultStr strings.Builder
-	for i, res := range investigationResult {
-		investigationResultStr.WriteString(fmt.Sprintf("\n--- %d ---\nInvestigation: %s\nInvestigation Result:\n%s\n--- %d end ---\n", i, res.Step, res.Result, i))
-	}
 	return investigationResultStr.String(), nil
 }
 
@@ -440,7 +445,8 @@ The output is the information that is necessary to determine the actual file cha
 func (p *Planner) makeActionPlan(ctx context.Context, candidateBlocks map[string][]Block, currentPlan *ChangesPlan, query, review string) (*ActionPlan, error) {
 	// Use LLM to generate action plan
 	candidateBlocksStr := makeFileBlocksString(candidateBlocks)
-	prompt := fmt.Sprintf(GENERATE_ACTION_PLAN_PROMPT, candidateBlocksStr, query)
+	examples_str := convertActionPlanExaplesToStr(ACTION_PLAN_EXAMPLES)
+	prompt := fmt.Sprintf(GENERATE_ACTION_PLAN_PROMPT, candidateBlocksStr, query, examples_str)
 	messages := []openai.ChatCompletionMessageParamUnion{
 		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
 		openai.UserMessage(prompt),
