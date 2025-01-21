@@ -1,5 +1,5 @@
 {
-    "generated_at": "2025-01-19T21:29:18.108472+09:00",
+    "generated_at": "2025-01-21T17:31:32.754874+09:00",
     "root": {
         "name": ".",
         "path": "",
@@ -242,7 +242,7 @@
                                 "path": "cmd/load/cmd.go",
                                 "is_dir": false,
                                 "blob_hash": "e70e98a0be67c954923364862eb2de204676d10c",
-                                "modified_at": "2025-01-19T21:17:17.617666547+09:00",
+                                "modified_at": "2025-01-20T05:34:38.887585274+09:00",
                                 "size": 1
                             }
                         ],
@@ -376,8 +376,8 @@
                                 "name": "main.go",
                                 "path": "examples/hcl/main.go",
                                 "is_dir": false,
-                                "blob_hash": "53e7cb7dfb75c2e2fd4dd508310732590abce861",
-                                "modified_at": "2025-01-13T06:05:41.632017234+09:00",
+                                "blob_hash": "fa907e798074b945bac1fb6877f44474f54fc7b5",
+                                "modified_at": "2025-01-21T12:57:54.238410963+09:00",
                                 "size": 1
                             }
                         ],
@@ -410,21 +410,53 @@
                                 "name": "applier.go",
                                 "path": "internal/applier/applier.go",
                                 "is_dir": false,
-                                "blob_hash": "03830135f4821eff18816a3befa141baed8663f9",
-                                "modified_at": "2025-01-19T09:17:21.529492395+09:00",
+                                "blob_hash": "0b864b854073d79e907206a39bb1f0bb23996b3d",
+                                "modified_at": "2025-01-21T12:57:54.239221547+09:00",
                                 "size": 1
                             },
                             {
                                 "name": "applier_test.go",
                                 "path": "internal/applier/applier_test.go",
                                 "is_dir": false,
-                                "blob_hash": "e7a8fc50c051c8a4b981d848c6f6a7e50cb9b672",
-                                "modified_at": "2025-01-19T16:26:50.820628914+09:00",
+                                "blob_hash": "a3371379960df3a3000d8fe8cfccb44f4aa8ff6f",
+                                "modified_at": "2025-01-21T12:57:54.239901882+09:00",
+                                "size": 1
+                            },
+                            {
+                                "name": "go_applier.go",
+                                "path": "internal/applier/go_applier.go",
+                                "is_dir": false,
+                                "blob_hash": "63a678834bee7995017184ffc460ca053761bc9a",
+                                "modified_at": "2025-01-21T12:57:54.240473008+09:00",
+                                "size": 1
+                            },
+                            {
+                                "name": "go_applier_test.go",
+                                "path": "internal/applier/go_applier_test.go",
+                                "is_dir": false,
+                                "blob_hash": "f40ea122b953d51f44804e8e3418cd17f9fe4078",
+                                "modified_at": "2025-01-21T12:57:54.240914259+09:00",
+                                "size": 1
+                            },
+                            {
+                                "name": "hcl_applier.go",
+                                "path": "internal/applier/hcl_applier.go",
+                                "is_dir": false,
+                                "blob_hash": "f8895dd32be69e2476a9fc97a09e80def2c11795",
+                                "modified_at": "2025-01-21T12:57:54.241252009+09:00",
+                                "size": 1
+                            },
+                            {
+                                "name": "hcl_applier_test.go",
+                                "path": "internal/applier/hcl_applier_test.go",
+                                "is_dir": false,
+                                "blob_hash": "6573586496681b0d833c2f75790a66a19a630eae",
+                                "modified_at": "2025-01-21T12:57:54.241524176+09:00",
                                 "size": 1
                             }
                         ],
                         "modified_at": "0001-01-01T00:00:00Z",
-                        "size": 2
+                        "size": 6
                     },
                     {
                         "name": "file",
@@ -467,16 +499,16 @@
                                 "name": "go_update.go",
                                 "path": "internal/file/go_update.go",
                                 "is_dir": false,
-                                "blob_hash": "1825f8c899760bdfd202aa4493e0df9df05046c0",
-                                "modified_at": "2025-01-13T06:05:41.633697422+09:00",
+                                "blob_hash": "d1b43d95cf7176fb28f3ae582290a86ff70bce81",
+                                "modified_at": "2025-01-21T12:57:54.241951385+09:00",
                                 "size": 1
                             },
                             {
                                 "name": "go_update_test.go",
                                 "path": "internal/file/go_update_test.go",
                                 "is_dir": false,
-                                "blob_hash": "09d13184846f42d5a7ed203759b763c13a1f6dbc",
-                                "modified_at": "2025-01-13T06:05:41.634163428+09:00",
+                                "blob_hash": "963a8d20fe7312fad1de1e282d582308f1fd7c89",
+                                "modified_at": "2025-01-21T12:57:54.242762012+09:00",
                                 "size": 1
                             },
                             {
@@ -499,16 +531,16 @@
                                 "name": "hcl_update.go",
                                 "path": "internal/file/hcl_update.go",
                                 "is_dir": false,
-                                "blob_hash": "ff5dae4f8874c719a9626ad2b57ca057a582da62",
-                                "modified_at": "2025-01-13T06:05:41.634829354+09:00",
+                                "blob_hash": "9f75915bd40873b3d57ec987478e5e053c06da2f",
+                                "modified_at": "2025-01-21T12:57:54.243141221+09:00",
                                 "size": 1
                             },
                             {
                                 "name": "hcl_update_test.go",
                                 "path": "internal/file/hcl_update_test.go",
                                 "is_dir": false,
-                                "blob_hash": "329430cf38d1918a4422b5f5e9be3cd07b347d7c",
-                                "modified_at": "2025-01-13T06:05:41.635532363+09:00",
+                                "blob_hash": "9f95da9e414e7ec07880adc5d95a2f9326fa0562",
+                                "modified_at": "2025-01-21T12:57:54.243531096+09:00",
                                 "size": 1
                             },
                             {
@@ -766,7 +798,7 @@
                     }
                 ],
                 "modified_at": "0001-01-01T00:00:00Z",
-                "size": 33
+                "size": 37
             },
             {
                 "name": "main.go",
@@ -780,12 +812,12 @@
                 "name": "repo_summary.json",
                 "path": "repo_summary.json",
                 "is_dir": false,
-                "blob_hash": "f4cb7813b9263694953b547a3aa792cd018b5844",
-                "modified_at": "2025-01-19T21:27:35.439610509+09:00",
+                "blob_hash": "cb3565c89d47e58fcf028102d8ebaf7318920255",
+                "modified_at": "2025-01-20T05:34:38.889339749+09:00",
                 "size": 1
             }
         ],
         "modified_at": "0001-01-01T00:00:00Z",
-        "size": 67
+        "size": 71
     }
 }
