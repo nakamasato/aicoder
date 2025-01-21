@@ -2,10 +2,7 @@ package file
 
 import (
 	"fmt"
-	"log"
-	"strings"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
@@ -66,35 +63,6 @@ func GetBlockContent(f *hclwrite.File, resourceName string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("resource block not found: %s", resourceName)
-}
-
-// updateBlock replaces the entire content of the specified resource block with new content
-func UpdateBlock(f *hclwrite.File, blockType, resourceName string, newContent string, newComments []string) error {
-	body := f.Body()
-	blocks := body.Blocks()
-
-	for i, block := range blocks {
-		log.Println(i, " blockType: ", blockType, ", resourceName: ", resourceName, ", block.Type: ", block.Type(), ", block.Labels: ", strings.Join(block.Labels(), ","))
-		if block.Type() == blockType && strings.Join(block.Labels(), ",") == resourceName {
-			log.Println("found matched block for ", resourceName)
-			// Parse the new content into a temporary HCL file
-			tempFile, diags := hclwrite.ParseConfig([]byte(newContent), "", hcl.InitialPos)
-			if diags.HasErrors() {
-				log.Fatalf("failed to parse new block content: %s", diags.Error())
-			}
-
-			// Clear the existing block body and append new tokens
-			block.Body().Clear()
-			block.Body().AppendUnstructuredTokens(tempFile.Body().BuildTokens(nil))
-
-			// Add new comments
-			if len(newComments) > 0 {
-				fmt.Println("newComments is not implemented yet for HCL.")
-			}
-			return nil
-		}
-	}
-	return fmt.Errorf("resource block not found: %s", resourceName)
 }
 
 // AddBlock adds a new block to the HCL file.
