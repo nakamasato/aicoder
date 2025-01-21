@@ -425,7 +425,7 @@ The output is the information that is necessary to determine the actual file cha
 			openai.UserMessage(fmt.Sprintf(`Investigation theme: %s`, step)),
 		}, InvestigationResultSchemaParam)
 		if err != nil {
-			return "", fmt.Errorf("failed to create GenerateCompletion: %w", err)
+			return "", fmt.Errorf("failed to generate completion for investigation step %d: %w", i+1, err)
 		}
 		fmt.Printf(`Investigation Step %d:
 	step: %s
@@ -433,7 +433,7 @@ The output is the information that is necessary to determine the actual file cha
 
 		var result InvestigationResult
 		if err = json.Unmarshal([]byte(res), &result); err != nil {
-			return "", fmt.Errorf("failed to unmarshal investigation result: %w", err)
+			return "", fmt.Errorf("failed to generate completion for investigation step %d: %w", i+1, err)
 		}
 		investigationResultStr.WriteString(fmt.Sprintf("\n--- %d ---\nInvestigation: %s\nTarget files:\n%s\nReference files:\n%s\nResult:\n%s\n--- %d end ---\n", i, step, result.TargetFiles, result.ReferenceFiles, result.Result, i))
 	}
