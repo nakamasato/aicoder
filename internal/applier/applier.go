@@ -3,6 +3,7 @@ package applier
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -10,65 +11,46 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/planner"
 )
+
+type Applier interface {
+	Apply(r io.Reader, w io.Writer, c planner.BlockChange) ([]byte, error)
+}
 
 // ApplyChanges applies changes based on the provided changesPlan.
 // If dryrun is true, it displays the diffs without modifying the actual files.
 func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
+
+	goAplr := &goApplier{}
+	hclAplr := &hclApplier{}
+
 	var diffs []string
 
 	for _, change := range changesPlan.Changes {
 		// Capture the current value of change to avoid closure issues
+		if filepath.Ext(change.Block.Path) != ".go" && filepath.Ext(change.Block.Path) != ".hcl" && filepath.Ext(change.Block.Path) != ".tf" && change.Block.TargetType != "file" {
+			return fmt.Errorf("unsupported file type: %s", change.Block.Path)
+		}
+
 		change := change
 		targetPath := change.Block.Path
-		if dryrun {
-			originalContent, err := os.ReadFile(change.Block.Path)
-			if err != nil {
-				return fmt.Errorf("failed to read original file (%s): %w", change.Block.Path, err)
-			}
-			// Apply change in memory
-			modifiedContent, err := file.UpdateFuncInMemory(originalContent, change.Block.TargetName, change.NewContent)
-			if err != nil {
-				return fmt.Errorf("failed to apply change in memory: %w", err)
-			}
+		f, err := os.OpenFile(targetPath, os.O_RDWR, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to open file (%s): %w", targetPath, err)
+		}
+		defer f.Close()
 
-			// Generate diff
-			diff, err := generateDiff(originalContent, modifiedContent)
+		var data []byte
+		if filepath.Ext(change.Block.Path) == ".go" {
+			data, err = goAplr.Apply(f, f, change)
 			if err != nil {
-				return fmt.Errorf("failed to generate diff: %w", err)
-			}
-			diffs = append(diffs, diff)
-		} else if filepath.Ext(change.Block.Path) == ".go" {
-			// Apply change to temp file
-			if change.Block.TargetType == "function" {
-				err := file.UpdateFuncGo(targetPath, change.Block.TargetName, change.NewContent, change.NewComment)
-				if err != nil {
-					return fmt.Errorf("failed to apply change to temp file (%s): %w", targetPath, err)
-				}
-			} else {
-				return fmt.Errorf("unsupported target type: %s", change.Block.TargetType)
+				return fmt.Errorf("failed to apply change to go file (%s): %w", targetPath, err)
 			}
 		} else if filepath.Ext(change.Block.Path) == ".hcl" || filepath.Ext(change.Block.Path) == ".tf" {
-			// Apply change to HCL file
-			// TODO: improve hcl_parse.go and hcl_update.go
-			src, err := os.ReadFile(targetPath)
+			data, err = hclAplr.Apply(f, f, change)
 			if err != nil {
-				return fmt.Errorf("failed to read original file (%s): %w", targetPath, err)
-			}
-			f, diag := hclwrite.ParseConfig(src, targetPath, hcl.InitialPos)
-			if diag.HasErrors() {
-				return fmt.Errorf("failed to parse HCL file: %s, error: %v", targetPath, diag.Error())
-			}
-			err = file.UpdateBlock(f, change.Block.TargetType, change.Block.TargetName, change.NewContent, nil) // targetname is strings.Join(block.Labels(), ",") and newComments is not implemented yet
-			if err != nil {
-				return fmt.Errorf("failed to update block (%s): %w", targetPath, err)
-			}
-			if err := os.WriteFile(targetPath, f.Bytes(), 0644); err != nil {
-				return fmt.Errorf("failed to write updated file: %w", err)
+				return fmt.Errorf("failed to apply change to hcl file (%s): %w", targetPath, err)
 			}
 		} else if change.Block.TargetType == "file" {
 			// Apply change to file
@@ -76,8 +58,26 @@ func ApplyChanges(changesPlan *planner.ChangesPlan, dryrun bool) error {
 			if err != nil {
 				return fmt.Errorf("failed to apply change to file (%s): %w", targetPath, err)
 			}
+		}
+
+		if dryrun {
+			// Generate diff
+			originalContent, err := os.ReadFile(change.Block.Path)
+			if err != nil {
+				return fmt.Errorf("failed to read original file (%s): %w", change.Block.Path, err)
+			}
+			diff, err := generateDiff(originalContent, data)
+			if err != nil {
+				return fmt.Errorf("failed to generate diff: %w", err)
+			}
+			diffs = append(diffs, diff)
 		} else {
-			return fmt.Errorf("unsupported file type: %s", change.Block.Path)
+			// Reset the file pointer and truncate the file
+			f.Seek(0, io.SeekStart)
+			f.Truncate(0)
+			if _, err := f.Write(data); err != nil {
+				return fmt.Errorf("failed to write to file (%s): %w", targetPath, err)
+			}
 		}
 	}
 

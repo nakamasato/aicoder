@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/nakamasato/aicoder/internal/applier"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -54,7 +55,7 @@ resource "google_compute_instance" "example_instance" {
 
 	// ブロックを更新
 	log.Println("--- UpdateBlock ---- example_sa_is_slack_token_secret_accessor")
-	file.UpdateBlock(f, "resource", "example_sa_is_slack_token_secret_accessor", `
+	applier.UpdateBlock(f, "resource", "example_sa_is_slack_token_secret_accessor", `
 project   = "new_project_id"
 member    = "new_member"
 secret_id = "new_secret_id"
