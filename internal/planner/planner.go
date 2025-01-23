@@ -95,16 +95,6 @@ type ChangeDiff struct {
 	NewComment string `json:"new_comment" jsonschema_description:"The new comment of the target block that is written above the block. Leave it empty to keep the current comment and just update content. HCL file does not support updating comment yet."`
 }
 
-type InvestigationResult struct {
-	TargetFiles    []string `json:"target_files" jsonschema_description:"List of files that are necessary to modify."`
-	ReferenceFiles []string `json:"reference_files" jsonschema_description:"List of files that are necessary to refer to determine modification."`
-	Result         string   `json:"result" jsonschema_description:"The result of the investigation. Please provide the necessary information or pieces of contents from the relevant files."`
-}
-
-func (ir InvestigationResult) String() string {
-	return fmt.Sprintf("Target Files: %v\nReference Files: %v\nResult: %s", ir.TargetFiles, ir.ReferenceFiles, ir.Result)
-}
-
 var (
 	ChangeDiffSchemaParam          = llm.GenerateJsonSchemaParam[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
 	TargetBlocksSchemaParam        = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
@@ -122,8 +112,8 @@ func makeFileBlocksString(fileBlocks map[string][]Block) string {
 	return builder.String()
 }
 
-// GeneratePromptWithFiles creates a prompt to extract blocks of the given files to modify
-func (p *Planner) GeneratePromptWithFiles(ctx context.Context, prompt, goal string, files []file.File, fileBlocks map[string][]Block) (string, error) {
+// generateBlockPromptWithFiles creates a prompt to extract blocks of the given files to modify
+func (p *Planner) generateBlockPromptWithFiles(prompt, goal string, files []file.File, fileBlocks map[string][]Block) (string, error) {
 	// Create a comprehensive prompt
 	var builder strings.Builder
 	for _, f := range files {
@@ -364,7 +354,7 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, summary string
 }
 
 func (p *Planner) identifyBlocksToChangeForStep(ctx context.Context, step string, files []file.File, candidateBlocks map[string][]Block) (*TargetBlocks, error) {
-	prompt_block, err := p.GeneratePromptWithFiles(ctx, PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, step, files, candidateBlocks)
+	prompt_block, err := p.generateBlockPromptWithFiles(PLANNER_EXTRACT_BLOCK_FOR_STEP_PROMPT, step, files, candidateBlocks)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate goal prompt: %w", err)
 	}
@@ -386,59 +376,6 @@ func (p *Planner) identifyBlocksToChangeForStep(ctx context.Context, step string
 	}
 
 	return &blks, nil
-}
-
-// 3. Investigation Step
-func (p *Planner) executeInvestigation(ctx context.Context, query string, steps []string, files []file.File) (string, error) {
-	var investigationResultStr strings.Builder
-	for i, step := range steps {
-		fmt.Printf("Investigation Step %d: %s\n", i+1, step)
-		// identify files to check for collect information
-		investigationFiles, err := p.removeUnrelevantFiles(ctx, step, files)
-		if err != nil {
-			return "", fmt.Errorf("failed to remove irrelevant files: %w", err)
-		}
-		fmt.Printf("Investigation Step %d: Relevant files: %d\n", i+1, len(investigationFiles))
-
-		// generate the investigation result for the step
-		var builder strings.Builder
-		for _, file := range investigationFiles {
-			builder.WriteString(fmt.Sprintf("\n--- %s start ---\n%s\n--- %s end ---\n", file.Path, file.Content, file.Path))
-		}
-
-		res, err := p.llmClient.GenerateCompletion(ctx, []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(fmt.Sprintf(`You are a helpful assistant to generate the investigation result based on the collected information.
-Your investigation result will be used to plan the actual file changes in the next steps.
-So you need to collect information that is relevant to the original query and the goal.
-
-Original query: %s
-
---- Relevant files ---
-%s
---- Relevant files ---
-
-Please generate the investigation result based on the collected information.
-This investigation is to extract the necessary information to plan the actual file changes in the next steps.
-The output is the information that is necessary to determine the actual file changes in the next step.
-
-`, query, builder.String())),
-			openai.UserMessage(fmt.Sprintf(`Investigation theme: %s`, step)),
-		}, InvestigationResultSchemaParam)
-		if err != nil {
-			return "", fmt.Errorf("failed to generate completion for investigation step %d: %w", i+1, err)
-		}
-		fmt.Printf(`Investigation Step %d:
-	step: %s
-	result: %s\n`, i+1, step, res) // too long
-
-		var result InvestigationResult
-		if err = json.Unmarshal([]byte(res), &result); err != nil {
-			return "", fmt.Errorf("failed to generate completion for investigation step %d: %w", i+1, err)
-		}
-		investigationResultStr.WriteString(fmt.Sprintf("\n--- %d ---\nInvestigation: %s\nTarget files:\n%s\nReference files:\n%s\nResult:\n%s\n--- %d end ---\n", i, step, result.TargetFiles, result.ReferenceFiles, result.Result, i))
-	}
-
-	return investigationResultStr.String(), nil
 }
 
 // 2. Make action plan (steps)

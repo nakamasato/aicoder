@@ -1,14 +1,29 @@
 package planner
 
 import (
+	"bytes"
 	"fmt"
+	_ "embed"
+	"text/template"
 	"strings"
+
+	"github.com/nakamasato/aicoder/internal/file"
 )
 
 type ActionPlanExample struct {
 	Goal string
 	Plan ActionPlan
 }
+
+type InvestigationResultExample struct {
+	Goal   string
+	Files  []file.File
+	Result InvestigationResult
+}
+
+
+//go:embed templates/investigation_result.tmpl
+var investigationResultTemplate string
 
 var DefaultActionPlanExamples = []ActionPlanExample{
 	{
@@ -60,4 +75,60 @@ func convertActionPlanExaplesToStr(examples []ActionPlanExample) string {
 	}
 
 	return sb.String()
+}
+
+var DefaultInvestigationExamples = []InvestigationResultExample{
+	{
+		Goal: "Check the current backend service account in the Dev environment.",
+		Files: []file.File{
+			{
+				Path: "terraform/development/google_service_account_iam_member.tf",
+				Content: `resource "google_service_account" "sa" {
+  account_id   = "my-service-account"
+  display_name = "A service account that Jane can use"
+}
+
+resource "google_storage_bucket" "example" {
+  name          = "example"
+  location      = "US"
+}
+
+resource "google_storage_bucket_iam_member" "member" {
+  bucket = google_storage_bucket.example.name
+  role = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.sa.email}"
+}`,
+			},
+		},
+		Result: InvestigationResult{
+			TargetFiles:    []string{},
+			ReferenceFiles: []string{"terraform/development/google_service_account_iam_member.tf"},
+			Result: `The current backend service account in the Dev environment is defined in the file 'terraform/development/google_service_account_iam_member.tf'.
+
+` + "```hcl" + `
+resource "google_storage_bucket_iam_member" "member" {
+  bucket = google_storage_bucket.example.name
+  role = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.sa.email}"
+}
+` + "```\n",
+		},
+	},
+}
+
+func convertInvestigationResultExamplesToStr(examples []InvestigationResultExample) (string, error) {
+	// Load the template file
+	tmpl, err := template.New("examples").Funcs(template.FuncMap{
+		"add": func(a, b int) int { return a + b },
+	}).Parse(investigationResultTemplate)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, examples); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }

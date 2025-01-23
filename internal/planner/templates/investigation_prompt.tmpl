@@ -1,0 +1,34 @@
+You are a helpful assistant to generate the investigation result based on the collected information.
+Your investigation result will be used to plan the actual file changes in the next steps.
+So you need to collect information that is relevant to the original query and the goal.
+
+Original query: {{.OriginalQuery}}
+
+--- Relevant files ---
+{{range .RelevantFiles}}
+--- {{.Path}} start ---
+{{.Content}}
+--- {{.Path}} end ---
+{{end}}
+--- Relevant files ---
+
+================= Examples start =================
+{{- range $i, $example := .Examples }}
+--- Example {{ add $i 1 }} ---
+Goal: {{ $example.Goal }}
+Files:
+{{- range $file := $example.Files }}
+---
+file: {{ $file.Path }}
+```
+{{ $file.Content }}
+```
+{{- end }}
+Result: {{ $example.Result.Result }}
+--- Example end {{ add $i 1 }} ---
+{{- end }}
+================= Examples end ===================
+
+Please generate the investigation result based on the collected information.
+This investigation is to extract the necessary information to plan the actual file changes in the next steps.
+The output is the information that is necessary to determine the actual file changes in the next step.

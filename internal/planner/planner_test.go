@@ -28,7 +28,6 @@ func TestGeneratePromptWithFiles(t *testing.T) {
 	entClient := &ent.Client{}     // Assuming you have a way to initialize this
 	planner := NewPlanner(llmClient, entClient)
 
-	ctx := context.Background()
 	prompt := "Modify the following files: %s to achieve the goal: %s"
 	goal := "Refactor code"
 	files := []file.File{
@@ -40,7 +39,7 @@ func TestGeneratePromptWithFiles(t *testing.T) {
 		},
 	}
 
-	result, err := planner.GeneratePromptWithFiles(ctx, prompt, goal, files, fileBlocks)
+	result, err := planner.generateBlockPromptWithFiles(prompt, goal, files, fileBlocks)
 	assert.NoError(t, err)
 	assert.Contains(t, result, "example.go")
 	assert.Contains(t, result, "main")
@@ -177,5 +176,66 @@ func TestInvestigationResult_String(t *testing.T) {
 				t.Errorf("expected %q, got %q", tt.expected, result)
 			}
 		})
+	}
+}
+
+func TestConvertInvestigationResultExamplesToStr(t *testing.T) {
+	examples := []InvestigationResultExample{
+		{
+			Goal: "Check the current backend service account in the Dev environment.",
+			Files: []file.File{
+				{
+					Path: "terraform/development/google_service_account_iam_member.tf",
+					Content: `resource "google_storage_bucket_iam_member" "member" {
+  bucket = google_storage_bucket.example.name
+  role = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.sa.email}"
+}`,
+				},
+			},
+			Result: InvestigationResult{
+				TargetFiles:    []string{},
+				ReferenceFiles: []string{"terraform/development/google_service_account_iam_member.tf"},
+				Result: `The current backend service account in the Dev environment is defined in the file 'terraform/development/google_service_account_iam_member.tf'.
+
+` + "```hcl" + `
+resource "google_storage_bucket_iam_member" "member" {
+  bucket = google_storage_bucket.example.name
+  role = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.sa.email}"
+}
+` + "```\n",
+			},
+		},
+	}
+
+	expectedOutput := `
+--- Example 1 ---
+Goal: Check the current backend service account in the Dev environment.
+Files:
+---
+file: terraform/development/google_service_account_iam_member.tf
+` + "```" + `
+resource "google_storage_bucket_iam_member" "member" {
+  bucket = google_storage_bucket.example.name
+  role = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.sa.email}"
+}
+` + "```\n" + `Result: The current backend service account in the Dev environment is defined in the file 'terraform/development/google_service_account_iam_member.tf'.
+
+` + "```hcl" + `
+resource "google_storage_bucket_iam_member" "member" {
+  bucket = google_storage_bucket.example.name
+  role = "roles/storage.admin"
+  member = "serviceAccount:${google_service_account.sa.email}"
+}
+` + "```\n" + "\n--- Example end 1 ---\n"
+
+	output, err := convertInvestigationResultExamplesToStr(examples)
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+	if output != expectedOutput {
+		t.Errorf("Expected output:\n````\n%s\n````\nGot:\n````\n%s````\n", expectedOutput, output)
 	}
 }

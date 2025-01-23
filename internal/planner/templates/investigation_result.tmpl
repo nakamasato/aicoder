@@ -1,0 +1,14 @@
+{{- range $i, $example := . }}
+--- Example {{ add $i 1 }} ---
+Goal: {{ $example.Goal }}
+Files:
+{{- range $file := $example.Files }}
+---
+file: {{ $file.Path }}
+```
+{{ $file.Content }}
+```
+{{- end }}
+Result: {{ $example.Result.Result }}
+--- Example end {{ add $i 1 }} ---
+{{- end }}
