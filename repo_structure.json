@@ -1,5 +1,5 @@
 {
-    "generated_at": "2025-01-21T17:31:32.754874+09:00",
+    "generated_at": "2025-01-24T16:07:08.997757+09:00",
     "root": {
         "name": ".",
         "path": "",
@@ -655,29 +655,78 @@
                                 "name": "planner.go",
                                 "path": "internal/planner/planner.go",
                                 "is_dir": false,
-                                "blob_hash": "0b212e045dc4a5598a15b7410cb6430ada15afc9",
-                                "modified_at": "2025-01-19T21:15:46.80351879+09:00",
+                                "blob_hash": "bd5722641b334b690c910f3f0e490218093cdbc6",
+                                "modified_at": "2025-01-24T08:30:48.995975468+09:00",
+                                "size": 1
+                            },
+                            {
+                                "name": "planner_examples.go",
+                                "path": "internal/planner/planner_examples.go",
+                                "is_dir": false,
+                                "blob_hash": "cff1c0bcc77be39a3301877a440971c2b344930f",
+                                "modified_at": "2025-01-24T08:30:48.996348056+09:00",
+                                "size": 1
+                            },
+                            {
+                                "name": "planner_investigation.go",
+                                "path": "internal/planner/planner_investigation.go",
+                                "is_dir": false,
+                                "blob_hash": "9fc6d534b82d75497dcecf327a213f674526f324",
+                                "modified_at": "2025-01-24T08:30:48.996728103+09:00",
+                                "size": 1
+                            },
+                            {
+                                "name": "planner_investigation_test.go",
+                                "path": "internal/planner/planner_investigation_test.go",
+                                "is_dir": false,
+                                "blob_hash": "7622ca8dcfe32a3f465637cb01fda9c2e081f6ad",
+                                "modified_at": "2025-01-24T08:30:48.997024899+09:00",
                                 "size": 1
                             },
                             {
                                 "name": "planner_prompt.go",
                                 "path": "internal/planner/planner_prompt.go",
                                 "is_dir": false,
-                                "blob_hash": "a99960ccffa026b3a78d71e078795d8cda173a3e",
-                                "modified_at": "2025-01-19T21:15:46.804220465+09:00",
+                                "blob_hash": "8d63fabefa3991c1238fdd3f35629cf1402b2480",
+                                "modified_at": "2025-01-22T07:57:14.832825419+09:00",
                                 "size": 1
                             },
                             {
                                 "name": "planner_test.go",
                                 "path": "internal/planner/planner_test.go",
                                 "is_dir": false,
-                                "blob_hash": "d1f1902cdd2a020ed7f14ad072b1550c31ba237d",
-                                "modified_at": "2025-01-19T21:15:46.804497969+09:00",
+                                "blob_hash": "d9e8ef1ea99a3f38e5fc06bd4d7c86b8bfa83d1f",
+                                "modified_at": "2025-01-24T08:30:48.997588948+09:00",
                                 "size": 1
+                            },
+                            {
+                                "name": "templates",
+                                "path": "internal/planner/templates",
+                                "is_dir": true,
+                                "children": [
+                                    {
+                                        "name": "investigation_prompt.tmpl",
+                                        "path": "internal/planner/templates/investigation_prompt.tmpl",
+                                        "is_dir": false,
+                                        "blob_hash": "579f96f0e15458397e9833446fee460a746e1898",
+                                        "modified_at": "2025-01-24T08:30:48.997967995+09:00",
+                                        "size": 1
+                                    },
+                                    {
+                                        "name": "investigation_result.tmpl",
+                                        "path": "internal/planner/templates/investigation_result.tmpl",
+                                        "is_dir": false,
+                                        "blob_hash": "ad71214ffaae38ce94b2addc0e89fa6d4099d1a3",
+                                        "modified_at": "2025-01-24T08:30:48.998321083+09:00",
+                                        "size": 1
+                                    }
+                                ],
+                                "modified_at": "0001-01-01T00:00:00Z",
+                                "size": 2
                             }
                         ],
                         "modified_at": "0001-01-01T00:00:00Z",
-                        "size": 3
+                        "size": 8
                     },
                     {
                         "name": "refactorer",
@@ -798,7 +847,7 @@
                     }
                 ],
                 "modified_at": "0001-01-01T00:00:00Z",
-                "size": 37
+                "size": 42
             },
             {
                 "name": "main.go",
@@ -812,12 +861,12 @@
                 "name": "repo_summary.json",
                 "path": "repo_summary.json",
                 "is_dir": false,
-                "blob_hash": "cb3565c89d47e58fcf028102d8ebaf7318920255",
-                "modified_at": "2025-01-20T05:34:38.889339749+09:00",
+                "blob_hash": "afc4d0441ce7c28ffbe1af4eb2b7b24649cf2568",
+                "modified_at": "2025-01-24T16:06:37.982439913+09:00",
                 "size": 1
             }
         ],
         "modified_at": "0001-01-01T00:00:00Z",
-        "size": 71
+        "size": 76
     }
 }

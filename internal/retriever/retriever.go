@@ -9,6 +9,7 @@ import (
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
+	"github.com/nakamasato/aicoder/internal/summarizer"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/openai/openai-go"
 )
@@ -62,11 +63,11 @@ func (v VectorestoreRetriever) Retrieve(ctx context.Context, query string) ([]fi
 type LLMRetriever struct {
 	llmClient llm.Client
 	reader    file.FileReader
-	summary   string
+	summary   *summarizer.RepoSummary
 	config    *config.AICoderConfig
 }
 
-func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *config.AICoderConfig, summary string) *LLMRetriever {
+func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *config.AICoderConfig, summary *summarizer.RepoSummary) *LLMRetriever {
 	return &LLMRetriever{
 		llmClient: llmClient,
 		reader:    reader,
@@ -78,7 +79,7 @@ func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *confi
 func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, error) {
 	prompt := fmt.Sprintf(`Please extract files that are relevant to the given query.
 Repo summary:
-%s
+%v
 `, l.summary)
 	content, err := l.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{

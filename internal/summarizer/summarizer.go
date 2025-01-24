@@ -23,6 +23,27 @@ const (
 	LanguageJapanese Language = "ja"
 )
 
+type EnvVar struct {
+	Name     string `json:"name" jsonschema_description:"The name of the environment variable."`
+	Desc     string `json:"desc" jsonschema_description:"The description of the environment variable."`
+	Required bool   `json:"required" jsonschema_description:"Whether the environment variable is required or not."`
+}
+
+type RepoSummary struct {
+	Overview           string   `json:"overview" jsonschema_description:"The overview of the repository."`
+	Features           []string `json:"features" jsonschema_description:"The main features of the repository."`
+	Configuration      string   `json:"configuration" jsonschema_description:"The configuration of the repository. Configuration files (include simple example if exists)"`
+	EnvVars            []EnvVar `json:"environment_variables" jsonschema_description:"The environment variables used in the repository."`
+	DirectoryStructure string   `json:"directory_structure" jsonschema_description:"The directory structure of the repository. Not only the root directories but also subdirectories if they contains core implementations. Include simplified directory structure diagram like the result of tree command with short explanation for each directory. You can omit unimportant directories."`
+	Entrypoints        []string `json:"entrypoints" jsonschema_description:"The main entry points of the repository. How to run the repository."`
+	ImportantFiles     []string `json:"important_files" jsonschema_description:"Important files or directories that users should know about. Configuration files, main entry points, files that contain important functions or classes."`
+	ImportantFunctions []string `json:"important_functions" jsonschema_description:"Important functions or classes that are used throughout the repository."`
+	Dependencies       string   `json:"dependencies" jsonschema_description:"Internal dependencies or relationships between files or directories. Simplified diagram in mermaid format would be helpful."`
+	Technologies       []string `json:"technologies" jsonschema_description:"Concepts or technologies used in the repository. e.g. frameworks, libraries, etc."`
+}
+
+var RepoSummarySchemaParam = llm.GenerateJsonSchemaParam[RepoSummary]("summary", "The summary of the repository.")
+
 type service struct {
 	config      *config.AICoderConfig
 	llmClient   llm.Client
@@ -65,16 +86,18 @@ func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outp
 	messages := []openai.ChatCompletionMessageParamUnion{
 		openai.SystemMessage(prompt),
 	}
-	summary, err := s.llmClient.GenerateCompletionSimple(ctx, messages)
+	res, err := s.llmClient.GenerateCompletion(ctx, messages, RepoSummarySchemaParam)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate completion: %v", err)
 	}
 
 	// Marshal the summary data to JSON
-	summaryJSON, err := json.MarshalIndent(
-		map[string]string{
-			"summary": summary,
-		}, "", "  ")
+	var summary RepoSummary
+	if err := json.Unmarshal([]byte(res), &summary); err != nil {
+		return "", fmt.Errorf("failed to unmarshal summary: %v", err)
+	}
+
+	summaryJSON, err := json.MarshalIndent(summary, "", "  ")
 	if err != nil {
 		log.Fatalf("failed to marshal summary to JSON: %v", err)
 	}
@@ -84,28 +107,22 @@ func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outp
 		log.Fatalf("failed to write summary to file: %v", err)
 	}
 
-	return summary, nil
+	return res, nil
 }
 
 // ReadSummary reads the summary from the given file
-func ReadSummary(ctx context.Context, filename string) (string, error) {
+func ReadSummary(ctx context.Context, filename string) (*RepoSummary, error) {
 	// Read the file content
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		return "", fmt.Errorf("failed to read file: %v", err)
+		return nil, fmt.Errorf("failed to read file: %v", err)
 	}
 
 	// Unmarshal the JSON content
-	var data map[string]string
-	if err := json.Unmarshal(content, &data); err != nil {
-		return "", fmt.Errorf("failed to unmarshal JSON: %v", err)
+	var summary RepoSummary
+	if err := json.Unmarshal(content, &summary); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
 	}
 
-	// Return the summary
-	summary, ok := data["summary"]
-	if !ok {
-		return "", fmt.Errorf("summary not found in file")
-	}
-
-	return summary, nil
+	return &summary, nil
 }
