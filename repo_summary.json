@@ -1,3 +1,48 @@
 {
-  "summary": "## Repository Summary: AICoder\n\n### Overview\nThe **AICoder** repository is an AI-powered command-line interface (CLI) tool designed to enhance coding productivity through functionalities such as loading repository structures, searching files, generating project plans, and applying configurations.\n\n### Directory Structure\n\n```plaintext\naicoder/\n├── .github/                  # GitHub Actions workflows and configurations\n│   ├── release-drafter.yml   # Config for automatically drafting release notes\n│   └── workflows/            # CI workflows for testing and deploying the application\n├── cmd/                      # Command-line commands for AICoder\n│   ├── apply/                # Command for applying configurations\n│   ├── config/               # Configuration management commands\n│   ├── db/                   # Database operation commands\n│   ├── debug/                # Debugging functionalities\n│   ├── load/                 # Commands for loading repository structures\n│   ├── plan/                 # Project planning functionalities\n│   ├── review/               # Review changes based on defined plans\n│   ├── search/               # Searching functionalities\n│   ├── summarize/            # Functionality for summarizing repository content\n│   └── root.go               # Root command entry point for AICoder\n├── config/                   # Configuration management code and tests\n│   ├── config.go             # Code for handling configuration values\n│   └── config_test.go        # Unit tests for configuration management\n├── internal/                 # Core application logic and functionality\n│   ├── applier/              # Logic for applying changes to files\n│   ├── loader/               # Managing repository structures\n│   ├── llm/                  # Interaction with language models (OpenAI API)\n│   ├── planner/              # Planning changes for code files\n│   ├── retriever/            # Retrieving relevant files based on queries\n│   ├── reviewer/             # Review change plans\n│   ├── summarizer/           # Summarizing code or repository\n│   └── vectorstore/          # Managing vector embeddings and document similarity\n├── examples/                 # Example applications or usage\n│   └── hcl/                  # Example code for HCL configurations\n├── .env.example              # Environment variables configuration template\n├── .envrc                    # Loads environment variables from .env file\n├── Makefile                  # Task management for the Go project\n├── README.md                 # Documentation for AICoder\n├── main.go                   # Main entry point for the application\n├── go.mod                    # Module dependencies\n└── repo_summary.json         # Summary of the repository\n```\n\n### Important Files\n- **main.go**: Main entry point to execute commands.\n- **README.md**: Documentation providing an overview and usage instructions.\n- **Makefile**: Task automation for generating code, testing, and running the application.\n- **.env.example**: Contains template for environment variables.\n- **.github/workflows/go.yaml**: GitHub Actions workflow for testing.\n\n### Key Functions and Classes\n- **Command Functions**:\n  - `runLoad`: Loads repository structure.\n  - `runSearch`: Searches for specific files.\n  - `ApplyChanges`: Applies configuration changes based on plans.\n- **LLM Client Functions**: Interfaces with the OpenAI API for generating completions and embeddings.\n\n### Internal Dependencies\n```mermaid\ngraph TD;\n    A[cmd] --\u003e B[internal];\n    B --\u003e C[applier];\n    B --\u003e D[loader];\n    B --\u003e E[llm];\n    B --\u003e F[planner];\n    B --\u003e G[retriever];\n    B --\u003e H[reviewer];\n    B --\u003e I[summarizer];\n    B --\u003e J[vectorstore];\n```\n\n### Technologies Used\n- **Go**: Primary programming language.\n- **PostgreSQL**: Database used for data management.\n- **Cobra**: CLI library for handling command line arguments.\n- **Ent ORM**: Object Relational Mapping for database interactions.\n- **OpenAI API**: For language model capability and text processing.\n\nThis structured overview should help new users quickly navigate and understand the core components and functionalities of the AICoder repository."
+  "overview": "The AICoder repository contains an AI-powered command-line interface (CLI) tool designed to enhance coding efficiency through various commands for managing project structures and configurations. It enables loading repository structures, searching files, generating project plans, and applying configurations, particularly tailored for working with PostgreSQL and OpenAI API integration.",
+  "features": [
+    "CLI for managing configurations",
+    "Database schema generation using Ent ORM",
+    "Integration with OpenAI API for AI-assisted coding",
+    "Vector search capabilities utilizing embeddings",
+    "Support for HCL (HashiCorp Configuration Language) file updates"
+  ],
+  "configuration": "Configuration files include `.env.example` for setting environment variables and `.aicoder.yaml` for defining application settings. Example: `DATABASE_URL=postgres://user:password@localhost:5432/dbname`.",
+  "environment_variables": [
+    {
+      "name": "OPENAI_API_KEY",
+      "desc": "API key for accessing OpenAI services.",
+      "required": true
+    },
+    {
+      "name": "DATABASE_URL",
+      "desc": "Connection string for the PostgreSQL database.",
+      "required": true
+    }
+  ],
+  "directory_structure": "The simplified directory structure is as follows:\n\n```\n/aicoder\n├── cmd\n│   ├── apply\n│   ├── config\n│   ├── db\n│   ├── debug\n│   ├── load\n│   ├── plan\n│   ├── review\n│   └── root.go\n├── internal\n│   ├── applier\n│   ├── loader\n│   ├── planner\n│   ├── retriever\n│   ├── reviewer\n│   └── summarizer\n├── ent\n│   └── schema\n├── config\n│   └── config.go\n├── examples\n└── main.go\n```\n- `cmd`: Contains CLI command implementations.\n- `internal`: Holds core libraries and functionalities used throughout the application.\n- `ent`: Contains database schema definitions.\n- `config`: Handles application configuration management.\n- `main.go`: The main entry point to start the application.",
+  "entrypoints": [
+    "Run `go run main.go` to execute the CLI application."
+  ],
+  "important_files": [
+    ".env.example",
+    "README.md",
+    "Makefile",
+    "main.go",
+    ".aicoder.yaml"
+  ],
+  "important_functions": [
+    "initConfig",
+    "runLoad",
+    "runSearch",
+    "ApplyChanges"
+  ],
+  "dependencies": "The repository utilizes a structure with interdependencies among the `cmd`, `internal`, and `ent` directories, where `cmd` components call functions from the `internal` libraries for core functionalities.\n\n```mermaid\ngraph LR\nA[cmd] --\u003e|calls| B[internal]\nB --\u003e|uses| C[ent]\n```",
+  "technologies": [
+    "Go programming language",
+    "PostgreSQL",
+    "Ent ORM",
+    "OpenAI API",
+    "Cobra for CLI structure"
+  ]
 }

@@ -31,7 +31,9 @@ func TestSummarizeRepo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed opening connection to postgres: %v", err)
 	}
-	llmClient := &llm.DummyClient{} // Use the DummyClient for testing
+	llmClient := llm.DummyClient{
+		ReturnValue: `{"overview":"A simple Go project.","features":["Feature 1","Feature 2"],"configuration":"config.yaml","environment_variables":[{"name":"API_KEY","desc":"API key for authentication","required":true}],"directory_structure":"src/\n  main.go - Entry point\n  utils/ - Utility functions","entrypoints":["main.go"],"important_files":["README.md","LICENSE"],"important_functions":["InitConfig","StartServer"],"dependencies":"graph TD;\n  A-->B;\n  B-->C;","technologies":["Go","Cobra"]}`,
+	}
 	store := vectorstore.New(entClient, llm.DummyClient{})
 
 	// Create service
@@ -55,5 +57,5 @@ func TestSummarizeRepo(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Additional assertions can be added here to verify the behavior
-	assert.EqualValues(t, "dummy simple result", summary)
+	assert.EqualValues(t, `{"overview":"A simple Go project.","features":["Feature 1","Feature 2"],"configuration":"config.yaml","environment_variables":[{"name":"API_KEY","desc":"API key for authentication","required":true}],"directory_structure":"src/\n  main.go - Entry point\n  utils/ - Utility functions","entrypoints":["main.go"],"important_files":["README.md","LICENSE"],"important_functions":["InitConfig","StartServer"],"dependencies":"graph TD;\n  A-->B;\n  B-->C;","technologies":["Go","Cobra"]}`, summary)
 }
