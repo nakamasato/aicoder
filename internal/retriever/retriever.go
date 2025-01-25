@@ -3,6 +3,7 @@ package retriever
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -78,36 +79,12 @@ func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *confi
 	}
 }
 
+//go:embed templates/repo_summary.tmpl
+var RepoSummaryTemplate string
+
 func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, error) {
-	tmpl, err := template.New("prompt").Parse(`Please extract files that are relevant to the given query.
-## Repo summary:
-### Overview
-{{.Overview}}
-
-### Features
-{{range .Features}}
-- {{.}}
-{{end}}
-
-### Directory Structure
-{{.DirectoryStructure}}
-
-### Entrypoints
-{{range .Entrypoints}}
-{{.}}
-{{end}}
-
-### Important Files
-{{range .ImportantFiles}}
-{{.}}
-{{end}}
-
-### Important Functions
-{{range .ImportantFunctions}}
-{{.}}
-{{end}}
-`)
-
+	prompt := `Please extract files that are relevant to the given query.`
+	tmpl, err := template.New("repo_summary").Parse(RepoSummaryTemplate)
 	if err != nil {
 		log.Fatalf("failed to parse template: %v", err)
 	}
@@ -120,7 +97,7 @@ func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, 
 	fmt.Println(promptBuffer.String())
 	content, err := l.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(promptBuffer.String()),
+			openai.SystemMessage(fmt.Sprintf("%s\n%s", prompt, promptBuffer.String())),
 			openai.UserMessage(fmt.Sprintf("query: %s", query)),
 		},
 		llm.FileListSchemaParam,
