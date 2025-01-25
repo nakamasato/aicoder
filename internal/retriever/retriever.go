@@ -1,9 +1,12 @@
 package retriever
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 
 	"github.com/nakamasato/aicoder/config"
@@ -76,14 +79,25 @@ func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *confi
 	}
 }
 
+//go:embed templates/repo_summary.tmpl
+var RepoSummaryTemplate string
+
 func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, error) {
-	prompt := fmt.Sprintf(`Please extract files that are relevant to the given query.
-Repo summary:
-%v
-`, l.summary)
+	prompt := `Please extract files that are relevant to the given query.`
+	tmpl, err := template.New("repo_summary").Parse(RepoSummaryTemplate)
+	if err != nil {
+		log.Fatalf("failed to parse template: %v", err)
+	}
+
+	var promptBuffer bytes.Buffer
+	err = tmpl.Execute(&promptBuffer, l.summary)
+	if err != nil {
+		log.Fatalf("failed to execute template: %v", err)
+	}
+	fmt.Println(promptBuffer.String())
 	content, err := l.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(prompt),
+			openai.SystemMessage(fmt.Sprintf("%s\n%s", prompt, promptBuffer.String())),
 			openai.UserMessage(fmt.Sprintf("query: %s", query)),
 		},
 		llm.FileListSchemaParam,
