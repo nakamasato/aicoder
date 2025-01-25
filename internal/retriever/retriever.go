@@ -1,9 +1,11 @@
 package retriever
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 
 	"github.com/nakamasato/aicoder/config"
@@ -77,13 +79,48 @@ func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *confi
 }
 
 func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, error) {
-	prompt := fmt.Sprintf(`Please extract files that are relevant to the given query.
-Repo summary:
-%v
-`, l.summary)
+	tmpl, err := template.New("prompt").Parse(`Please extract files that are relevant to the given query.
+## Repo summary:
+### Overview
+{{.Overview}}
+
+### Features
+{{range .Features}}
+- {{.}}
+{{end}}
+
+### Directory Structure
+{{.DirectoryStructure}}
+
+### Entrypoints
+{{range .Entrypoints}}
+{{.}}
+{{end}}
+
+### Important Files
+{{range .ImportantFiles}}
+{{.}}
+{{end}}
+
+### Important Functions
+{{range .ImportantFunctions}}
+{{.}}
+{{end}}
+`)
+
+	if err != nil {
+		log.Fatalf("failed to parse template: %v", err)
+	}
+
+	var promptBuffer bytes.Buffer
+	err = tmpl.Execute(&promptBuffer, l.summary)
+	if err != nil {
+		log.Fatalf("failed to execute template: %v", err)
+	}
+	fmt.Println(promptBuffer.String())
 	content, err := l.llmClient.GenerateCompletion(ctx,
 		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(prompt),
+			openai.SystemMessage(promptBuffer.String()),
 			openai.UserMessage(fmt.Sprintf("query: %s", query)),
 		},
 		llm.FileListSchemaParam,
