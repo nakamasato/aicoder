@@ -10,6 +10,7 @@ import (
 	"github.com/nakamasato/aicoder/ent"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
+	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/planner"
 	"github.com/nakamasato/aicoder/internal/retriever"
 	"github.com/nakamasato/aicoder/internal/reviewer"
@@ -74,6 +75,10 @@ func runPlan(cmd *cobra.Command, args []string) {
 	} else {
 		query = strings.Join(args, " ")
 	}
+	var repoStructure loader.RepoStructure
+	if err := file.ReadObject("repo_structure.json", &repoStructure); err != nil {
+		log.Fatalf("failed to read repo structure: %v", err)
+	}
 
 	// Initialize OpenAI client
 	if openaiAPIKey != "" {
@@ -97,7 +102,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("failed to read summary: %v", err)
 	}
-	lr := retriever.NewLLMRetriever(llmClient, file.DefaultFileReader{}, &config, summary)
+	lr := retriever.NewLLMRetriever(llmClient, file.DefaultFileReader{}, &config, &repoStructure)
 	r := retriever.NewEnsembleRetriever(vr, lr)
 	files, err := r.Retrieve(ctx, query)
 	if err != nil {

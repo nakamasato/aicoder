@@ -7,7 +7,7 @@ import (
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
-	"github.com/nakamasato/aicoder/internal/summarizer"
+	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,15 +53,17 @@ func TestLLMRetriever_Retrieve(t *testing.T) {
 		Content: "test content",
 	}
 	config := &config.AICoderConfig{}
-	summary := &summarizer.RepoSummary{
-		Overview: "aicoder is a tool for AI-assisted coding.",
-		Features: []string{"Code summarization", "Code generation"},
-		Configuration: "The configuration of the repository. Configuration files (include simple example if exists)",
-		EnvVars: []summarizer.EnvVar{
-			{Name: "OPENAI_API_KEY", Desc: "The API key for OpenAI", Required: true},
+	structure := &loader.RepoStructure{
+		Root: loader.FileInfo{
+			Name: "mock",
+			Children: []loader.FileInfo{
+				{Name: "mock/file1.go"},
+				{Name: "mock/file3.go"},
+			},
+			IsDir: true,
 		},
 	}
-	retriever := NewLLMRetriever(mockClient, mockReader, config, summary)
+	retriever := NewLLMRetriever(mockClient, mockReader, config, structure)
 
 	files, err := retriever.Retrieve(context.Background(), "test query")
 	assert.NoError(t, err)

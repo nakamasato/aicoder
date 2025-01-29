@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -115,6 +116,32 @@ func TestLoadRepoStructure(t *testing.T) {
 			t.Logf("child: %d %v", i, child.Path)
 		}
 		t.Fatalf("expected %d children, got %d", count, len(repoStructure.Root.Children))
+	}
+}
+
+func TestToTreeString(t *testing.T) {
+	// Setup a sample RepoStructure
+	root := FileInfo{
+		Name: "root",
+		Children: []FileInfo{
+			{Name: "child1"},
+			{Name: "child2"},
+		},
+	}
+	repoStructure := &RepoStructure{Root: root}
+
+	// Expected tree string representation
+	expected := `└── root
+    ├── child1
+    └── child2
+`
+
+	// Call the function
+	result := repoStructure.ToTreeString()
+
+	// Compare the result with the expected output
+	if strings.TrimSpace(result) != strings.TrimSpace(expected) {
+		t.Errorf("ToTreeString() = \n```\n%v\n```\n want \n```\n%v\n```\n", result, expected)
 	}
 }
 
