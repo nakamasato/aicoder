@@ -1,18 +1,16 @@
 package retriever
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
-	"github.com/nakamasato/aicoder/internal/summarizer"
+	"github.com/nakamasato/aicoder/internal/loader"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 )
 
@@ -65,38 +63,30 @@ func (v VectorestoreRetriever) Retrieve(ctx context.Context, query string) ([]fi
 type LLMRetriever struct {
 	llmClient llm.Client
 	reader    file.FileReader
-	summary   *summarizer.RepoSummary
+	structure *loader.RepoStructure
 	config    *config.AICoderConfig
 }
 
-func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *config.AICoderConfig, summary *summarizer.RepoSummary) *LLMRetriever {
+func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *config.AICoderConfig, structure *loader.RepoStructure) *LLMRetriever {
 	return &LLMRetriever{
 		llmClient: llmClient,
 		reader:    reader,
 		config:    config,
-		summary:   summary,
+		structure: structure,
 	}
 }
 
 //go:embed templates/repo_summary.tmpl
 var RepoSummaryTemplate string
 
-func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, error) {
-	prompt := `Please extract files that are relevant to the given query.`
-	tmpl, err := template.New("repo_summary").Parse(RepoSummaryTemplate)
-	if err != nil {
-		log.Fatalf("failed to parse template: %v", err)
-	}
+//go:embed templates/repo_structure.tmpl
+var RepoStructureTemplate string
 
-	var promptBuffer bytes.Buffer
-	err = tmpl.Execute(&promptBuffer, l.summary)
-	if err != nil {
-		log.Fatalf("failed to execute template: %v", err)
-	}
-	fmt.Println(promptBuffer.String())
+func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, error) {
+	prompt := "Please extract files that are relevant to the given query.\nRepoStructure:\n```\n%s\n```\n"
 	content, err := l.llmClient.GenerateCompletion(ctx,
 		[]llm.Message{
-			{Role: llm.RoleSystem, Content: fmt.Sprintf("%s\n%s", prompt, promptBuffer.String())},
+			{Role: llm.RoleSystem, Content: fmt.Sprintf(prompt, l.structure.ToTreeString())},
 			{Role: llm.RoleUser, Content: fmt.Sprintf("query: %s", query)},
 		},
 		llm.FileListSchemaParam,

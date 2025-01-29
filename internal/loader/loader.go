@@ -169,6 +169,31 @@ func (r RepoStructure) String() string {
 	return string(data)
 }
 
+func (rs *RepoStructure) ToTreeString() string {
+	var builder strings.Builder
+	buildTreeString(&builder, rs.Root, "", true)
+	return builder.String()
+}
+
+func buildTreeString(builder *strings.Builder, fileInfo FileInfo, prefix string, isLast bool) {
+	// Add the current file or directory name
+	builder.WriteString(prefix)
+	if isLast {
+		builder.WriteString("└── ")
+		prefix += "    "
+	} else {
+		builder.WriteString("├── ")
+		prefix += "│   "
+	}
+	builder.WriteString(fileInfo.Name)
+	builder.WriteString("\n")
+
+	// Recursively add children
+	for i, child := range fileInfo.Children {
+		buildTreeString(builder, child, prefix, i == len(fileInfo.Children)-1)
+	}
+}
+
 // FilePathGenerator generates file paths from the FileInfo structure.
 func (f *FileInfo) FileInfoGenerator() <-chan FileInfo {
 	ch := make(chan FileInfo)
