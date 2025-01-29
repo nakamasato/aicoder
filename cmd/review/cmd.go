@@ -15,6 +15,7 @@ import (
 var (
 	planFile   string
 	reviewfile string
+	chatModel  string
 )
 
 // Command returns the review command
@@ -28,6 +29,7 @@ func Command() *cobra.Command {
 	// Add a flag for specifying the plan file
 	reviewCmd.Flags().StringVarP(&planFile, "planfile", "p", "plan.json", "Path to the plan file to review")
 	reviewCmd.Flags().StringVarP(&reviewfile, "reviewfile", "r", "review.json", "Path to the review file to save the review results")
+	reviewCmd.Flags().StringVarP(&chatModel, "chatmodel", "c", "gpt-4o-mini", "Chat model to use for review")
 
 	return reviewCmd
 }
@@ -39,7 +41,7 @@ func runReview(cmd *cobra.Command, args []string) {
 
 	ctx := cmd.Context()
 	config := config.GetConfig()
-	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey)
+	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey, llm.WithChatModel(chatModel))
 
 	// Load the plan file
 	changesPlan, err := planner.LoadPlanFile[planner.ChangesPlan](planFile)

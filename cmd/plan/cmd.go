@@ -24,6 +24,7 @@ var (
 	openaiAPIKey string
 	maxAttempts  int
 	reviewFile   string
+	chatModel    string
 )
 
 // Command creates the plan command.
@@ -40,6 +41,7 @@ func Command() *cobra.Command {
 	planCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
 	planCmd.Flags().IntVarP(&maxAttempts, "max-attempts", "m", 10, "Maximum number of attempts to generate a plan")
 	planCmd.Flags().StringVar(&reviewFile, "review", "", "Optional review file to improve the plan")
+	planCmd.Flags().StringVarP(&chatModel, "chatmodel", "c", "gpt-4o-mini", "Chat model to use for review")
 
 	return planCmd
 }
@@ -80,7 +82,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey)
+	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey, llm.WithChatModel(chatModel))
 
 	// Initialize entgo client
 	entClient, err := ent.Open("postgres", dbConnString)

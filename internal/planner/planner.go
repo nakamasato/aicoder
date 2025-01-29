@@ -290,7 +290,7 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, summary *summa
 		Query:   query,
 		Changes: []BlockChange{},
 	}
-	if currentPlan != nil {
+	if currentPlan != nil && currentPlan.Id != "" {
 		changesPlan.Id = currentPlan.Id
 	}
 	for i, step := range plan.ChangeSteps {

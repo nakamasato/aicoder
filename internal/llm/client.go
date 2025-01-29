@@ -2,13 +2,6 @@ package llm
 
 import (
 	"context"
-
-	"github.com/openai/openai-go"
-)
-
-var (
-	chatModel      = openai.ChatModelGPT4oMini
-	embeddingModel = openai.EmbeddingModelTextEmbedding3Small
 )
 
 type Client interface {
