@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/openai/openai-go"
@@ -19,6 +20,7 @@ func NewOpenAIClient(apiKey string) Client {
 }
 
 // GenerateCompletion handles the common OpenAI chat completion logic
+// https://github.com/openai/openai-go/blob/8a8855d08ef84f47163deb4ce9febc4a7e02dd3d/examples/structured-outputs/main.go#L49
 func (c openaiClient) GenerateCompletion(ctx context.Context, messages []Message, schema Schema) (string, error) {
 	msgs := c.convertMessages(messages)
 	chat, err := c.openai.Chat.Completions.New(ctx,
@@ -70,6 +72,53 @@ func (c openaiClient) GenerateCompletionSimple(ctx context.Context, messages []M
 	}
 
 	return chat.Choices[0].Message.Content, nil
+}
+
+// https://github.com/openai/openai-go/blob/8a8855d08ef84f47163deb4ce9febc4a7e02dd3d/examples/chat-completion-tool-calling/main.go
+func (c openaiClient) GenerateFunctionCalling(ctx context.Context, messages []Message, tools []Tool) ([]ToolCall, error) {
+	msgs := c.convertMessages(messages)
+	ts := []openai.ChatCompletionToolParam{}
+	for _, t := range tools {
+		ts = append(ts, openai.ChatCompletionToolParam{
+			Type: openai.F(openai.ChatCompletionToolTypeFunction),
+			Function: openai.F(openai.FunctionDefinitionParam{
+				Name:        openai.String(t.Name),
+				Description: openai.String(t.Description),
+				Parameters: openai.F(openai.FunctionParameters{
+					"type":       "object",
+					"properties": t.Properties,
+					"required":   t.RequiredProperties,
+				}),
+			}),
+		},
+		)
+	}
+	chat, err := c.openai.Chat.Completions.New(ctx,
+		openai.ChatCompletionNewParams{
+			Model:    openai.F(chatModel),
+			Messages: openai.F(msgs),
+			Tools:    openai.F(ts),
+			Seed:     openai.Int(0),
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	toolCalls := chat.Choices[0].Message.ToolCalls
+
+	var calls []ToolCall
+	for _, tc := range toolCalls {
+		var args map[string]interface{}
+		if err := json.Unmarshal([]byte(tc.Function.Arguments), &args); err != nil {
+			panic(err)
+		}
+		calls = append(calls, ToolCall{
+			ID:           tc.ID,
+			FunctionName: tc.Function.Name,
+			Arguments:    args,
+		})
+	}
+	return calls, nil
 }
 
 // getEmbedding fetches the embedding for a given content using OpenAI.

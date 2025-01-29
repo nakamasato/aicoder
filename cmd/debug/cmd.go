@@ -14,6 +14,7 @@ func Command() *cobra.Command {
 	DebugCmd.AddCommand(
 		refactorCommand(),
 		parseCommand(),
+		agentCommand(),
 	)
 	return DebugCmd
 }
