@@ -39,7 +39,7 @@ func runReview(cmd *cobra.Command, args []string) {
 
 	ctx := cmd.Context()
 	config := config.GetConfig()
-	llmClient := llm.NewClient(config.OpenAIAPIKey)
+	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey)
 
 	// Load the plan file
 	changesPlan, err := planner.LoadPlanFile[planner.ChangesPlan](planFile)

@@ -40,7 +40,7 @@ func Command() *cobra.Command {
 	loadCmd.Flags().StringVarP(&openaiAPIKey, "api-key", "k", "", "OpenAI API key (can also set via OPENAI_API_KEY environment variable)")
 	loadCmd.Flags().StringVarP(&openaiModel, "model", "m", "gpt-4o-mini", "OpenAI model to use for summarization")
 	loadCmd.Flags().BoolVarP(&refresh, "refresh", "r", false, "Refresh all the document summaries")
-    loadCmd.Flags().BoolVarP(&summary, "summary", "s", false, "Update the repository summary")
+	loadCmd.Flags().BoolVarP(&summary, "summary", "s", false, "Update the repository summary")
 	loadCmd.Flags().StringVar(&dbConnString, "db-conn", "postgres://aicoder:aicoder@localhost:5432/aicoder?sslmode=disable", "PostgreSQL connection string (e.g., postgres://aicoder:aicoder@localhost:5432/aicoder)")
 
 	return loadCmd
@@ -60,7 +60,7 @@ func runLoad(cmd *cobra.Command, args []string) {
 	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	llmClient := llm.NewClient(config.OpenAIAPIKey)
+	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey)
 
 	// Initialize PostgreSQL connection
 	if dbConnString == "" {
@@ -99,15 +99,15 @@ func runLoad(cmd *cobra.Command, args []string) {
 	}
 
 	// summarizer
-    if summary {
-        summarizerSvc := summarizer.NewService(&config, entClient, llmClient, store)
-        summary, err := summarizerSvc.UpdateRepoSummary(ctx, summarizer.LanguageEnglish, "repo_summary.json")
-        if err != nil {
-            log.Fatalf("failed to summarize repository: %v", err)
-        }
+	if summary {
+		summarizerSvc := summarizer.NewService(&config, entClient, llmClient, store)
+		summary, err := summarizerSvc.UpdateRepoSummary(ctx, summarizer.LanguageEnglish, "repo_summary.json")
+		if err != nil {
+			log.Fatalf("failed to summarize repository: %v", err)
+		}
 
-        fmt.Printf("Summary\n%s\n", summary)
-    }
+		fmt.Printf("Summary\n%s\n", summary)
+	}
 
 	fmt.Printf("Repository structure has been written to %s (%s)\n", outputFile, time.Since(startTs))
 }

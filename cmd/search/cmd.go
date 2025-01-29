@@ -53,7 +53,7 @@ func runSearch(cmd *cobra.Command, args []string) {
 	}
 	defer entClient.Close()
 
-	store := vectorstore.New(entClient, llm.NewClient(config.OpenAIAPIKey))
+	store := vectorstore.New(entClient, llm.NewOpenAIClient(config.OpenAIAPIKey))
 
 	res, err := store.Search(ctx, config.Repository, config.CurrentContext, query, config.Search.TopN)
 	if err != nil {

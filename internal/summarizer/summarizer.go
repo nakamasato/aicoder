@@ -13,7 +13,6 @@ import (
 	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
-	"github.com/openai/openai-go"
 )
 
 type Language string
@@ -42,7 +41,7 @@ type RepoSummary struct {
 	Technologies       []string `json:"technologies" jsonschema_description:"Concepts or technologies used in the repository. e.g. frameworks, libraries, etc."`
 }
 
-var RepoSummarySchemaParam = llm.GenerateJsonSchemaParam[RepoSummary]("summary", "The summary of the repository.")
+var RepoSummarySchemaParam = llm.GenerateSchema[RepoSummary]("summary", "The summary of the repository.")
 
 type service struct {
 	config      *config.AICoderConfig
@@ -83,8 +82,8 @@ func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outp
 	}
 
 	prompt := fmt.Sprintf(llm.SUMMARIZE_REPO_CONTENT_PROMPT, s.config.Repository, s.config.CurrentContext, builder.String(), language)
-	messages := []openai.ChatCompletionMessageParamUnion{
-		openai.SystemMessage(prompt),
+	messages := []llm.Message{
+		{Role: llm.RoleSystem, Content: prompt},
 	}
 	res, err := s.llmClient.GenerateCompletion(ctx, messages, RepoSummarySchemaParam)
 	if err != nil {

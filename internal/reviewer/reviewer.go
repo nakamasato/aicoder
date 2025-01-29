@@ -8,7 +8,6 @@ import (
 
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/planner"
-	"github.com/openai/openai-go"
 )
 
 type ReviewResult struct {
@@ -18,7 +17,7 @@ type ReviewResult struct {
 }
 
 var (
-	ResultSchemaParam = llm.GenerateJsonSchemaParam[ReviewResult]("result", "Review result for the change plan")
+	ResultSchemaParam = llm.GenerateSchema[ReviewResult]("result", "Review result for the change plan")
 )
 
 const (
@@ -44,9 +43,9 @@ func ReviewChanges(ctx context.Context, llmClient llm.Client, changesPlan *plann
 	message := fmt.Sprintf(REVIEW_PROMPT, changesPlan.Query, changesPlan.Id, makeChangeString(&changesPlan.Changes))
 
 	content, err := llmClient.GenerateCompletion(ctx,
-		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You are a helpful reviewer to check whether the planned changes are reasonable to achieve goal. Please give your comment on each change."),
-			openai.UserMessage(message),
+		[]llm.Message{
+			llm.Message{Role: llm.RoleSystem, Content: "You are a helpful reviewer to check whether the planned changes are reasonable to achieve goal. Please give your comment on each change."},
+			llm.Message{Role: llm.RoleUser, Content: message},
 		},
 		ResultSchemaParam)
 
