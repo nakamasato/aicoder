@@ -19,7 +19,6 @@ import (
 	"github.com/nakamasato/aicoder/ent/document"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
-	"github.com/openai/openai-go"
 )
 
 type service struct {
@@ -110,7 +109,7 @@ func (s *service) UpdateDocuments(ctx context.Context) error {
 				return
 			}
 
-			summary, err := s.llmClient.GenerateCompletionSimple(ctx, []openai.ChatCompletionMessageParamUnion{openai.UserMessage(fmt.Sprintf(llm.SUMMARIZE_FILE_CONTENT_PROMPT, string(buf)))})
+			summary, err := s.llmClient.GenerateCompletionSimple(ctx, []llm.Message{{Role: llm.RoleUser, Content: fmt.Sprintf(llm.SUMMARIZE_FILE_CONTENT_PROMPT, string(buf))}})
 			if err != nil {
 				errChan <- fmt.Errorf("failed to summarize content: %v", err)
 				return

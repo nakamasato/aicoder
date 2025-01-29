@@ -10,7 +10,7 @@ import (
 	"text/template"
 
 	"github.com/nakamasato/aicoder/internal/file"
-	"github.com/openai/openai-go"
+	"github.com/nakamasato/aicoder/internal/llm"
 )
 
 //go:embed templates/investigation_prompt.tmpl
@@ -71,9 +71,9 @@ func (p *Planner) executeInvestigation(ctx context.Context, query string, steps 
 			return "", fmt.Errorf("failed to generate prompt for investigation step %d: %w", i+1, err)
 		}
 
-		res, err := p.llmClient.GenerateCompletion(ctx, []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(prompt),
-			openai.UserMessage(fmt.Sprintf(`Investigation theme: %s`, step)),
+		res, err := p.llmClient.GenerateCompletion(ctx, []llm.Message{
+			{Role: llm.RoleSystem, Content: prompt},
+			{Role: llm.RoleUser, Content: fmt.Sprintf(`Investigation theme: %s`, step)},
 		}, InvestigationResultSchemaParam)
 		if err != nil {
 			return "", fmt.Errorf("failed to generate completion for investigation step %d: %w", i+1, err)

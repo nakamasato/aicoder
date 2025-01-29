@@ -15,7 +15,6 @@ import (
 	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/summarizer"
-	"github.com/openai/openai-go"
 )
 
 type Planner struct {
@@ -147,9 +146,9 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 			defer wg.Done()
 			// Use LLM to determine if the file is relevant to the query
 			content, err := p.llmClient.GenerateCompletion(ctx,
-				[]openai.ChatCompletionMessageParamUnion{
-					openai.SystemMessage("You are a helpful assistant that determines if a file is relevant to a given query."),
-					openai.UserMessage(fmt.Sprintf("Query: %s\nFile Content: %s", query, f.Content)),
+				[]llm.Message{
+					{Role: llm.RoleSystem, Content: "You are a helpful assistant that determines if a file is relevant to a given query."},
+					{Role: llm.RoleUser, Content: fmt.Sprintf("Query: %s\nFile Content: %s", query, f.Content)},
 				},
 				llm.YesOrNoSchemaParam)
 			if err != nil {
@@ -190,13 +189,14 @@ func (p *Planner) removeUnrelevantFiles(ctx context.Context, query string, files
 // GenerateBlockChangePlan generates a plan to change a block of code.
 // Use an appropriate prompt template for each language.
 func (p *Planner) GenerateBlockChangePlan(ctx context.Context, promptTemplate string, block Block, blockContent string, investigationResult string, currentPlan *ChangesPlan, review string) (*BlockChange, error) {
-	messages := []openai.ChatCompletionMessageParamUnion{
-		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-		openai.SystemMessage(fmt.Sprintf("You can also utilize the investigation results: %s", investigationResult)),
-		openai.UserMessage(fmt.Sprintf(promptTemplate, block.TargetName, block.Path, blockContent)),
+	messages := []llm.Message{
+		{Role: llm.RoleSystem, Content: "You're an experienced software engineer who is tasked to refactor/update the existing code."},
+		{Role: llm.RoleSystem, Content: fmt.Sprintf("You can also utilize the investigation results: %s", investigationResult)},
+		{Role: llm.RoleUser, Content: fmt.Sprintf(promptTemplate, block.TargetName, block.Path, blockContent)},
 	}
 	if currentPlan != nil && review != "" {
-		messages = append(messages, openai.SystemMessage(fmt.Sprintf("The followings are current plan and review. Please improve the existing plan based on the review:\nCurrent Plan: %s\nReview:%s", currentPlan.String(), review)))
+		messages = append(messages, llm.Message{Role: llm.RoleSystem, Content: fmt.Sprintf("The followings are current plan and review. Please improve the existing plan based on the review:\nCurrent Plan: %s\nReview:%s", currentPlan.String(), review)})
+
 	}
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		messages,
@@ -362,8 +362,8 @@ func (p *Planner) identifyBlocksToChangeForStep(ctx context.Context, step string
 
 	// get blocks
 	content, err := p.llmClient.GenerateCompletion(ctx,
-		[]openai.ChatCompletionMessageParamUnion{
-			openai.UserMessage(prompt_block),
+		[]llm.Message{
+			llm.Message{Role: llm.RoleUser, Content: prompt_block},
 		},
 		TargetBlocksSchemaParam)
 	if err != nil {
@@ -385,12 +385,12 @@ func (p *Planner) makeActionPlan(ctx context.Context, candidateBlocks map[string
 	candidateBlocksStr := makeFileBlocksString(candidateBlocks)
 	examples_str := convertActionPlanExaplesToStr(DefaultActionPlanExamples)
 	prompt := fmt.Sprintf(GENERATE_ACTION_PLAN_PROMPT, candidateBlocksStr, query, examples_str)
-	messages := []openai.ChatCompletionMessageParamUnion{
-		openai.SystemMessage("You're an experienced software engineer who is tasked to refactor/update the existing code."),
-		openai.UserMessage(prompt),
+	messages := []llm.Message{
+		{Role: llm.RoleSystem, Content: "You're an experienced software engineer who is tasked to refactor/update the existing code."},
+		{Role: llm.RoleUser, Content: prompt},
 	}
 	if currentPlan != nil && review != "" {
-		messages = append(messages, openai.SystemMessage(fmt.Sprintf("The followings are current plan and review. Please improve the existing plan based on the review:\nCurrent Plan: %s\nReview:%s", currentPlan.String(), review)))
+		messages = append(messages, llm.Message{Role: llm.RoleSystem, Content: fmt.Sprintf("The followings are current plan and review. Please improve the existing plan based on the review:\nCurrent Plan: %s\nReview:%s", currentPlan.String(), review)})
 	}
 	content, err := p.llmClient.GenerateCompletion(ctx,
 		messages,

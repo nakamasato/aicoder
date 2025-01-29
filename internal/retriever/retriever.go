@@ -14,7 +14,6 @@ import (
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/summarizer"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
-	"github.com/openai/openai-go"
 )
 
 type Retriever interface {
@@ -96,9 +95,9 @@ func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, 
 	}
 	fmt.Println(promptBuffer.String())
 	content, err := l.llmClient.GenerateCompletion(ctx,
-		[]openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(fmt.Sprintf("%s\n%s", prompt, promptBuffer.String())),
-			openai.UserMessage(fmt.Sprintf("query: %s", query)),
+		[]llm.Message{
+			{Role: llm.RoleSystem, Content: fmt.Sprintf("%s\n%s", prompt, promptBuffer.String())},
+			{Role: llm.RoleUser, Content: fmt.Sprintf("query: %s", query)},
 		},
 		llm.FileListSchemaParam,
 	)

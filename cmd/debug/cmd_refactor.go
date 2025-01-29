@@ -72,7 +72,7 @@ func runRefactor(cmd *cobra.Command, args []string) {
 
 	query := message
 
-	plnr := planner.NewPlanner(llm.NewClient(config.OpenAIAPIKey), entClient)
+	plnr := planner.NewPlanner(llm.NewOpenAIClient(config.OpenAIAPIKey), entClient)
 
 	files := []file.File{
 		{
