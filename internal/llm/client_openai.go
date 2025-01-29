@@ -9,14 +9,43 @@ import (
 	"github.com/openai/openai-go/option"
 )
 
+var (
+	chatModel      = openai.ChatModelGPT4oMini
+	embeddingModel = openai.EmbeddingModelTextEmbedding3Small
+)
+
 type openaiClient struct {
-	openai *openai.Client
+	openai         *openai.Client
+	chatModel      openai.ChatModel
+	embeddingModel openai.EmbeddingModel
 }
 
-func NewOpenAIClient(apiKey string) Client {
-	return openaiClient{
-		openai: openai.NewClient(option.WithAPIKey(apiKey)),
+type ClientOption func(*openaiClient)
+
+func WithChatModel(model openai.ChatModel) ClientOption {
+	return func(c *openaiClient) {
+		c.chatModel = model
 	}
+}
+
+func WithEmbeddingModel(model openai.EmbeddingModel) ClientOption {
+	return func(c *openaiClient) {
+		c.embeddingModel = model
+	}
+}
+
+func NewOpenAIClient(apiKey string, opts ...ClientOption) Client {
+	client := openaiClient{
+		openai:         openai.NewClient(option.WithAPIKey(apiKey)),
+		chatModel:      chatModel,      // default chat model
+		embeddingModel: embeddingModel, // default embedding model
+	}
+
+	for _, opt := range opts {
+		opt(&client)
+	}
+
+	return client
 }
 
 // GenerateCompletion handles the common OpenAI chat completion logic

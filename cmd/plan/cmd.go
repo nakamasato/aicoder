@@ -80,7 +80,7 @@ func runPlan(cmd *cobra.Command, args []string) {
 	if config.OpenAIAPIKey == "" {
 		log.Fatal("OPENAI_API_KEY environment variable is not set")
 	}
-	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey)
+	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey, llm.WithChatModel("gpt-o1-mini"))
 
 	// Initialize entgo client
 	entClient, err := ent.Open("postgres", dbConnString)
