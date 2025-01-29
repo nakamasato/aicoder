@@ -66,20 +66,16 @@ func TestMakeActionPlan(t *testing.T) {
 	// Define test cases
 	tests := []struct {
 		name            string
-		candidateBlocks map[string][]Block
 		currentPlan     *ChangesPlan
+		dirStructure    string
 		query           string
 		review          string
 		expectedError   bool
 	}{
 		{
 			name: "Basic test case",
-			candidateBlocks: map[string][]Block{
-				"file1.go": {
-					{Path: "file1.go", TargetType: "function", TargetName: "Func1", Content: "func Func1() {}"},
-				},
-			},
 			currentPlan:   nil,
+			dirStructure: "dir1/\n  file1.go - Contains Func1\n",
 			query:         "Refactor Func1",
 			review:        "",
 			expectedError: false,
@@ -90,7 +86,7 @@ func TestMakeActionPlan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Call the function
-			actionPlan, err := planner.makeActionPlan(context.Background(), tt.candidateBlocks, tt.currentPlan, tt.query, tt.review)
+			actionPlan, err := planner.makeActionPlan(context.Background(), tt.currentPlan, tt.dirStructure, tt.query, tt.review)
 
 			// Check for errors
 			if tt.expectedError {

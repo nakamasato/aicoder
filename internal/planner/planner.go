@@ -102,16 +102,6 @@ var (
 	InvestigationResultSchemaParam = llm.GenerateSchema[InvestigationResult]("investigation_result", "The result of the investigation. Please provide the necessary information or pieces of contents from the relevant files.")
 )
 
-func makeFileBlocksString(fileBlocks map[string][]Block) string {
-	var builder strings.Builder
-	for _, blocks := range fileBlocks {
-		for _, b := range blocks {
-			builder.WriteString(fmt.Sprintf("\n- %s: %s", b.TargetType, b.TargetName))
-		}
-	}
-	return builder.String()
-}
-
 // generateBlockPromptWithFiles creates a prompt to extract blocks of the given files to modify
 func (p *Planner) generateBlockPromptWithFiles(prompt, goal string, files []file.File, fileBlocks map[string][]Block) (string, error) {
 	// Create a comprehensive prompt
@@ -263,7 +253,7 @@ func (p *Planner) GeneratePlan(ctx context.Context, query string, summary *summa
 
 	// 2. Make action plan (steps)
 	fmt.Printf("---------- 2. Make action plan (steps) -----------\n")
-	plan, err := p.makeActionPlan(ctx, candidateBlocks, currentPlan, query, review)
+	plan, err := p.makeActionPlan(ctx, currentPlan, summary.DirectoryStructure, query, review)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make action plan: %w", err)
 	}
@@ -362,9 +352,7 @@ func (p *Planner) identifyBlocksToChangeForStep(ctx context.Context, step string
 
 	// get blocks
 	content, err := p.llmClient.GenerateCompletion(ctx,
-		[]llm.Message{
-			llm.Message{Role: llm.RoleUser, Content: prompt_block},
-		},
+		[]llm.Message{{Role: llm.RoleUser, Content: prompt_block}},
 		TargetBlocksSchemaParam)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GenerateCompletion: %w", err)
@@ -380,11 +368,10 @@ func (p *Planner) identifyBlocksToChangeForStep(ctx context.Context, step string
 }
 
 // 2. Make action plan (steps)
-func (p *Planner) makeActionPlan(ctx context.Context, candidateBlocks map[string][]Block, currentPlan *ChangesPlan, query, review string) (*ActionPlan, error) {
+func (p *Planner) makeActionPlan(ctx context.Context, currentPlan *ChangesPlan, dirStructure, query, review string) (*ActionPlan, error) {
 	// Use LLM to generate action plan
-	candidateBlocksStr := makeFileBlocksString(candidateBlocks)
 	examples_str := convertActionPlanExaplesToStr(DefaultActionPlanExamples)
-	prompt := fmt.Sprintf(GENERATE_ACTION_PLAN_PROMPT, candidateBlocksStr, query, examples_str)
+	prompt := fmt.Sprintf(GENERATE_ACTION_PLAN_PROMPT, dirStructure, query, examples_str)
 	messages := []llm.Message{
 		{Role: llm.RoleSystem, Content: "You're an experienced software engineer who is tasked to refactor/update the existing code."},
 		{Role: llm.RoleUser, Content: prompt},

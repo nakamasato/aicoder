@@ -11,7 +11,7 @@ The step can be one or more.
 Goal: %s
 
 -----------------------
-Relevant files:
+Repostructure:
 %s
 
 -----------------------
