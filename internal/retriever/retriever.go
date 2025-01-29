@@ -79,9 +79,6 @@ func NewLLMRetriever(llmClient llm.Client, reader file.FileReader, config *confi
 //go:embed templates/repo_summary.tmpl
 var RepoSummaryTemplate string
 
-//go:embed templates/repo_structure.tmpl
-var RepoStructureTemplate string
-
 func (l LLMRetriever) Retrieve(ctx context.Context, query string) ([]file.File, error) {
 	prompt := "Please extract files that are relevant to the given query.\nRepoStructure:\n```\n%s\n```\n"
 	content, err := l.llmClient.GenerateCompletion(ctx,
