@@ -97,14 +97,3 @@ func (c openaiClient) GetEmbedding(ctx context.Context, content string) ([]float
 
 	return embedding, nil
 }
-
-// GenerateOpenAIJsonSchemaParam generates a JSON schema parameter for the given type.
-func GenerateOpenAIJsonSchemaParam[T any](name, description string) openai.ResponseFormatJSONSchemaJSONSchemaParam {
-	schema := GenerateSchema[T](name, description)
-	return openai.ResponseFormatJSONSchemaJSONSchemaParam{
-		Name:        openai.F(name),
-		Description: openai.F(description),
-		Schema:      openai.F(schema.Schema),
-		Strict:      openai.Bool(true),
-	}
-}
