@@ -12,7 +12,7 @@ var (
 )
 
 type Client interface {
-	GenerateCompletion(ctx context.Context, messages []Message, schema openai.ResponseFormatJSONSchemaJSONSchemaParam) (string, error)
+	GenerateCompletion(ctx context.Context, messages []Message, schema Schema) (string, error)
 	GenerateCompletionSimple(ctx context.Context, messages []Message) (string, error)
 	GetEmbedding(ctx context.Context, content string) ([]float32, error)
 }
@@ -33,7 +33,7 @@ type DummyClient struct {
 	ReturnValue string
 }
 
-func (d DummyClient) GenerateCompletion(ctx context.Context, messages []Message, schema openai.ResponseFormatJSONSchemaJSONSchemaParam) (string, error) {
+func (d DummyClient) GenerateCompletion(ctx context.Context, messages []Message, schema Schema) (string, error) {
 	if d.ReturnValue != "" {
 		return d.ReturnValue, nil
 	}

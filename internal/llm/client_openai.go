@@ -19,7 +19,7 @@ func NewOpenAIClient(apiKey string) Client {
 }
 
 // GenerateCompletion handles the common OpenAI chat completion logic
-func (c openaiClient) GenerateCompletion(ctx context.Context, messages []Message, schema openai.ResponseFormatJSONSchemaJSONSchemaParam) (string, error) {
+func (c openaiClient) GenerateCompletion(ctx context.Context, messages []Message, schema Schema) (string, error) {
 	msgs := c.convertMessages(messages)
 	chat, err := c.openai.Chat.Completions.New(ctx,
 		openai.ChatCompletionNewParams{
@@ -27,8 +27,13 @@ func (c openaiClient) GenerateCompletion(ctx context.Context, messages []Message
 			Messages: openai.F(msgs),
 			ResponseFormat: openai.F[openai.ChatCompletionNewParamsResponseFormatUnion](
 				openai.ResponseFormatJSONSchemaParam{
-					Type:       openai.F(openai.ResponseFormatJSONSchemaTypeJSONSchema),
-					JSONSchema: openai.F(schema),
+					Type: openai.F(openai.ResponseFormatJSONSchemaTypeJSONSchema),
+					JSONSchema: openai.F(openai.ResponseFormatJSONSchemaJSONSchemaParam{
+						Name:        openai.F(schema.Name),
+						Description: openai.F(schema.Description),
+						Schema:      openai.F(schema.Schema),
+						Strict:      openai.Bool(true),
+					}),
 				},
 			),
 		})
@@ -91,4 +96,15 @@ func (c openaiClient) GetEmbedding(ctx context.Context, content string) ([]float
 	}
 
 	return embedding, nil
+}
+
+// GenerateOpenAIJsonSchemaParam generates a JSON schema parameter for the given type.
+func GenerateOpenAIJsonSchemaParam[T any](name, description string) openai.ResponseFormatJSONSchemaJSONSchemaParam {
+	schema := GenerateSchema[T](name, description)
+	return openai.ResponseFormatJSONSchemaJSONSchemaParam{
+		Name:        openai.F(name),
+		Description: openai.F(description),
+		Schema:      openai.F(schema.Schema),
+		Strict:      openai.Bool(true),
+	}
 }

@@ -96,10 +96,10 @@ type ChangeDiff struct {
 }
 
 var (
-	ChangeDiffSchemaParam          = llm.GenerateJsonSchemaParam[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
-	TargetBlocksSchemaParam        = llm.GenerateJsonSchemaParam[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
-	ActionPlanSchemaParam          = llm.GenerateJsonSchemaParam[ActionPlan]("action_plans", "There are two parts, investigation steps and change steps. First, in the investigation steps, please check the relevant file contents to collect information in advance. The collected information is passed to the next steps (change step) to plan file changes in . Usually steps are less than or equal to 5.")
-	InvestigationResultSchemaParam = llm.GenerateJsonSchemaParam[InvestigationResult]("investigation_result", "The result of the investigation. Please provide the necessary information or pieces of contents from the relevant files.")
+	ChangeDiffSchemaParam          = llm.GenerateSchema[ChangeDiff]("changes", "List of changes to be made to achieve the goal")
+	TargetBlocksSchemaParam        = llm.GenerateSchema[TargetBlocks]("block_changes", "List of changes to be made to achieve the goal")
+	ActionPlanSchemaParam          = llm.GenerateSchema[ActionPlan]("action_plans", "There are two parts, investigation steps and change steps. First, in the investigation steps, please check the relevant file contents to collect information in advance. The collected information is passed to the next steps (change step) to plan file changes in . Usually steps are less than or equal to 5.")
+	InvestigationResultSchemaParam = llm.GenerateSchema[InvestigationResult]("investigation_result", "The result of the investigation. Please provide the necessary information or pieces of contents from the relevant files.")
 )
 
 func makeFileBlocksString(fileBlocks map[string][]Block) string {

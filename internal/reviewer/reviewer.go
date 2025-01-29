@@ -17,7 +17,7 @@ type ReviewResult struct {
 }
 
 var (
-	ResultSchemaParam = llm.GenerateJsonSchemaParam[ReviewResult]("result", "Review result for the change plan")
+	ResultSchemaParam = llm.GenerateSchema[ReviewResult]("result", "Review result for the change plan")
 )
 
 const (

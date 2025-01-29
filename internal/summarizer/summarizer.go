@@ -41,7 +41,7 @@ type RepoSummary struct {
 	Technologies       []string `json:"technologies" jsonschema_description:"Concepts or technologies used in the repository. e.g. frameworks, libraries, etc."`
 }
 
-var RepoSummarySchemaParam = llm.GenerateJsonSchemaParam[RepoSummary]("summary", "The summary of the repository.")
+var RepoSummarySchemaParam = llm.GenerateSchema[RepoSummary]("summary", "The summary of the repository.")
 
 type service struct {
 	config      *config.AICoderConfig
