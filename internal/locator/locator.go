@@ -3,8 +3,8 @@ package locator
 import (
 	"bytes"
 	"context"
-	"fmt"
 	_ "embed"
+	"fmt"
 	"html/template"
 
 	"github.com/nakamasato/aicoder/config"
@@ -36,7 +36,14 @@ func (l Locator) Locate(ctx context.Context, irrelevant bool, query string, repo
 		return "", fmt.Errorf("query is empty")
 	}
 
-	prompt, err := makePrompt(irrelevant, query, repoStructure)
+	var templatefile string
+	if irrelevant {
+		templatefile = promptLocateFileIrrelevantTemplate
+	} else {
+		templatefile = promptLocateFileTemplate
+	}
+
+	prompt, err := makePrompt(templatefile, query, repoStructure)
 	if err != nil {
 		return "", fmt.Errorf("failed to make prompt: %v", err)
 	}
@@ -51,7 +58,7 @@ func (l Locator) Locate(ctx context.Context, irrelevant bool, query string, repo
 	return res, nil
 }
 
-func makePrompt(irrelevant bool, query string, repoStructure loader.RepoStructure) (string, error) {
+func makePrompt(templatefile, query string, repoStructure loader.RepoStructure) (string, error) {
 
 	var prompt string
 	tmplData := struct {
@@ -62,14 +69,7 @@ func makePrompt(irrelevant bool, query string, repoStructure loader.RepoStructur
 		RepoStructure: repoStructure.ToTreeString(),
 	}
 
-	var tmpl *template.Template
-	var err error
-	if irrelevant {
-		tmpl, err = template.New("irrelevant").Parse(promptLocateFileIrrelevantTemplate)
-	} else {
-		tmpl, err = template.New("file").Parse(promptLocateFileTemplate)
-	}
-
+	tmpl, err := template.New("template").Parse(templatefile)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %v", err)
 	}

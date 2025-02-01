@@ -9,14 +9,14 @@ import (
 func TestMakePrompt(t *testing.T) {
 	tests := []struct {
 		name          string
-		irrelevant    bool
+		templatefile  string
 		query         string
 		repoStructure loader.RepoStructure
 		wantErr       bool
 	}{
 		{
 			name:          "Relevant template",
-			irrelevant:    false,
+			templatefile:  promptLocateFileTemplate,
 			query:         "test query",
 			repoStructure: loader.RepoStructure{
 				// Add mock data for RepoStructure
@@ -25,18 +25,16 @@ func TestMakePrompt(t *testing.T) {
 		},
 		{
 			name:          "Irrelevant template",
-			irrelevant:    true,
+			templatefile:  promptLocateFileIrrelevantTemplate,
 			query:         "test query",
-			repoStructure: loader.RepoStructure{
-
-			},
-			wantErr: false,
+			repoStructure: loader.RepoStructure{},
+			wantErr:       false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := makePrompt(tt.irrelevant, tt.query, tt.repoStructure)
+			got, err := makePrompt(tt.templatefile, tt.query, tt.repoStructure)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("makePrompt() error = %v, wantErr %v", err, tt.wantErr)
 				return
