@@ -163,6 +163,46 @@ func (l Locator) locateBlock(ctx context.Context, templatefile, query string, fi
 	return &fileBlockList, nil
 }
 
+// locateLine locates the relevant line in the files.
+// TODO: check if blocks that are extracted in the previous step are passed as a parameter
+func (l Locator) locateLine(ctx context.Context, templatefile, query string, filelist *llm.FileList) (*llm.FileBlockLineList, error) {
+
+	if len(filelist.Paths) == 0 {
+		return nil, fmt.Errorf("no files found")
+	}
+
+	fileContents := make(map[string]string, len(filelist.Paths))
+	for _, path := range filelist.Paths {
+		content, err := file.ReadContent(path)
+		// TODO: add line number to the content
+		if err != nil {
+			return nil, fmt.Errorf("failed to read content: %v", err)
+		}
+		fileContents[path] = content
+	}
+
+	fileContentsStr, err := formatFileContents(fileContents)
+
+	prompt, err := makeLocateBlockOrLinePrompt(templatefile, query, fileContentsStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make prompt: %v", err)
+	}
+
+	res, err := l.llmClient.GenerateCompletion(ctx, []llm.Message{
+		{Role: llm.RoleUser, Content: prompt},
+	}, llm.FileBlockLineListSchemaParam)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate completion: %v", err)
+	}
+
+	var fileBlockLineList llm.FileBlockLineList
+	if err = json.Unmarshal([]byte(res), &fileBlockLineList); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal relevant lines: %v", err)
+	}
+
+	return &fileBlockLineList, nil
+}
+
 func formatFileContents(fileContents map[string]string) (string, error) {
 	tmpl, err := template.New("template").Parse(fileContentTemplate)
 	if err != nil {

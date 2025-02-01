@@ -20,13 +20,28 @@ type Block struct {
 	Name      string    `json:"name" jsonschema_description:"Name of the block"`
 }
 
+type BlockWithLine struct {
+	BlockType BlockType `json:"block_type" jsonschema_description:"Type of the block. e.g. function, class, variable, struct etc."`
+	Name      string    `json:"name" jsonschema_description:"Name of the block"`
+	Line      int       `json:"line" jsonschema_description:"Line number of the block"`
+}
+
 type BlockList struct {
 	Path   string  `json:"path" jsonschema_description:"Path of the file"`
 	Blocks []Block `json:"blocks" jsonschema_description:"List of blocks"`
 }
 
+type BlockWithLineList struct {
+	Path   string          `json:"path" jsonschema_description:"Path of the file"`
+	Blocks []BlockWithLine `json:"blocks" jsonschema_description:"List of blocks with line numbers"`
+}
+
 type FileBlockList struct {
 	Files []BlockList `json:"files" jsonschema_description:"List of files with blocks"`
+}
+
+type FileBlockLineList struct {
+	Files []BlockWithLineList `json:"files" jsonschema_description:"List of files with blocks and line numbers"`
 }
 
 type YesOrNo struct {
@@ -34,9 +49,10 @@ type YesOrNo struct {
 }
 
 var (
-	FileListSchemaParam      = GenerateSchema[FileList]("filelist", "List of filepaths")
-	FileBlockListSchemaParam = GenerateSchema[FileBlockList]("blocklist", "List of blocks in files")
-	YesOrNoSchemaParam       = GenerateSchema[YesOrNo]("yes_or_no", "Answer to the yes or no question")
+	FileListSchemaParam          = GenerateSchema[FileList]("filelist", "List of filepaths")
+	FileBlockListSchemaParam     = GenerateSchema[FileBlockList]("blocklist", "List of blocks in files")
+	FileBlockLineListSchemaParam = GenerateSchema[FileBlockLineList]("blocklinelist", "List of blocks with line numbers in files")
+	YesOrNoSchemaParam           = GenerateSchema[YesOrNo]("yes_or_no", "Answer to the yes or no question")
 )
 
 type Schema struct {
