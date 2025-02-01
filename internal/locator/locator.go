@@ -100,6 +100,13 @@ func (l Locator) Locate(ctx context.Context, locatorType LocatorType, query stri
 		return nil, fmt.Errorf("failed to locate block: %v", err)
 	}
 
+	// Locate line
+	templatefile = locatorTypeMap[LocatorTypeLine]
+	_, err = l.locateLine(ctx, templatefile, query, filelist)
+	if err != nil {
+		return nil, fmt.Errorf("failed to locate line: %v", err)
+	}
+
 	return blocksSamples, nil
 }
 
@@ -142,6 +149,9 @@ func (l Locator) locateBlock(ctx context.Context, templatefile, query string, fi
 	}
 
 	fileContentsStr, err := formatFileContents(fileContents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to format file contents: %v", err)
+	}
 
 	prompt, err := makeLocateBlockOrLinePrompt(templatefile, query, fileContentsStr)
 	if err != nil {
@@ -182,6 +192,9 @@ func (l Locator) locateLine(ctx context.Context, templatefile, query string, fil
 	}
 
 	fileContentsStr, err := formatFileContents(fileContents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to format file contents: %v", err)
+	}
 
 	prompt, err := makeLocateBlockOrLinePrompt(templatefile, query, fileContentsStr)
 	if err != nil {

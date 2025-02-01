@@ -19,7 +19,6 @@ type openaiClient struct {
 	chatModel      openai.ChatModel
 	embeddingModel openai.EmbeddingModel
 	temperature    float64
-	numOfChoices   int64
 }
 
 type ClientOption func(*openaiClient)
