@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var irrelevant bool
+var locatorType locator.LocatorType
 
 func locateCommand() *cobra.Command {
 	locateCmd := &cobra.Command{
@@ -22,8 +22,7 @@ func locateCommand() *cobra.Command {
 		Run:   runLocate,
 		Args:  cobra.MinimumNArgs(1),
 	}
-	locateCmd.Flags().BoolVarP(&irrelevant, "irrelevant", "r", false, "Use irrelevant search")
-
+	locateCmd.Flags().VarP(&locatorType, "irrelevant", "r", "locator type")
 
 	return locateCmd
 }
@@ -47,7 +46,7 @@ func runLocate(cmd *cobra.Command, args []string) {
 	}
 
 	query := strings.Join(args, " ")
-	res, err := lctr.Locate(ctx, irrelevant, query, repoStructure)
+	res, err := lctr.Locate(ctx, locatorType, query, repoStructure)
 
 	if err != nil {
 		log.Fatal(err)

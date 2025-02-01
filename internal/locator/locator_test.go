@@ -34,7 +34,7 @@ func TestMakePrompt(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := makePrompt(tt.templatefile, tt.query, tt.repoStructure)
+			got, err := makeLocateFilePrompt(tt.templatefile, tt.query, tt.repoStructure)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("makePrompt() error = %v, wantErr %v", err, tt.wantErr)
 				return

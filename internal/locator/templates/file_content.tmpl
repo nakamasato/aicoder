@@ -1,0 +1,6 @@
+{{- range $fileName, $fileContent := . }}
+### File: {{$fileName}} ###
+```
+{{$fileContent}}
+```
+{{- end }}
