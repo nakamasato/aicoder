@@ -84,3 +84,8 @@ load:
 search:
   top_n: 5
 ```
+
+## References
+
+- [go/ast: Free-floating comments are single-biggest issue when manipulating the AST](https://github.com/golang/go/issues/20744): It's hard to replace contents keeping the original format.
+- [dst](https://github.com/dave/dst)
