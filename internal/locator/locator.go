@@ -37,6 +37,9 @@ func (l Locator) Locate(ctx context.Context, irrelevant bool, query string, repo
 	}
 
 	prompt, err := makePrompt(irrelevant, query, repoStructure)
+	if err != nil {
+		return "", fmt.Errorf("failed to make prompt: %v", err)
+	}
 
 	res, err := l.llmClient.GenerateCompletionSimple(ctx, []llm.Message{
 		{Role: llm.RoleUser, Content: prompt},
