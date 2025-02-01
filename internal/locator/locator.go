@@ -78,35 +78,32 @@ var locatorTypeMap = map[LocatorType]string{
 	LocatorTypeLine:           promptLocateLineTemplate,
 }
 
-func (l Locator) Locate(ctx context.Context, locatorType LocatorType, query string, repoStructure loader.RepoStructure) (string, error) {
+// Locate locates the relevant block or line in the repository.
+func (l Locator) Locate(ctx context.Context, locatorType LocatorType, query string, repoStructure loader.RepoStructure, numOfSample int64) (*llm.FileBlockList, error) {
 
 	if query == "" {
-		return "", fmt.Errorf("query is empty")
+		return nil, fmt.Errorf("query is empty")
 	}
 
 	// Locate relevant files
 	templatefile := locatorTypeMap[LocatorTypeFile]
 	filelist, err := l.locateFile(ctx, templatefile, query, repoStructure)
 	if err != nil {
-		return "", fmt.Errorf("failed to locate file: %v", err)
+		return nil, fmt.Errorf("failed to locate file: %v", err)
 	}
 	fmt.Println(filelist)
 
 	// Locate block or line
 	templatefile = locatorTypeMap[LocatorTypeBlock]
-	blocks, err := l.locateBlock(ctx, templatefile, query, filelist)
+	blocksSamples, err := l.locateBlock(ctx, templatefile, query, filelist)
 	if err != nil {
-		return "", fmt.Errorf("failed to locate block: %v", err)
+		return nil, fmt.Errorf("failed to locate block: %v", err)
 	}
 
-	data, err := json.Marshal(blocks)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal blocks: %v", err)
-	}
-
-	return string(data), nil
+	return blocksSamples, nil
 }
 
+// locateFile locates the relevant files in the repository.
 func (l Locator) locateFile(ctx context.Context, templatefile, query string, repoStructure loader.RepoStructure) (*llm.FileList, error) {
 	prompt, err := makeLocateFilePrompt(templatefile, query, repoStructure)
 	if err != nil {
@@ -120,8 +117,6 @@ func (l Locator) locateFile(ctx context.Context, templatefile, query string, rep
 		return nil, fmt.Errorf("failed to generate completion: %v", err)
 	}
 
-	fmt.Println(res)
-
 	var filelist llm.FileList
 	if err = json.Unmarshal([]byte(res), &filelist); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal relevant files: %v", err)
@@ -130,6 +125,7 @@ func (l Locator) locateFile(ctx context.Context, templatefile, query string, rep
 	return &filelist, nil
 }
 
+// locateBlock locates the relevant block in the files.
 func (l Locator) locateBlock(ctx context.Context, templatefile, query string, filelist *llm.FileList) (*llm.FileBlockList, error) {
 
 	if len(filelist.Paths) == 0 {

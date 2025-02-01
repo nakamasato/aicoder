@@ -6,6 +6,7 @@ import (
 
 type Client interface {
 	GenerateCompletion(ctx context.Context, messages []Message, schema Schema) (string, error)
+	GenerateCompletions(ctx context.Context, messages []Message, schema Schema, n int64) ([]string, error)
 	GenerateCompletionSimple(ctx context.Context, messages []Message) (string, error)
 	GenerateFunctionCalling(ctx context.Context, messages []Message, tools []Tool) ([]ToolCall, error)
 	GetEmbedding(ctx context.Context, content string) ([]float32, error)
@@ -41,10 +42,18 @@ type DummyClient struct {
 }
 
 func (d DummyClient) GenerateCompletion(ctx context.Context, messages []Message, schema Schema) (string, error) {
-	if d.ReturnValue != "" {
-		return d.ReturnValue, nil
+	res, err := d.GenerateCompletions(ctx, messages, schema, 1)
+	if err != nil {
+		return "", err
 	}
-	return "dummy result", nil
+	return res[0], nil
+}
+
+func (d DummyClient) GenerateCompletions(ctx context.Context, messages []Message, schema Schema, n int64) ([]string, error) {
+	if d.ReturnValue != "" {
+		return []string{d.ReturnValue}, nil
+	}
+	return []string{"dummy result"}, nil
 }
 
 func (d DummyClient) GenerateCompletionSimple(ctx context.Context, messages []Message) (string, error) {

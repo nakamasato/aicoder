@@ -1,6 +1,7 @@
 package debug
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -46,10 +47,15 @@ func runLocate(cmd *cobra.Command, args []string) {
 	}
 
 	query := strings.Join(args, " ")
-	res, err := lctr.Locate(ctx, locatorType, query, repoStructure)
+	blocks, err := lctr.Locate(ctx, locatorType, query, repoStructure, 2)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(res)
+
+	data, err := json.Marshal(blocks)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(data))
 }
