@@ -84,21 +84,27 @@ func (l Locator) Locate(ctx context.Context, locatorType LocatorType, query stri
 		return "", fmt.Errorf("query is empty")
 	}
 
+	// Locate relevant files
 	templatefile := locatorTypeMap[LocatorTypeFile]
-
 	filelist, err := l.locateFile(ctx, templatefile, query, repoStructure)
 	if err != nil {
 		return "", fmt.Errorf("failed to locate file: %v", err)
 	}
 	fmt.Println(filelist)
 
+	// Locate block or line
 	templatefile = locatorTypeMap[LocatorTypeBlock]
 	blocks, err := l.locateBlock(ctx, templatefile, query, filelist)
 	if err != nil {
 		return "", fmt.Errorf("failed to locate block: %v", err)
 	}
 
-	return blocks, nil
+	data, err := json.Marshal(blocks)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal blocks: %v", err)
+	}
+
+	return string(data), nil
 }
 
 func (l Locator) locateFile(ctx context.Context, templatefile, query string, repoStructure loader.RepoStructure) (*llm.FileList, error) {
@@ -124,17 +130,17 @@ func (l Locator) locateFile(ctx context.Context, templatefile, query string, rep
 	return &filelist, nil
 }
 
-func (l Locator) locateBlock(ctx context.Context, templatefile, query string, filelist *llm.FileList) (string, error) {
+func (l Locator) locateBlock(ctx context.Context, templatefile, query string, filelist *llm.FileList) (*llm.FileBlockList, error) {
 
 	if len(filelist.Paths) == 0 {
-		return "", fmt.Errorf("no files found")
+		return nil, fmt.Errorf("no files found")
 	}
 
 	fileContents := make(map[string]string, len(filelist.Paths))
 	for _, path := range filelist.Paths {
 		content, err := file.ReadContent(path)
 		if err != nil {
-			return "", fmt.Errorf("failed to read content: %v", err)
+			return nil, fmt.Errorf("failed to read content: %v", err)
 		}
 		fileContents[path] = content
 	}
@@ -143,17 +149,22 @@ func (l Locator) locateBlock(ctx context.Context, templatefile, query string, fi
 
 	prompt, err := makeLocateBlockOrLinePrompt(templatefile, query, fileContentsStr)
 	if err != nil {
-		return "", fmt.Errorf("failed to make prompt: %v", err)
+		return nil, fmt.Errorf("failed to make prompt: %v", err)
 	}
 
-	res, err := l.llmClient.GenerateCompletionSimple(ctx, []llm.Message{
+	res, err := l.llmClient.GenerateCompletion(ctx, []llm.Message{
 		{Role: llm.RoleUser, Content: prompt},
-	})
+	}, llm.FileBlockListSchemaParam)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate completion: %v", err)
+		return nil, fmt.Errorf("failed to generate completion: %v", err)
 	}
 
-	return res, nil
+	var fileBlockList llm.FileBlockList
+	if err = json.Unmarshal([]byte(res), &fileBlockList); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal relevant blocks: %v", err)
+	}
+
+	return &fileBlockList, nil
 }
 
 func formatFileContents(fileContents map[string]string) (string, error) {
