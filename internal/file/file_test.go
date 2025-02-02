@@ -118,3 +118,23 @@ func TestDefaultFileReader_ReadContent(t *testing.T) {
 		t.Errorf("expected %q, got %q", content, readContent)
 	}
 }
+
+func TestExists(t *testing.T) {
+	// Create a temporary file
+	tempFile, err := os.CreateTemp("", "testfile")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tempFile.Name()) // Clean up
+
+	// Test case: File exists
+	if !file.Exists(tempFile.Name()) {
+		t.Errorf("Expected file to exist, but it does not")
+	}
+
+	// Test case: File does not exist
+	nonExistentFile := "non_existent_file.txt"
+	if file.Exists(nonExistentFile) {
+		t.Errorf("Expected file to not exist, but it does")
+	}
+}
