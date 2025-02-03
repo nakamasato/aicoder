@@ -23,6 +23,7 @@ func locateCommand() *cobra.Command {
 		Run:   runLocate,
 		Args:  cobra.MinimumNArgs(1),
 	}
+	locateCmd.Flags().StringVarP(&outputFile, "output", "o", "location.json", "Output JSON file for the location")
 	locateCmd.Flags().VarP(&locatorType, "irrelevant", "r", "locator type")
 
 	return locateCmd
@@ -58,4 +59,9 @@ func runLocate(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	fmt.Println(string(data))
+
+	// Save location to file
+	if err := file.SaveObject(blocks, outputFile); err != nil {
+		log.Fatalf("failed to save location to file: %v", err)
+	}
 }
