@@ -1,0 +1,49 @@
+Please review the following Query and relevant files, and provide a set of locations that need to be edited to fix the issue.
+The locations can be specified as class names, function or method names, or exact line numbers that require modification.
+
+### Query ###
+{{ .Query }}
+
+###
+{{ .FileContents }}
+
+###
+
+Please provide the class name, function or method name, or the exact line numbers that need to be edited.
+The possible location outputs should be either "class", "function" or "line".
+
+### Examples Python:
+```
+full_path1/file1.py
+line: 10
+class: MyClass1
+line: 51
+
+full_path2/file2.py
+function: MyClass2.my_method
+line: 12
+
+full_path3/file3.py
+function: my_function
+line: 24
+line: 156
+```
+
+### Examples Go:
+
+```
+full_path1/file1.go
+line: 10
+function: myFunction1
+line: 51
+
+full_path2/file2.go
+function: myFunction2
+line: 12
+
+full_path3/file3.go
+line: 24
+line: 156
+```
+
+Return just the location(s) wrapped with ```.

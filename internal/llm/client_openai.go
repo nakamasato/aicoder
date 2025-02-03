@@ -18,6 +18,7 @@ type openaiClient struct {
 	openai         *openai.Client
 	chatModel      openai.ChatModel
 	embeddingModel openai.EmbeddingModel
+	temperature    float64
 }
 
 type ClientOption func(*openaiClient)
@@ -25,6 +26,12 @@ type ClientOption func(*openaiClient)
 func WithChatModel(model openai.ChatModel) ClientOption {
 	return func(c *openaiClient) {
 		c.chatModel = model
+	}
+}
+
+func WithTemperature(temperature float64) ClientOption {
+	return func(c *openaiClient) {
+		c.temperature = temperature
 	}
 }
 
@@ -39,6 +46,7 @@ func NewOpenAIClient(apiKey string, opts ...ClientOption) Client {
 		openai:         openai.NewClient(option.WithAPIKey(apiKey)),
 		chatModel:      chatModel,      // default chat model
 		embeddingModel: embeddingModel, // default embedding model
+		temperature:    0.5,            // default temperature
 	}
 
 	for _, opt := range opts {
@@ -48,9 +56,10 @@ func NewOpenAIClient(apiKey string, opts ...ClientOption) Client {
 	return client
 }
 
-// GenerateCompletion handles the common OpenAI chat completion logic
+// GenerateCompletions handles the common OpenAI chat completion logic
 // https://github.com/openai/openai-go/blob/8a8855d08ef84f47163deb4ce9febc4a7e02dd3d/examples/structured-outputs/main.go#L49
-func (c openaiClient) GenerateCompletion(ctx context.Context, messages []Message, schema Schema) (string, error) {
+func (c openaiClient) GenerateCompletions(ctx context.Context, messages []Message, schema Schema, n int64) ([]string, error) {
+	var completions []string
 	msgs := c.convertMessages(messages)
 	chat, err := c.openai.Chat.Completions.New(ctx,
 		openai.ChatCompletionNewParams{
@@ -67,12 +76,26 @@ func (c openaiClient) GenerateCompletion(ctx context.Context, messages []Message
 					}),
 				},
 			),
+			N:           openai.Int(n),
+			Temperature: openai.Float(c.temperature),
 		})
+	if err != nil {
+		return completions, err
+	}
+
+	for _, choice := range chat.Choices {
+		completions = append(completions, choice.Message.Content)
+	}
+	return completions, nil
+}
+
+// GenerateCompletion handles the common OpenAI chat completion logic for a single completion regardless of the number of choices
+func (c openaiClient) GenerateCompletion(ctx context.Context, messages []Message, schema Schema) (string, error) {
+	res, err := c.GenerateCompletions(ctx, messages, schema, 1)
 	if err != nil {
 		return "", err
 	}
-
-	return chat.Choices[0].Message.Content, nil
+	return res[0], nil
 }
 
 func (c openaiClient) convertMessages(messages []Message) []openai.ChatCompletionMessageParamUnion {

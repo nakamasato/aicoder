@@ -24,10 +24,13 @@ func parseCommand() *cobra.Command {
 
 func runParse(cmd *cobra.Command, args []string) {
 	fset := token.NewFileSet()
+	if filename == "" {
+		log.Fatal("Please provide a filename to refactor")
+	}
 	outputFile := fmt.Sprintf("%s.tmp", filename)
 	node, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to parse file %s, %v", filename, err)
 	}
 
 	ast.Inspect(node, func(n ast.Node) bool {
