@@ -48,20 +48,20 @@ func runLocate(cmd *cobra.Command, args []string) {
 	}
 
 	query := strings.Join(args, " ")
-	blocks, err := lctr.Locate(ctx, locatorType, query, repoStructure, 2)
+	location, err := lctr.Locate(ctx, locatorType, query, repoStructure, 2)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	data, err := json.Marshal(blocks)
+	data, err := json.Marshal(location)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(string(data))
 
 	// Save location to file
-	if err := file.SaveObject(blocks, outputFile); err != nil {
+	if err := file.SaveObject(location, outputFile); err != nil {
 		log.Fatalf("failed to save location to file: %v", err)
 	}
 }

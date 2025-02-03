@@ -78,8 +78,13 @@ var locatorTypeMap = map[LocatorType]string{
 	LocatorTypeLine:           promptLocateLineTemplate,
 }
 
+type LocationOutput struct {
+	Query     string
+	BlockList llm.FileBlockList
+}
+
 // Locate locates the relevant block or line in the repository.
-func (l Locator) Locate(ctx context.Context, locatorType LocatorType, query string, repoStructure loader.RepoStructure, numOfSample int64) (*llm.FileBlockList, error) {
+func (l Locator) Locate(ctx context.Context, locatorType LocatorType, query string, repoStructure loader.RepoStructure, numOfSample int64) (*LocationOutput, error) {
 
 	if query == "" {
 		return nil, fmt.Errorf("query is empty")
@@ -107,7 +112,7 @@ func (l Locator) Locate(ctx context.Context, locatorType LocatorType, query stri
 		return nil, fmt.Errorf("failed to locate line: %v", err)
 	}
 
-	return blocklist, nil
+	return &LocationOutput{Query: query, BlockList: *blocklist}, nil
 }
 
 // locateFile locates the relevant files in the repository.
