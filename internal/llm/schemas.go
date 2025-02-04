@@ -44,6 +44,10 @@ type FileBlockLineList struct {
 	Files []BlockWithLineList `json:"files" jsonschema_description:"List of files with blocks and line numbers"`
 }
 
+type Repair struct {
+	Change string `json:"diff" jsonschema_description:"The diff of the repair. This should start with <<<<<<< SEARCH and end with >>>>>>> REPLACE. ======= is the separator between the original and the replacement."`
+}
+
 type YesOrNo struct {
 	Answer bool `json:"answer" jsonschema_description:"Answer to the yes or no question"`
 }
@@ -52,6 +56,7 @@ var (
 	FileListSchemaParam          = GenerateSchema[FileList]("filelist", "List of filepaths")
 	FileBlockListSchemaParam     = GenerateSchema[FileBlockList]("blocklist", "List of blocks in files")
 	FileBlockLineListSchemaParam = GenerateSchema[FileBlockLineList]("blocklinelist", "List of blocks with line numbers in files")
+	RepairSchemaParam            = GenerateSchema[Repair]("repair", "The diff of the repair")
 	YesOrNoSchemaParam           = GenerateSchema[YesOrNo]("yes_or_no", "Answer to the yes or no question")
 )
 

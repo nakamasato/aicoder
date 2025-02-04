@@ -1,0 +1,36 @@
+We are currently addressing the following query given by a user. Here is the query text:
+--- BEGIN QUERY ---
+{{ .Query }}
+--- END QUERY ---
+
+{{ .RepairRelevantFileInstruction }}
+--- BEGIN FILE ---
+```
+{{ .Content }}
+```
+--- END FILE ---
+
+Please first localize the code based on the query, and then generate *SEARCH/REPLACE* edits to address the query.
+
+Every *SEARCH/REPLACE* edit must use this format:
+1. The file path
+2. The start of search block: <<<<<<< SEARCH
+3. A contiguous chunk of lines to search for in the existing source code
+4. The dividing line: =======
+5. The lines to replace into the source code
+6. The end of the replace block: >>>>>>> REPLACE
+
+Here is an example:
+
+```python
+### mathweb/flask/app.py
+<<<<<<< SEARCH
+from flask import Flask
+=======
+import math
+from flask import Flask
+>>>>>>> REPLACE
+```
+
+Please note that the *SEARCH/REPLACE* edit REQUIRES PROPER INDENTATION. If you would like to add the line '        print(x)', you must fully write that out, with all those spaces before the code!
+Wrap the *SEARCH/REPLACE* edit in blocks ```python...``` or ```go...``` (specify the language accordingly).

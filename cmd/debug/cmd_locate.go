@@ -14,7 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var locatorType locator.LocatorType
+var (
+	locatorType       locator.LocatorType
+	locatorOutputFile string
+)
 
 func locateCommand() *cobra.Command {
 	locateCmd := &cobra.Command{
@@ -23,8 +26,8 @@ func locateCommand() *cobra.Command {
 		Run:   runLocate,
 		Args:  cobra.MinimumNArgs(1),
 	}
-	locateCmd.Flags().StringVarP(&outputFile, "output", "o", "location.json", "Output JSON file for the location")
-	locateCmd.Flags().VarP(&locatorType, "irrelevant", "r", "locator type")
+	locateCmd.Flags().StringVarP(&locatorOutputFile, "output", "o", "location.json", "Output JSON file for the location")
+	locateCmd.Flags().VarP(&locatorType, "locatortype", "l", "locator type")
 
 	return locateCmd
 }
@@ -61,7 +64,7 @@ func runLocate(cmd *cobra.Command, args []string) {
 	fmt.Println(string(data))
 
 	// Save location to file
-	if err := file.SaveObject(location, outputFile); err != nil {
+	if err := file.SaveObject(location, locatorOutputFile); err != nil {
 		log.Fatalf("failed to save location to file: %v", err)
 	}
 }
