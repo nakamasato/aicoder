@@ -1,11 +1,17 @@
+codecov:
+  require_ci_to_pass: true
+
 coverage:
+  precision: 2
+  round: down
+  range: "50...100"
   status:
     project:
-      target: 0%
-      threshold: 0%
+      default:
+        target: 0%
     patch:
-      target: 0%
-      threshold: 0%
+      default:
+        target: 0%
 
 # sample regex patterns
 ignore:
