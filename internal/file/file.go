@@ -53,19 +53,18 @@ func UpdateFuncInMemory(originalContent []byte, functionName, newFunctionContent
 
 // WriteFile writes the content to the file at the given path.
 func SaveObject(obj interface{}, outputFile string) error {
-	data, err := json.MarshalIndent(obj, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal obj: %w", err)
-	}
-
 	file, err := os.Create(outputFile)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
 	defer file.Close()
 
-	if _, err := file.Write(data); err != nil {
-		return fmt.Errorf("failed to write to file: %w", err)
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
+
+	if err := encoder.Encode(obj); err != nil {
+		return fmt.Errorf("failed to encode obj: %w", err)
 	}
 	return nil
 }

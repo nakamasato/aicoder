@@ -14,7 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var locatorType locator.LocatorType
+var (
+	locatorType       locator.LocatorType
+	locatorOutputFile string
+)
 
 func locateCommand() *cobra.Command {
 	locateCmd := &cobra.Command{
@@ -23,8 +26,8 @@ func locateCommand() *cobra.Command {
 		Run:   runLocate,
 		Args:  cobra.MinimumNArgs(1),
 	}
-	locateCmd.Flags().StringVarP(&outputFile, "output", "o", "location.json", "Output JSON file for the location")
-	locateCmd.Flags().VarP(&locatorType, "irrelevant", "r", "locator type")
+	locateCmd.Flags().StringVarP(&locatorOutputFile, "output", "o", "location.json", "Output JSON file for the location")
+	locateCmd.Flags().VarP(&locatorType, "locatortype", "l", "locator type")
 
 	return locateCmd
 }
@@ -48,20 +51,20 @@ func runLocate(cmd *cobra.Command, args []string) {
 	}
 
 	query := strings.Join(args, " ")
-	blocks, err := lctr.Locate(ctx, locatorType, query, repoStructure, 2)
+	location, err := lctr.Locate(ctx, locatorType, query, repoStructure, 2)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	data, err := json.Marshal(blocks)
+	data, err := json.Marshal(location)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(string(data))
 
 	// Save location to file
-	if err := file.SaveObject(blocks, outputFile); err != nil {
+	if err := file.SaveObject(location, locatorOutputFile); err != nil {
 		log.Fatalf("failed to save location to file: %v", err)
 	}
 }

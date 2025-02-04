@@ -1,3 +1,25 @@
+Please extract the block content of the provided file.
+
+### File Content Start ###
+
+```
+{{ .Content }}
+```
+
+### File Content End ###
+
+### Block Info Start ###
+
+- Block Type: {{ .Block.BlockType }}
+- Block Name: {{ .Block.Name }}
+
+### Block Info End ###
+
+### Example Start ###
+
+Example Content
+
+```
 package locator
 
 import (
@@ -319,3 +341,40 @@ func makeLocateLinePrompt(templatefile, query, fileContents string) (string, err
 	prompt = buf.String()
 	return prompt, nil
 }
+```
+
+Example Block Info
+
+- Block Type: function
+- Block Name: makeLocateLinePrompt
+
+Example Block Content
+
+```
+func makeLocateLinePrompt(templatefile, query, fileContents string) (string, error) {
+
+	var prompt string
+	tmplData := struct {
+		Query        string
+		FileContents string
+	}{
+		Query:        query,
+		FileContents: fileContents,
+	}
+
+	tmpl, err := template.New("template").Parse(templatefile)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse template: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, tmplData); err != nil {
+		return "", fmt.Errorf("failed to execute template: %v", err)
+	}
+
+	prompt = buf.String()
+	return prompt, nil
+}
+```
+
+### Example End ###
