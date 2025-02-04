@@ -7,9 +7,6 @@ lint:
 .PHONY: test
 test:
 	go test -v ./...
-.PHONY: integrationtest
-integrationtest:
-	RUN_INTEGRATION_TESTS=true go test -v ./...
 .PHONY: fmt
 fmt:
 	go fmt ./...
