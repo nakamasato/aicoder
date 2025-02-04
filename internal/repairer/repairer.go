@@ -72,7 +72,6 @@ func (r Repairer) Repair(ctx context.Context, location *locator.LocationOutput, 
 
 func (r Repairer) repairOneFile(ctx context.Context, query string, blkList llm.BlockList, numOfSample int64) (*FileRepair, error) {
 
-	// TODO: get the content of blocks
 	content, err := file.ReadContent(blkList.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s, %v", blkList.Path, err)
@@ -95,7 +94,7 @@ func (r Repairer) repairOneFile(ctx context.Context, query string, blkList llm.B
 		}
 		fmt.Printf("[repairOneBlockList][%d/%d] block content: %s\n", i+1, len(blkList.Blocks), blockContent)
 
-		blockRepair, err := r.repairOneBlock(ctx, r.llmClient, query, blk, blockContent, numOfSample)
+		blockRepair, err := r.repairOneBlock(ctx, query, blk, blockContent, numOfSample)
 		if err != nil {
 			return nil, fmt.Errorf("failed to repair block: %v", err)
 		}
@@ -105,7 +104,7 @@ func (r Repairer) repairOneFile(ctx context.Context, query string, blkList llm.B
 	return &fr, nil
 }
 
-func (r Repairer) repairOneBlock(ctx context.Context, llmClient llm.Client, query string, block llm.Block, content string, numOfSample int64) (*BlockRepair, error) {
+func (r Repairer) repairOneBlock(ctx context.Context, query string, block llm.Block, content string, numOfSample int64) (*BlockRepair, error) {
 	br := BlockRepair{
 		Block:        block,
 		BlockContent: content,
