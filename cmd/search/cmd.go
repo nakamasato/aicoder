@@ -7,6 +7,7 @@ import (
 
 	"github.com/nakamasato/aicoder/config"
 	"github.com/nakamasato/aicoder/ent"
+	"github.com/nakamasato/aicoder/internal/file"
 	"github.com/nakamasato/aicoder/internal/llm"
 	"github.com/nakamasato/aicoder/internal/vectorstore"
 	"github.com/spf13/cobra"
@@ -62,7 +63,25 @@ func runSearch(cmd *cobra.Command, args []string) {
 
 	// Display results
 	fmt.Printf("Top %d related files:\n", len(*res.Documents))
+	contextBuilder := strings.Builder{}
 	for i, doc := range *res.Documents {
 		fmt.Printf("%d. %s (Score: %.2f)\n", i+1, doc.Document.Filepath, doc.Score)
+		content, err := file.ReadContent(doc.Document.Filepath)
+		if err != nil {
+			log.Fatalf("failed to read content of file %s: %v", doc.Document.Filepath, err)
+		}
+		contextBuilder.WriteString(fmt.Sprintf("----- File: %s\n -----\n```\n%s\n```\n", doc.Document.Filepath, content))
 	}
+
+	llmClient := llm.NewOpenAIClient(config.OpenAIAPIKey)
+	answer, err := llmClient.GenerateCompletionSimple(ctx, []llm.Message{
+		{
+			Role: llm.RoleSystem,
+			Content: fmt.Sprintf("Please answer the question about a repository '%s' from a user\n\n##query\n%s\n## Relevant Files\n%s\n",
+				config.Repository, query, contextBuilder.String()),
+		}})
+	if err != nil {
+		log.Fatalf("failed to generate completion: %v", err)
+	}
+	fmt.Println(answer)
 }

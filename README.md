@@ -6,6 +6,7 @@
 - `OPENAI_API_KEY` environment variable set for using OpenAI API.
 
 ## Available Commands
+
 1. **load**: Load the repository structure from a Git repository and export it to a JSON file with summaries.
 2. **search**: Search for files related to a given query.
 3. **plan**: Generate a project plan based on a specified goal.

@@ -34,7 +34,7 @@ type RepoSummary struct {
 	Configuration      string   `json:"configuration" jsonschema_description:"The configuration of the repository. Configuration files (include simple example if exists)"`
 	EnvVars            []EnvVar `json:"environment_variables" jsonschema_description:"The environment variables used in the repository."`
 	DirectoryStructure string   `json:"directory_structure" jsonschema_description:"The directory structure of the repository. Not only the root directories but also subdirectories if they contains core implementations. Include simplified directory structure diagram like the result of tree command with short explanation for each directory. You can omit unimportant directories."`
-	Entrypoints        []string `json:"entrypoints" jsonschema_description:"The main entry points of the repository. How to run the repository."`
+	Entrypoints        []string `json:"entrypoints" jsonschema_description:"All the entry points of the repository. Please write the executable commands. CLIs, web servers start command, etc."`
 	ImportantFiles     []string `json:"important_files" jsonschema_description:"Important files or directories that users should know about. Configuration files, main entry points, files that contain important functions or classes."`
 	ImportantFunctions []string `json:"important_functions" jsonschema_description:"Important functions or classes that are used throughout the repository."`
 	Dependencies       string   `json:"dependencies" jsonschema_description:"Internal dependencies or relationships between files or directories. Simplified diagram in mermaid format would be helpful."`
