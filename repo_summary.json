@@ -1,45 +1,344 @@
 {
-  "overview": "AICoder is an AI-powered command-line interface (CLI) tool designed to enhance coding efficiency, particularly for managing PostgreSQL projects and integrating with OpenAI API.",
-  "features": [
-    "Manage repository structures",
-    "Generate project plans",
-    "Apply changes to code",
-    "Review changes using AI",
-    "Search and locate files in repositories"
-  ],
-  "configuration": "Configuration files include a `.env.example` for environment variables and `.aicoder.yaml` for application settings. Example `.env` content:\n```\nOPENAI_API_KEY=your_api_key\nDATABASE_URL=your_database_url\n```\n",
-  "environment_variables": [
-    {
-      "name": "OPENAI_API_KEY",
-      "desc": "API key for accessing OpenAI services.",
-      "required": true
+  "summary": {
+    "overview": "The Aicoder repository is an AI-powered command-line interface (CLI) tool designed to enhance coding efficiency, particularly for managing PostgreSQL projects and integrating with OpenAI API.",
+    "features": [
+      "Command-line interface for various coding tasks",
+      "Integration with OpenAI for AI-assisted coding",
+      "Database management commands for PostgreSQL",
+      "File manipulation and parsing for various programming languages",
+      "Code review and repair functionalities"
+    ],
+    "configuration": "The repository uses a configuration file named '.aicoder.yaml' to define database schemas and related entities using the Ent ORM in Go. Example configuration:\n```yaml\n# .aicoder.yaml\nschema:\n  - name: User\n    fields:\n      - name: ID\n        type: int\n      - name: Name\n        type: string\n```",
+    "environment_variables": [
+      {
+        "name": "OPENAI_API_KEY",
+        "desc": "API key to access OpenAI services.",
+        "required": true
+      },
+      {
+        "name": "DATABASE_URL",
+        "desc": "Connection string for the PostgreSQL database.",
+        "required": true
+      }
+    ],
+    "directory_structure": "```\n.\n├── .github\n├── cmd\n│   ├── apply\n│   ├── config\n│   ├── db\n│   ├── debug\n│   ├── load\n│   ├── plan\n│   ├── review\n│   ├── search\n│   ├── summarize\n│   └── ...\n├── internal\n│   ├── applier\n│   ├── file\n│   ├── locator\n│   ├── planner\n│   ├── retriever\n│   ├── repairer\n│   ├── vectorstore\n│   └── ...\n├── .aicoder.yaml\n├── README.md\n└── main.go\n``` \n- `cmd`: Contains CLI command implementations for various functionalities like applying changes, managing configurations, and database operations.\n- `internal`: Contains core logic and functionalities, including file manipulation, planning, and repairer utilities.\n- `.aicoder.yaml`: Configuration file for the project.\n- `main.go`: The entry point for executing commands related to the Aicoder tool.",
+    "entrypoints": [
+      "`go run main.go` - Entry point to execute the Aicoder CLI commands."
+    ],
+    "important_files": [
+      "`.aicoder.yaml` - Configuration file for database schemas and entities.",
+      "`main.go` - Entry point for the Aicoder CLI tool.",
+      "`README.md` - Documentation detailing the purpose and usage of the Aicoder CLI tool."
+    ],
+    "important_functions": [
+      "`runSearch` - Executes the search functionality in the cmd/search directory.",
+      "`ApplyChanges` - Applies configuration changes based on a specified plan.",
+      "`ReviewChanges` - Reviews planned changes using AI."
+    ],
+    "dependencies": "```mermaid\ngraph TD;\n    A[cmd] --\u003e|uses| B[internal];\n    B --\u003e|manages| C[database];\n    B --\u003e|interacts with| D[OpenAI API];\n    A --\u003e|executes| E[main.go];\n```",
+    "technologies": [
+      "Go",
+      "Cobra (for CLI management)",
+      "Ent ORM (for PostgreSQL)",
+      "OpenAI API (for AI functionalities)",
+      "GitHub Actions (for CI/CD)"
+    ]
+  },
+  "directory_summaries": {
+    ".": {
+      "purpose": "The directory contains an AI-powered command-line interface (CLI) tool designed to enhance coding efficiency, particularly for managing PostgreSQL projects and integrating with OpenAI API.",
+      "components": [
+        ".aicoder.yaml - Defines database schemas and related entities using the Ent ORM in Go.",
+        ".env.example - Provides configuration variables for connecting to OpenAI API and a test PostgreSQL database.",
+        ".envrc - Loads environment variables from a .env file if present.",
+        "Makefile - Defines commands for building, testing, linting, formatting, running, and database operations in a Go project.",
+        "DEVELOPMENT.md - Instructions for setting up the Go project with various tools and frameworks.",
+        "README.md - Documentation detailing the purpose and usage of the AICoder CLI tool.",
+        "go.mod - Module configuration defining dependencies for the Go application.",
+        "main.go - Entry point for executing commands related to the AICoder tool.",
+        "repo_summary.json - Summary of the repository and its functionalities."
+      ],
+      "description": "This directory is structured to support the development and operation of an AI-powered CLI tool, with components for configuration, documentation, and code organization. Key files include configuration files for environment variables, a Makefile for task management, and documentation for setup and usage, along with the main application code that integrates various libraries and frameworks."
     },
-    {
-      "name": "DATABASE_URL",
-      "desc": "Connection string for the PostgreSQL database.",
-      "required": true
+    ".github": {
+      "purpose": "The .github directory is intended for managing GitHub-specific configurations and workflows, particularly related to project releases and automation.",
+      "components": [
+        "release-drafter.yml: A configuration file for automating the release drafting process on GitHub."
+      ],
+      "description": "The .github directory contains files that configure GitHub Actions and other project-related settings. The primary component is the release-drafter.yml file, which defines how release notes are generated based on merged pull requests. This setup streamlines the process of maintaining a clear and organized release history for the project."
+    },
+    ".github/workflows": {
+      "purpose": "The .github/workflows directory is used to define automated workflows for GitHub Actions, facilitating continuous integration and deployment processes for the repository.",
+      "components": [
+        "go.yaml - A workflow for testing Go applications with PostgreSQL",
+        "release-drafter.yaml - A workflow for automatically drafting release notes upon merging pull requests"
+      ],
+      "description": "The .github/workflows directory contains YAML files that specify different workflows for automating tasks in the GitHub repository. The go.yaml file sets up a testing environment for Go applications, utilizing PostgreSQL as a service, and includes steps for running tests and linting code. The release-drafter.yaml file automates the creation of release notes when changes are merged, streamlining the release management process."
+    },
+    "cmd": {
+      "purpose": "The cmd directory contains the code for a command-line interface (CLI) tool called Aicoder, designed to assist users in coding efficiently using AI.",
+      "components": [
+        "cmd/root.go - Defines the main command structure and initializes the CLI tool.",
+        "Imported packages - Includes various subcommands and configurations necessary for the CLI to function."
+      ],
+      "description": "The cmd directory is structured around the implementation of the Aicoder CLI tool. The primary file, root.go, sets up the command hierarchy, including the root command and its subcommands. It imports several packages that correspond to different functionalities of the tool, such as applying code changes, managing configurations, interacting with a database, debugging, loading projects, planning tasks, reviewing code, searching for resources, and summarizing information. The tool is designed to read a default configuration from a file named '.aicoder.yaml'."
+    },
+    "cmd/apply": {
+      "purpose": "To provide a command-line interface for applying configuration changes to a system based on a specified plan file.",
+      "components": [
+        "cmd.go - Implements the command-line functionality for applying configurations.",
+        "Imported packages for logging, formatting, and command handling.",
+        "References to internal modules for applying configurations and planning."
+      ],
+      "description": "The cmd/apply directory contains code for a command-line tool that allows users to apply configuration changes to a system. The main file, cmd.go, defines the command's functionality using the Cobra library, which is a popular library for creating command-line applications in Go. The tool requires a plan file to be specified, which outlines the changes to be applied, and it includes an option for a dry run to preview changes before actual application."
+    },
+    "cmd/config": {
+      "purpose": "The main purpose of the cmd/config directory is to manage configuration settings through a command-line interface (CLI) using the Cobra library.",
+      "components": [
+        "cmd.go - Initializes the CLI command structure for configuration management.",
+        "cmd_init.go - Contains functionality to initialize a default configuration file (.aicoder.yaml).",
+        "cmd_set_context.go - Implements functionality to set the current context in the configuration management system."
+      ],
+      "description": "The cmd/config directory contains the code necessary for managing configuration settings in a CLI application. It includes multiple files that define various commands related to configuration management. The main file, cmd.go, sets up the command structure using the Cobra library, allowing for subcommands related to configuration. The cmd_init.go file provides functionality to create a default configuration file if it does not already exist, while cmd_set_context.go allows users to set the current context within the configuration management system. Together, these components enable users to effectively manage their configuration settings through command-line interactions."
+    },
+    "cmd/db": {
+      "purpose": "The main purpose of this directory is to provide command-line interface (CLI) commands for managing database operations, specifically for migrating and resetting a PostgreSQL database schema using the ent framework.",
+      "components": [
+        "cmd.go: Defines the main CLI command for database operations using the Cobra library.",
+        "cmd_migrate.go: Implements a command for migrating the PostgreSQL database schema with ent.",
+        "cmd_reset.go: Implements a command for resetting the PostgreSQL database, including deletion of documents and schema recreation."
+      ],
+      "description": "The 'cmd/db' directory contains Go code that facilitates database management through a CLI. It includes 'cmd.go' which sets up the main command and subcommands for database tasks. The 'cmd_migrate.go' file contains the logic for migrating the database schema, while 'cmd_reset.go' handles the resetting of the database state. Both migration and reset functionalities utilize the ent framework and require a PostgreSQL database connection."
+    },
+    "cmd/debug": {
+      "purpose": "The cmd/debug directory serves as a collection of command-line interface (CLI) tools for debugging functionalities within the AICoder project, utilizing the Cobra library for command management and integrating OpenAI's API for various tasks.",
+      "components": [
+        "cmd.go - Defines the command structure for debugging tools using Cobra, including several subcommands for different functionalities.",
+        "cmd_agent.go - Implements a command for running an agent that generates function calls based on user queries related to weather using OpenAI's API.",
+        "cmd_locate.go - Provides a command-line tool for locating files in a repository based on user queries, outputting results in JSON format.",
+        "cmd_parse.go - Facilitates refactoring of Go source files by changing function names using the Abstract Syntax Tree (AST) package.",
+        "cmd_refactor.go - Implements a command for refactoring code using suggestions from OpenAI, generating a plan and applying changes.",
+        "cmd_repair.go - Defines a tool for repairing files specified in JSON format, utilizing OpenAI's API for the repair process."
+      ],
+      "description": "The cmd/debug directory contains multiple Go files, each defining specific commands for debugging tasks in the AICoder project. These commands cover a range of functionalities including running an AI agent, locating files, parsing and refactoring code, and repairing files. Each file imports necessary packages, including Cobra for CLI management and various internal packages for specific functionalities, and employs methods for handling user input, generating outputs, and interacting with APIs."
+    },
+    "cmd/load": {
+      "purpose": "The cmd/load directory contains code for a command-line tool that loads a Git repository's structure and exports it to a JSON file, with options for summarization using OpenAI's API.",
+      "components": [
+        "cmd.go - The main file containing the command implementation.",
+        "Command function - Defines the command to be executed from the command line.",
+        "runLoad function - Executes the logic for loading the repository and exporting the data.",
+        "Various imported packages for handling database connections, logging, and summarization."
+      ],
+      "description": "The cmd/load directory serves as a component of the larger aicoder project, specifically focused on loading Git repository structures and exporting them in a structured format. The main file, cmd.go, defines the command-line interface and contains the core logic for the tool, including handling database interactions and summarization tasks. The code utilizes several external libraries and internal modules to facilitate its operations, making it a crucial part of the repository management and summarization functionality."
+    },
+    "cmd/plan": {
+      "purpose": "The cmd/plan directory is designed to generate actionable plans based on the structure of a repository and specified goals, leveraging OpenAI's API for insights and recommendations.",
+      "components": [
+        "cmd.go - The main code file that implements the command for generating plans.",
+        "cobra - A library used for creating command-line interfaces.",
+        "Various internal packages (config, ent, file, llm, loader, planner, retriever, reviewer, summarizer, vectorstore) that support functionalities such as loading repository data, interacting with language models, and planning."
+      ],
+      "description": "The cmd/plan directory contains the implementation for a command-line tool that generates plans based on a given repository's structure and user-defined goals. It includes a primary file, cmd.go, which defines the command behavior and integrates various internal packages to handle tasks like loading data, generating plans, and interfacing with OpenAI's API. The directory also sets up command-line flags for user customization and includes error handling to ensure smooth execution."
+    },
+    "cmd/review": {
+      "purpose": "The cmd/review directory provides a command-line interface (CLI) command for reviewing changes based on a specified review plan using a chat model.",
+      "components": [
+        "cmd.go - Defines the CLI command for reviewing changes.",
+        "Imported packages for functionality: fmt, log, cobra, and various internal modules for configuration, file handling, language model interaction, planning, and reviewing."
+      ],
+      "description": "The cmd/review directory contains the cmd.go file, which implements a CLI command that facilitates the review of changes according to a defined review plan. It utilizes several internal modules to manage configurations, file operations, and interactions with a language model. The command includes options for specifying the plan file, review file, and chat model, along with error handling for potential issues such as missing files."
+    },
+    "cmd/search": {
+      "purpose": "To provide a command-line interface for searching files using OpenAI's API and PostgreSQL database.",
+      "components": [
+        "cmd.go - Implements the command-line tool for file searching",
+        "Command - Defines the command for searching",
+        "runSearch - Executes the search functionality",
+        "Imported packages for logging, string manipulation, configuration, database interaction, and command handling"
+      ],
+      "description": "The cmd/search directory contains the implementation of a command-line tool that allows users to search for files based on a specified query. The main file, cmd.go, defines the command and its associated functionality, including the initialization of necessary clients and the retrieval of search results. It utilizes various imported packages for handling configurations, database interactions, and command-line argument parsing."
+    },
+    "cmd/summarize": {
+      "purpose": "The cmd/summarize directory serves as a command-line interface (CLI) tool for summarizing repository structures using OpenAI's language model and a PostgreSQL database.",
+      "components": [
+        "cmd.go - Contains the main code for the CLI tool, including command definitions and execution logic.",
+        "Command - Function that initializes the CLI command for summarization.",
+        "runSummarize - Function that executes the summarization process based on user inputs."
+      ],
+      "description": "The cmd/summarize directory contains the code necessary to implement a command-line interface for repository summarization. The main file, cmd.go, includes functionality for handling user inputs such as output file specifications, OpenAI API keys, model selection, database connection strings, and language options for summarization. It imports several essential packages for database interactions, logging, and command-line argument parsing."
+    },
+    "config": {
+      "purpose": "The main purpose of the config directory is to manage and test the configuration settings for an application, utilizing the Viper library for effective configuration handling.",
+      "components": [
+        "config/config.go: Handles configuration management, including loading, setting, and retrieving configuration values.",
+        "config/config_test.go: Contains tests for the configuration management system to ensure proper functionality."
+      ],
+      "description": "The config directory contains two primary files: config.go and config_test.go. The config.go file is responsible for managing application configurations, allowing for the loading of settings from a specified file or generating default configurations if none exist. It utilizes the Viper library for this purpose. The config_test.go file is dedicated to testing the functions defined in config.go, ensuring that configuration data is correctly initialized and retrieved, as well as verifying default behavior through unit tests."
+    },
+    "examples/hcl": {
+      "purpose": "To provide functionality for processing and manipulating Terraform configurations written in HCL (HashiCorp Configuration Language).",
+      "components": [
+        "main.go - Contains the main code for processing HCL files and generating diffs of changes made.",
+        "Imported packages - Utilizes various libraries for handling HCL content, logging, and generating diffs."
+      ],
+      "description": "The 'examples/hcl' directory contains a Go code file named 'main.go' that is responsible for processing Terraform configurations. This includes updating resource blocks, modifying attributes, and adding new blocks to HCL files. The code leverages several imported packages to handle HCL parsing, file operations, and diff generation, ensuring that any changes made to the configurations can be tracked and displayed effectively."
+    },
+    "internal/applier": {
+      "purpose": "The internal/applier directory is designed to manage and apply changes to Go and HCL files based on specified change plans, allowing for both dry runs to show differences and actual modifications.",
+      "components": [
+        "applier.go: Applies changes to Go and HCL file types, displays diffs, and modifies files based on a change plan.",
+        "applier_test.go: Contains tests for applying changes to Go and HCL files, ensuring functionality and error handling.",
+        "go_applier.go: Focuses on applying changes specifically to Go functions, updating their content and comments.",
+        "go_applier_test.go: Provides tests for updating Go functions, validating the changes made to function bodies and comments.",
+        "hcl_applier.go: Implements functions for applying changes to HCL files, particularly for updating resource blocks.",
+        "hcl_applier_test.go: Contains unit tests for updating HCL resource and module blocks, ensuring correctness of the updates."
+      ],
+      "description": "The internal/applier directory contains code and tests for applying modifications to Go and HCL files. It includes core functionalities for applying changes based on a planning system, as well as testing frameworks to validate the correctness of these changes. The code is structured into separate files for general application logic, specific logic for Go files, and logic for HCL files, along with corresponding test files for each component."
+    },
+    "internal/file": {
+      "purpose": "The directory contains code for manipulating and parsing various file types, including Go, HCL (HashiCorp Configuration Language), and Python files, along with corresponding tests to ensure functionality and correctness.",
+      "components": [
+        "file.go: Provides functions for file manipulation in memory, including reading, writing, and updating functions within byte arrays.",
+        "file_test.go: Contains unit tests for the functions in file.go, ensuring correct behavior and error handling.",
+        "go_parse.go: Parses Go source files to extract functions and variables along with their line ranges.",
+        "go_parse_test.go: Tests the functionality of the Go parser, validating the identification of functions and variables.",
+        "go_update.go: Extracts the body statements of specified functions from Go source code.",
+        "go_update_test.go: Tests the extraction of function body statements, ensuring correct identification and error handling.",
+        "hcl_parse.go: Parses HCL files to extract blocks and attributes, handling file reading and error management.",
+        "hcl_parse_test.go: Tests the HCL parsing functionality, verifying the presence of expected blocks and attributes.",
+        "hcl_update.go: Provides functions to manipulate HCL files, including updating attributes and adding blocks.",
+        "hcl_update_test.go: Tests the manipulation functions for HCL files, ensuring correctness in updates and retrievals.",
+        "python_parse.go: Parses Python files to extract functions and variables using an embedded Python script.",
+        "python_parse_test.go: Tests the Python parser functionality, checking for specific functions and variables. "
+      ],
+      "description": "This directory is organized into several files, each focusing on specific functionalities related to file manipulation and parsing in different programming languages. It includes both implementation files and their corresponding test files, ensuring that each piece of functionality is thoroughly tested for reliability and correctness."
+    },
+    "internal/llm": {
+      "purpose": "The internal/llm directory is designed to provide functionalities for generating text completions, embeddings, and managing interactions with language models, particularly focusing on OpenAI's services.",
+      "components": [
+        "client.go: Defines an interface and a struct for a client that generates text completions and embeddings, includes a mock implementation for testing.",
+        "client_openai.go: Implements a client for interacting with OpenAI's chat and embedding models, allowing for configuration and error handling.",
+        "schemas.go: Defines data structures and methods for generating JSON schema representations related to files and code structures.",
+        "summarize_prompt.go: Contains constants for prompts to summarize content, aiding in user understanding of file and repository structures."
+      ],
+      "description": "The internal/llm directory contains Go code files that collectively provide tools for working with language models. The client.go file establishes the foundational client interface and mock implementation, while client_openai.go connects specifically to OpenAI's models. The schemas.go file supports the generation of JSON schemas for various entities, and summarize_prompt.go provides structured prompts for summarizing content effectively."
+    },
+    "internal/loader": {
+      "purpose": "The internal/loader directory is responsible for managing the loading and summarization of Git repository structures and their associated documents.",
+      "components": [
+        "loader.go - Implements a service for loading and managing Git repository structures and document summaries.",
+        "loader_test.go - Contains tests for the functionality provided in loader.go, ensuring reliability and correctness."
+      ],
+      "description": "The internal/loader directory contains two main files: loader.go, which defines a service to load a Git repository's structure, update document summaries, and manage them in a vector store, and loader_test.go, which includes tests for the functionalities implemented in loader.go. The loader.go file utilizes various packages for handling Git operations, concurrency, and document processing, while loader_test.go focuses on testing the service's capabilities in managing file structures within a Git context."
+    },
+    "internal/locator": {
+      "purpose": "The internal/locator directory is designed to provide functionality for locating specific files, blocks, and lines of code within a code repository based on user-defined queries.",
+      "components": [
+        "locator.go - Contains the Locator struct and methods for locating files, blocks, and lines of code.",
+        "locator_test.go - Contains test cases for the functionality of generating prompts for locating files."
+      ],
+      "description": "The internal/locator directory contains two main files: locator.go and locator_test.go. The locator.go file defines the Locator struct and implements methods to locate relevant code segments in a repository. It utilizes embedded templates for generating prompts and includes error handling mechanisms. The locator_test.go file is dedicated to testing the functionality of the makeLocateFilePrompt function, ensuring that it generates correct prompts based on provided templates and queries."
+    },
+    "internal/locator/templates": {
+      "purpose": "The directory contains template files used for locating and managing code elements related to problem-solving in a codebase.",
+      "components": [
+        "file_content.tmpl: Placeholder for content summary",
+        "locator_block.tmpl: Identifies locations needing inspection or editing in the code",
+        "locator_file.tmpl: Placeholder for file summary",
+        "locator_file_irrelevant.tmpl: Identifies irrelevant folders for a user query",
+        "locator_line.tmpl: Details error handling in a file management system"
+      ],
+      "description": "The 'internal/locator/templates' directory is organized to provide templates that assist in locating code components and managing code quality. It includes templates for identifying relevant code sections, summarizing file content, and documenting irrelevant folders for problem-solving. Additionally, it contains documentation for implementing error handling in file management systems."
+    },
+    "internal/pgvector": {
+      "purpose": "The internal/pgvector directory is designed to facilitate the integration of text embeddings into a PostgreSQL database, enabling the storage and retrieval of similar documents based on vector embeddings.",
+      "components": [
+        "debug.go - Contains the main code for connecting to PostgreSQL, fetching embeddings from OpenAI, and managing database interactions."
+      ],
+      "description": "The internal/pgvector directory contains a Go source file (debug.go) that implements functionality for working with vector embeddings in a PostgreSQL database. It connects to the database, retrieves text embeddings from the OpenAI API, and stores these embeddings in a designated database table. The code also includes functionality to query the database for similar documents based on their vector embeddings. Key functions include 'main' for execution and 'FetchEmbeddings' for retrieving embeddings from the API. The code relies on several imported packages for HTTP requests, JSON handling, and PostgreSQL interactions using PGX and PGVector."
+    },
+    "internal/planner": {
+      "purpose": "The internal/planner directory is designed for creating and managing plans for modifying code blocks in files based on user queries, utilizing AI-assisted techniques to generate action plans and perform investigations on code files.",
+      "components": [
+        "planner.go: Defines the Planner type and its methods for generating action plans and managing code modifications.",
+        "planner_examples.go: Contains examples and templates for action plans and investigation results.",
+        "planner_investigation.go: Handles the generation of investigation prompts and execution of investigations based on user queries.",
+        "planner_investigation_test.go: Tests the investigation prompt generation functionality.",
+        "planner_prompt.go: Defines various prompts and templates for generating action plans and validating file changes.",
+        "planner_test.go: Provides tests for the Planner implementation, focusing on its methods and outputs."
+      ],
+      "description": "The internal/planner directory comprises multiple Go files that collectively facilitate the planning and execution of code modifications. It includes the core Planner type, which is responsible for generating action plans based on user queries, as well as templates and examples for reporting investigation results. The directory also contains testing files to ensure the reliability and correctness of the Planner's functionality, including the generation of prompts and handling of various code files."
+    },
+    "internal/planner/templates": {
+      "purpose": "The internal/planner/templates directory contains template files used for generating prompts and results related to investigations in a web application.",
+      "components": [
+        "investigation_prompt.tmpl - Handles user authentication prompts",
+        "investigation_result.tmpl - Handles the display of investigation results"
+      ],
+      "description": "This directory serves as a repository for template files that facilitate user interactions within the investigation module of the web application. The templates are designed to manage user authentication processes and display results from investigations, ensuring a seamless user experience."
+    },
+    "internal/refactorer": {
+      "purpose": "The main purpose of this directory is to provide a package named 'refactorer' that assists in the process of refactoring code, potentially improving code quality and maintainability.",
+      "components": [
+        "refactorer.go - Contains the implementation of the refactorer package."
+      ],
+      "description": "The 'internal/refactorer' directory contains a single Go file, 'refactorer.go', which is part of a package designed to facilitate code refactoring. The specifics of the functions and imported packages are not detailed, indicating that further exploration of the file would be necessary to understand its complete functionality."
+    },
+    "internal/repairer": {
+      "purpose": "The main purpose of this directory is to implement and test a `Repairer` that leverages a large language model (LLM) to analyze and repair code segments across multiple files.",
+      "components": [
+        "repairer.go - Implements the Repairer functionality for code analysis and repairs using LLM.",
+        "repairer_test.go - Contains tests for prompt generation functions to ensure they produce the expected output."
+      ],
+      "description": "The 'internal/repairer' directory contains the core implementation and testing of a code repair utility. The primary file, 'repairer.go', includes the logic for the Repairer, which identifies bugs in code and suggests fixes using a large language model. It provides several functions for creating prompts and processing code blocks. The accompanying 'repairer_test.go' file contains unit tests for the prompt generation functions, ensuring that they correctly format strings based on the specified templates and handle errors effectively."
+    },
+    "internal/repairer/templates": {
+      "purpose": "The purpose of the internal/repairer/templates directory is to provide template files for generating code and setting up services related to file content retrieval and web server functionality.",
+      "components": [
+        "extract_block_content.tmpl: Contains code for locating files, blocks, and lines in a repository based on a query.",
+        "repair.tmpl: Contains code for initializing a web server with a health check endpoint."
+      ],
+      "description": "This directory contains Go template files that define various functionalities for the application. The extract_block_content.tmpl file focuses on locating content within a codebase, utilizing various functions to handle file and block searches. The repair.tmpl file sets up a web server using the Gin framework, providing a basic health check endpoint to confirm the server's operational status."
+    },
+    "internal/retriever": {
+      "purpose": "The internal/retriever directory is designed to implement and test file retrieval mechanisms that leverage vector stores and language models to fetch relevant files based on user queries.",
+      "components": [
+        "retriever.go - Implements file retrieval strategies using vector stores and language models.",
+        "retriever_test.go - Provides tests for the file retrieval logic, including mock implementations."
+      ],
+      "description": "This directory contains two main files: 'retriever.go' which implements various retrieval mechanisms like VectorestoreRetriever, LLMRetriever, and EnsembleRetriever for fetching relevant files based on user queries, and 'retriever_test.go' which contains tests for these retrieval mechanisms using mock implementations to validate their functionality within the AICoder application."
+    },
+    "internal/retriever/templates": {
+      "purpose": "This directory contains template files for generating summaries and documentation related to the user authentication and authorization Go application.",
+      "components": [
+        "repo_summary.tmpl: A template file that outlines the purpose and functionality of the repository."
+      ],
+      "description": "The internal/retriever/templates directory is structured to hold template files that are used for creating summaries of the codebase. The primary file, repo_summary.tmpl, provides a structured overview of the Go application focused on user management, including its functions, imported libraries, and its role in secure user authentication and authorization."
+    },
+    "internal/reviewer": {
+      "purpose": "The internal/reviewer directory is designed to implement and test functionality for reviewing planned changes in a software system, particularly focusing on the assessment of these changes using a language model for feedback.",
+      "components": [
+        "reviewer.go - Implements the review logic for planned changes, including the generation of prompts and interaction with a language model.",
+        "reviewer_test.go - Contains unit tests for the ReviewChanges function, ensuring its reliability and correctness in assessing changes."
+      ],
+      "description": "The internal/reviewer directory contains two main files: reviewer.go and reviewer_test.go. The reviewer.go file defines the core functionality for reviewing planned changes, utilizing a language model to evaluate whether the changes are reasonable and necessary. It includes functions such as ReviewChanges and makeChangeString, and imports several packages for context handling, JSON encoding, string manipulation, and interactions with internal components like llm and planner. The reviewer_test.go file is dedicated to testing the ReviewChanges function, utilizing a mock language model client to simulate responses and verify that the review process executes without errors. This structure emphasizes a clear separation between implementation and testing, facilitating maintainability and reliability."
+    },
+    "internal/summarizer": {
+      "purpose": "The main purpose of this directory is to provide functionality for summarizing the content of a repository, including its configuration, environment variables, directory structure, and important files.",
+      "components": [
+        "summarizer.go: Defines the summarization service and its core functions.",
+        "summarizer_test.go: Contains tests for the summarization service to ensure its functionality and correctness."
+      ],
+      "description": "The internal/summarizer directory contains code that implements a repository summarization service in Go. The main file, summarizer.go, includes functions for creating a new service, updating repository summaries, and reading existing summaries. It leverages imported packages for context management, JSON encoding, logging, and interaction with external libraries related to configuration and database handling. The summarizer_test.go file is dedicated to testing the functionality of the summarizer service, utilizing mock clients and assertions to verify the accuracy of the summarization process."
+    },
+    "internal/vectorstore": {
+      "purpose": "The internal/vectorstore directory is designed to implement and test a vector store system for managing documents and performing similarity searches using embeddings.",
+      "components": [
+        "client.go - Implements the vector store functionality for managing documents and similarity searches.",
+        "client_test.go - Contains tests for the vector store functionality, specifically for adding documents and calculating distances."
+      ],
+      "description": "The internal/vectorstore directory contains two main files: client.go and client_test.go. The client.go file defines a vector store that manages documents and allows for similarity searches based on vector embeddings. It includes functions for adding documents, searching for similar documents, and calculating Euclidean distances for similarity scoring. The code interacts with a PostgreSQL database using the ent framework for ORM functionalities. The client_test.go file is dedicated to unit tests that validate the functionality of the vector store, ensuring that documents can be added correctly and that distance calculations are accurate. It requires a PostgreSQL setup for testing and includes necessary cleanup operations."
     }
-  ],
-  "directory_structure": "```\n.\n├── cmd/               # Contains command implementations for the CLI tool\n│   ├── apply/        # Commands related to applying changes\n│   ├── config/       # Commands for managing configuration\n│   ├── db/           # Database-related commands\n│   ├── debug/        # Debugging commands\n│   ├── load/         # Loading repository structures\n│   ├── plan/         # Planning commands\n│   ├── review/       # Reviewing changes\n│   ├── search/       # Searching for files\n│   ├── summarize/     # Summarizing repository information\n│   └── root.go       # Main command entry point\n├── internal/         # Core functionalities of the application\n│   ├── applier/      # Applies changes to files\n│   ├── file/         # File handling utilities\n│   ├── llm/          # Language model interactions\n│   ├── loader/       # Loads repository structures\n│   ├── locator/      # Locates files and code blocks\n│   ├── planner/      # Generates change plans\n│   ├── repairer/     # Repairs code segments\n│   ├── retriever/    # Retrieves relevant files\n│   └── reviewer/     # Reviews planned changes\n├── ent/              # Database schema definitions\n├── .env.example       # Example environment variables\n└── README.md         # Documentation for the project\n```",
-  "entrypoints": [
-    "`go run main.go` - Runs the AICoder CLI tool."
-  ],
-  "important_files": [
-    "`README.md` - Documentation of the project.",
-    "`.env.example` - Example for environment variable configuration.",
-    "`main.go` - Entry point for executing CLI commands."
-  ],
-  "important_functions": [
-    "`main` - Entry point function for the application.",
-    "`Execute` - Executes the command line interface.",
-    "`ApplyChanges` - Applies changes based on a specified plan."
-  ],
-  "dependencies": "```mermaid\ngraph TD;\n    A[cmd] --\u003e|Commands| B[internal];\n    B --\u003e C[ent];\n    B --\u003e D[llm];\n    B --\u003e E[file];\n    B --\u003e F[loader];\n    B --\u003e G[locator];\n    B --\u003e H[planner];\n    B --\u003e I[repairer];\n    B --\u003e J[retriever];\n    B --\u003e K[reviewer];\n```",
-  "technologies": [
-    "Go",
-    "PostgreSQL",
-    "OpenAI API",
-    "Cobra (CLI framework)",
-    "Ent ORM (for database interactions)"
-  ]
+  }
 }

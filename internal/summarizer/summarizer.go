@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/nakamasato/aicoder/config"
@@ -28,7 +29,7 @@ type EnvVar struct {
 	Required bool   `json:"required" jsonschema_description:"Whether the environment variable is required or not."`
 }
 
-type RepoSummary struct {
+type OverallSummary struct {
 	Overview           string   `json:"overview" jsonschema_description:"The overview of the repository."`
 	Features           []string `json:"features" jsonschema_description:"The main features of the repository."`
 	Configuration      string   `json:"configuration" jsonschema_description:"The configuration of the repository. Configuration files (include simple example if exists)"`
@@ -41,7 +42,12 @@ type RepoSummary struct {
 	Technologies       []string `json:"technologies" jsonschema_description:"Concepts or technologies used in the repository. e.g. frameworks, libraries, etc."`
 }
 
-var RepoSummarySchemaParam = llm.GenerateSchema[RepoSummary]("summary", "The summary of the repository.")
+type RepoSummary struct {
+	OverallSummary     OverallSummary              `json:"summary" jsonschema_description:"The summary of the repository."`
+	DirectorySummaries map[string]DirectorySummary `json:"directory_summaries" jsonschema_description:"Summaries of each directory in the repository."`
+}
+
+var RepoSummarySchemaParam = llm.GenerateSchema[OverallSummary]("summary", "The summary of the repository.")
 
 type service struct {
 	config      *config.AICoderConfig
@@ -57,6 +63,51 @@ func NewService(cfg *config.AICoderConfig, entClient *ent.Client, llmClient llm.
 		entClient:   entClient,
 		vectorstore: store,
 	}
+}
+
+// groupDocumentsByDirectory organizes documents into directory groups
+func groupDocumentsByDirectory(documents []*vectorstore.Document) map[string][]*vectorstore.Document {
+	docsByDir := make(map[string][]*vectorstore.Document)
+	for _, doc := range documents {
+		dir := filepath.Dir(doc.Filepath)
+		docsByDir[dir] = append(docsByDir[dir], doc)
+	}
+	return docsByDir
+}
+
+type DirectorySummary struct {
+	Purpose     string   `json:"purpose" jsonschema_description:"The main purpose of this directory"`
+	Components  []string `json:"components" jsonschema_description:"Key components and their roles in this directory"`
+	Description string   `json:"description" jsonschema_description:"Detailed description of the directory's contents and organization"`
+}
+
+var DirectorySummarySchemaParam = llm.GenerateSchema[DirectorySummary]("directory_summary", "Summary of a directory's contents and purpose")
+
+// generateDirectorySummary creates a summary for a specific directory
+func (s *service) generateDirectorySummary(ctx context.Context, dirPath string, docs []*vectorstore.Document) (*DirectorySummary, error) {
+	var builder strings.Builder
+	builder.WriteString(fmt.Sprintf("Directory: %s\n\n", dirPath))
+	for _, doc := range docs {
+		builder.WriteString(fmt.Sprintf("File: %s\n", doc.Filepath))
+		builder.WriteString(fmt.Sprintf("Summary: %s\n\n", doc.Description))
+	}
+
+	prompt := fmt.Sprintf("Please analyze the following directory and provide a structured summary of its purpose and components:\n\n%s", builder.String())
+	messages := []llm.Message{
+		{Role: llm.RoleSystem, Content: prompt},
+	}
+
+	jsonSummary, err := s.llmClient.GenerateCompletion(ctx, messages, DirectorySummarySchemaParam)
+	if err != nil {
+		return nil, err
+	}
+
+	var dirSummary DirectorySummary
+	if err := json.Unmarshal([]byte(jsonSummary), &dirSummary); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal directory summary: %w", err)
+	}
+
+	return &dirSummary, nil
 }
 
 func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outputfile string) (string, error) {
@@ -75,13 +126,30 @@ func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outp
 		})
 	}
 
-	var builder strings.Builder
-	for _, doc := range documents {
-		builder.WriteString(fmt.Sprintf("File: %s\n", doc.Filepath))
-		builder.WriteString(fmt.Sprintf("Summary: %s\n", doc.Description))
+	// Group documents by directory
+	docsByDir := groupDocumentsByDirectory(documents)
+
+	// Generate summaries for each directory
+	var directorySummariesText []string
+	directorySummaries := make(map[string]DirectorySummary)
+	for dir, dirDocs := range docsByDir {
+		dirSummary, err := s.generateDirectorySummary(ctx, dir, dirDocs)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate summary for directory %s: %v", dir, err)
+		}
+
+		// Format the summary for the final repository summary prompt
+		summaryText := fmt.Sprintf("Purpose: %s\n\nKey Components:\n%s\n\nDescription: %s",
+			dirSummary.Purpose,
+			strings.Join(dirSummary.Components, "\n"),
+			dirSummary.Description)
+		directorySummariesText = append(directorySummariesText, fmt.Sprintf("Directory %s:\n%s", dir, summaryText))
+
+		directorySummaries[dir] = *dirSummary
 	}
 
-	prompt := fmt.Sprintf(llm.SUMMARIZE_REPO_CONTENT_PROMPT, s.config.Repository, s.config.CurrentContext, builder.String(), language)
+	// Generate final repository summary
+	prompt := fmt.Sprintf(llm.SUMMARIZE_REPO_CONTENT_PROMPT, s.config.Repository, s.config.CurrentContext, strings.Join(directorySummariesText, "\n\n"), language)
 	messages := []llm.Message{
 		{Role: llm.RoleSystem, Content: prompt},
 	}
@@ -91,12 +159,18 @@ func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outp
 	}
 
 	// Marshal the summary data to JSON
-	var summary RepoSummary
+	var summary OverallSummary
 	if err := json.Unmarshal([]byte(res), &summary); err != nil {
 		return "", fmt.Errorf("failed to unmarshal summary: %v", err)
 	}
 
-	summaryJSON, err := json.MarshalIndent(summary, "", "  ")
+	// Add directory summaries to the final summary
+	repoSummary := RepoSummary{
+		OverallSummary:     summary,
+		DirectorySummaries: directorySummaries,
+	}
+
+	summaryJSON, err := json.MarshalIndent(repoSummary, "", "  ")
 	if err != nil {
 		log.Fatalf("failed to marshal summary to JSON: %v", err)
 	}
@@ -110,7 +184,7 @@ func (s *service) UpdateRepoSummary(ctx context.Context, language Language, outp
 }
 
 // ReadSummary reads the summary from the given file
-func ReadSummary(ctx context.Context, filename string) (*RepoSummary, error) {
+func ReadSummary(ctx context.Context, filename string) (*OverallSummary, error) {
 	// Read the file content
 	content, err := os.ReadFile(filename)
 	if err != nil {
@@ -118,7 +192,7 @@ func ReadSummary(ctx context.Context, filename string) (*RepoSummary, error) {
 	}
 
 	// Unmarshal the JSON content
-	var summary RepoSummary
+	var summary OverallSummary
 	if err := json.Unmarshal(content, &summary); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
 	}
