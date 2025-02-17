@@ -1,0 +1,25 @@
+name: pr-agent
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+jobs:
+  pr_agent_job:
+    if: |
+      github.event.sender.type != 'Bot'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: write
+    steps:
+      - name: PR Agent action step
+        id: pragent
+        uses: qodo-ai/pr-agent@v0.26
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTION_CONFIG.AUTO_REVIEW: "true"
+          GITHUB_ACTION_CONFIG.AUTO_DESCRIBE: "true"
+          GITHUB_ACTION_CONFIG.AUTO_IMPROVE: "true"
+          GITHUB_ACTION_CONFIG.PR_ACTIONS: '["labeled", "opened", "ready_for_review"]' # default is '["opened", "reopened", "ready_for_review", "review_requested"]' ref: https://github.com/qodo-ai/pr-agent/blob/605a4b99ad7a9c7075d2e01cdb666a649656a78a/docs/docs/usage-guide/automations_and_usage.md?plain=1#L172
