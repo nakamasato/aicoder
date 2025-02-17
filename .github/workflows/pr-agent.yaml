@@ -22,4 +22,4 @@ jobs:
           GITHUB_ACTION_CONFIG.AUTO_REVIEW: "true"
           GITHUB_ACTION_CONFIG.AUTO_DESCRIBE: "true"
           GITHUB_ACTION_CONFIG.AUTO_IMPROVE: "true"
-          GITHUB_ACTION_CONFIG.PR_ACTIONS: '["labeled", "opened", "ready_for_review", "ready_for_review"]' # default is '["opened", "reopened", "ready_for_review", "review_requested"]' ref: https://github.com/qodo-ai/pr-agent/blob/605a4b99ad7a9c7075d2e01cdb666a649656a78a/docs/docs/usage-guide/automations_and_usage.md?plain=1#L172
+          GITHUB_ACTION_CONFIG.PR_ACTIONS: '["labeled", "opened", "ready_for_review"]' # default is '["opened", "reopened", "ready_for_review", "review_requested"]' ref: https://github.com/qodo-ai/pr-agent/blob/605a4b99ad7a9c7075d2e01cdb666a649656a78a/docs/docs/usage-guide/automations_and_usage.md?plain=1#L172
