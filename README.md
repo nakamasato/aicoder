@@ -30,6 +30,14 @@
   ```bash
   aicoder apply --planfile=plan.json
   ```
+- To list GitHub Actions workflow runs for a PR:
+  ```bash
+  # Using gh CLI token
+  GH_ACCESS_TOKEN=$(gh auth token) go run main.go gh run list --pr 59
+
+  # Using custom token
+  aicoder gh run list --pr 59 --token your_github_token
+  ```
 
 AICoder is a AI-powered CLI that helps you code quickly.
 
@@ -49,7 +57,8 @@ AICoder is a AI-powered CLI that helps you code quickly.
 
 ## Environment Variables
 
-- `OPENAI_API_KEY`
+- `OPENAI_API_KEY`: Required for using OpenAI API
+- `GH_ACCESS_TOKEN`: Optional for GitHub Actions commands (can also use --token flag)
 
 `copy .env.example .env`
 

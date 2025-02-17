@@ -13,8 +13,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// getGitHubToken reads the token from gh CLI's config file
-func getGitHubToken() (string, error) {
+// getGitHubToken gets the token from --token flag, GH_ACCESS_TOKEN env var, or gh CLI config
+func getGitHubToken(flagToken string) (string, error) {
+	// Check --token flag first
+	if flagToken != "" {
+		return flagToken, nil
+	}
+
+	// Check GH_ACCESS_TOKEN environment variable
+	if envToken := os.Getenv("GH_ACCESS_TOKEN"); envToken != "" {
+		return envToken, nil
+	}
+
+	// Fallback to gh CLI config
 	homeDir, err := getHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %v", err)
@@ -35,7 +46,7 @@ func getGitHubToken() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("oauth_token not found in gh config")
+	return "", fmt.Errorf("no GitHub token found. Please provide one via --token flag, GH_ACCESS_TOKEN environment variable, or authenticate with gh CLI")
 }
 
 // getRepoInfo gets the owner and repo name from the git remote URL
@@ -102,8 +113,8 @@ func NewRunListCmd() *cobra.Command {
 				return fmt.Errorf("invalid PR number: %v", err)
 			}
 
-			// Get GitHub token from gh CLI config
-			token, err := getGitHubToken()
+			// Get GitHub token
+			token, err := getGitHubToken(cmd.Flag("token").Value.String())
 			if err != nil {
 				return fmt.Errorf("failed to get GitHub token: %v (make sure gh CLI is installed and authenticated)", err)
 			}
@@ -164,6 +175,7 @@ func NewRunListCmd() *cobra.Command {
 	}
 
 	cmd.Flags().String("pr", "", "Pull request number")
+	cmd.Flags().String("token", "", "GitHub token (optional, can also use GH_ACCESS_TOKEN env var)")
 	cmd.Flags().Bool("failed", true, "Filter for failed workflows")
 
 	return cmd
