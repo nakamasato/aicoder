@@ -1,7 +1,13 @@
 package main
 
-import "github.com/nakamasato/aicoder/cmd"
+import (
+	"os"
+
+	"github.com/nakamasato/aicoder/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
