@@ -12,7 +12,10 @@ func NewGhCmd() *cobra.Command {
 	}
 
 	// Add subcommands to 'gh' here
-	cmd.AddCommand(NewRunCmd())
+	cmd.AddCommand(
+		NewRunCmd(),
+		NewPRCmd(),
+	)
 
 	return cmd
 }
