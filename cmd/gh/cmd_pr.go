@@ -41,11 +41,7 @@ func NewPRListCmd() *cobra.Command {
 				return fmt.Errorf("failed to get repository information: %v", err)
 			}
 
-			// Get parent command options
-			opts := cmd.Parent().Parent().Context().Value("ghOptions").(*ghOptions)
-
-			// List pull requests
-			prs, _, err := opts.client.PullRequests.List(opts.ctx, repoOwner, repoName, nil)
+			prs, _, err := ghCli.RawCli.PullRequests.List(cmd.Context(), repoOwner, repoName, nil)
 			if err != nil {
 				return fmt.Errorf("failed to list pull requests: %v", err)
 			}

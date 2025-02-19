@@ -1,55 +1,29 @@
 package gh
 
 import (
-	"context"
 	"fmt"
-	"net/http"
-	"os"
 
-	"github.com/google/go-github/v60/github"
+	"github.com/nakamasato/aicoder/internal/gh"
 	"github.com/nakamasato/aicoder/internal/git"
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
 )
 
-type ghOptions struct {
-	token  string
-	client *github.Client
-	ctx    context.Context
-}
+var ghCli *gh.Client
+var ghToken string
 
 // NewGhCmd creates the 'gh' parent command.
 func NewGhCmd() *cobra.Command {
-	opts := &ghOptions{
-		ctx: context.Background(),
-	}
 
 	cmd := &cobra.Command{
 		Use:   "gh",
-		Short: "GitHub の操作を行うサブコマンド",
-		// PersistentPreRun で GitHub クライアントを初期化します
+		Short: "GitHub commands",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			// コマンドライン引数でトークンが指定されていなければ環境変数から取得
-			if ghTokenFlag == "" {
-				ghTokenFlag = os.Getenv("GH_ACCESS_TOKEN")
-			}
-			cfg.Token = ghTokenFlag
-
-			var httpClient *http.Client
-			if cfg.Token != "" {
-				// トークンがある場合は OAuth2 認証付きクライアントを作成
-				ctx := context.Background()
-				ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.Token})
-				httpClient = oauth2.NewClient(ctx, ts)
-			} else {
-				// トークンがない場合は認証なしのクライアント
-				httpClient = http.DefaultClient
-			}
-			cfg.GitHubClient = github.NewClient(httpClient)
+			ctx := cmd.Context()
+			ghCli = gh.NewClient(ctx, ghToken)
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&opts.token, "token", "", "GitHub token (optional)")
+	cmd.PersistentFlags().StringVar(&ghToken, "token", "", "GitHub token (default is GH_ACCESS_TOKEN environment variable)")
 
 	// Add subcommands to 'gh' here
 	cmd.AddCommand(
@@ -60,17 +34,6 @@ func NewGhCmd() *cobra.Command {
 
 	return cmd
 }
-
-// Config は共通の設定やクライアントを保持する構造体です
-type Config struct {
-	GitHubClient *github.Client
-	Token        string
-}
-
-var cfg Config
-
-// ghTokenFlag はコマンドラインから渡す GitHub アクセストークンを一時的に保持する変数です
-var ghTokenFlag string
 
 func NewRepoCmd() *cobra.Command {
 	return &cobra.Command{
@@ -83,7 +46,7 @@ func NewRepoCmd() *cobra.Command {
 				fmt.Println("Error fetching repository information:", err)
 				return
 			}
-			repo, _, err := cfg.GitHubClient.Repositories.Get(ctx, owner, repoName)
+			repo, _, err := ghCli.RawCli.Repositories.Get(ctx, owner, repoName)
 			if err != nil {
 				fmt.Println("Error fetching repositories:", err)
 				return

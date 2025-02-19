@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/nakamasato/aicoder/internal/gh"
 	"github.com/nakamasato/aicoder/internal/git"
 	"github.com/spf13/cobra"
 )
@@ -37,8 +36,8 @@ func NewRunListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List GitHub Actions workflow runs for a PR",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
 			prNumber, _ := cmd.Flags().GetString("pr")
-			failed, _ := cmd.Flags().GetBool("failed")
 
 			if prNumber == "" {
 				return fmt.Errorf("please specify a pull request number using --pr")
@@ -55,10 +54,8 @@ func NewRunListCmd() *cobra.Command {
 				return fmt.Errorf("failed to get repository information: %v", err)
 			}
 
-			// Get parent command options
-			opts := cmd.Parent().Parent().Context().Value("ghOptions").(*ghOptions)
-
-			runs, err := gh.GetWorkflowRuns(opts.ctx, opts.token, repoOwner, repoName, prID)
+			// Get workflow runs
+			runs, err := ghCli.GetWorkflowRuns(ctx, repoOwner, repoName, prID)
 			if err != nil {
 				return fmt.Errorf("failed to get workflow runs: %v", err)
 			}
@@ -71,18 +68,13 @@ func NewRunListCmd() *cobra.Command {
 					status = conclusion
 				}
 
-				if failed && conclusion != "failure" {
-					continue
-				}
-
 				fmt.Printf("Workflow %s: %s\n", run.GetName(), status)
 
 				// If workflow failed, get and display the logs
 				if status == "completed" && conclusion == "failure" {
 					fmt.Printf("Failed workflow URL: %s\n", run.GetHTMLURL())
-
 					// Get workflow logs
-					logsURL, err := gh.GetWorkflowRunLogs(opts.ctx, opts.token, repoOwner, repoName, *run.ID)
+					logsURL, err := ghCli.GetWorkflowRunLogs(ctx, repoOwner, repoName, *run.ID)
 					if err != nil {
 						fmt.Printf("Failed to get logs URL: %v\n", err)
 						continue
