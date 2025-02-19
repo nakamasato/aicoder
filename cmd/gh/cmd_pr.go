@@ -12,16 +12,6 @@ func NewPRCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pr",
 		Short: "Manage Pull Requests",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// Propagate context to subcommands
-			if parentCtx := cmd.Parent().Context(); parentCtx != nil {
-				cmd.SetContext(parentCtx)
-				for _, subcmd := range cmd.Commands() {
-					subcmd.SetContext(parentCtx)
-				}
-			}
-			return nil
-		},
 	}
 
 	cmd.AddCommand(NewPRListCmd())

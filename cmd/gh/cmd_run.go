@@ -13,16 +13,6 @@ func NewRunCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run",
 		Short: "Manage GitHub Actions workflow runs",
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// Propagate context to subcommands
-			if parentCtx := cmd.Parent().Context(); parentCtx != nil {
-				cmd.SetContext(parentCtx)
-				for _, subcmd := range cmd.Commands() {
-					subcmd.SetContext(parentCtx)
-				}
-			}
-			return nil
-		},
 	}
 
 	// Add subcommands to 'run' here
@@ -64,11 +54,8 @@ func NewRunListCmd() *cobra.Command {
 			for _, run := range runs {
 				status := run.GetStatus()
 				conclusion := run.GetConclusion()
-				if status == "completed" {
-					status = conclusion
-				}
 
-				fmt.Printf("Workflow %s: %s\n", run.GetName(), status)
+				fmt.Printf("[%s] %s %s\n", run.GetName(), run.GetStatus(), run.GetConclusion())
 
 				// If workflow failed, get and display the logs
 				if status == "completed" && conclusion == "failure" {
