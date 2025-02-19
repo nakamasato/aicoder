@@ -3,14 +3,18 @@
 model="gpt-4o-mini"
 fallback_models=["gpt-4o-mini-2024-07-18"]  # Forcing gpt-4o-mini model even in fallback model (let check if all task can be done just by mini model)
 max_model_tokens=32000                      # (default 32000) Limits the maximum number of tokens that can be used by any model, regardless of the model's default capabilities.
+
 [pr_reviewer]
 inline_code_comments = true
+
 [pr_code_suggestions]
-summarize = false
+summarize = true
 auto_extended_mode = true
+
 [pr_description]
-publish_description_as_comment = true
+publish_description_as_comment = false
 add_original_user_description = true
+
 [github_action_config]
 auto_review = true
 auto_describe = true
